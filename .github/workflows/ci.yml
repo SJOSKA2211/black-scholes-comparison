@@ -41,6 +41,9 @@ jobs:
           cd apps/web
           npm run lint
           npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder-project.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only
 
   deploy-api:
     needs: [test-api, test-web]
