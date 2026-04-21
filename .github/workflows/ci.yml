@@ -22,7 +22,7 @@ jobs:
       - name: Run tests
         run: |
           cd apps/api
-          pytest --cov=src
+          PYTHONPATH=. pytest --cov=src
 
   test-web:
     runs-on: ubuntu-latest

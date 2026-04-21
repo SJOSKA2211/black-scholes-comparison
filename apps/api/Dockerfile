@@ -1,34 +1,33 @@
-# Stage 1: Build dependencies
-FROM python:3.11-slim as builder
+# Stage 1: dependency builder
+FROM python:3.11-slim AS builder
+WORKDIR /build
 
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    curl \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libffi-dev libssl-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
+# requirements FIRST, source SECOND
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip \
+    && pip install --prefix=/install --no-cache-dir -r requirements.txt
 
-# Stage 2: Production image
-FROM python:3.11-slim
+# Stage 2: production runtime
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
 
-# Copy source code
-COPY src ./src
-COPY scripts ./scripts
-COPY .env.example ./.env
+# Non-root user
+RUN groupadd -r app && useradd -r -g app -m app
+WORKDIR /app
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+RUN chown -R app:app /app
+USER app
 
 EXPOSE 8000
 
-# Non-root user for security
-RUN useradd -m researcher
-USER researcher
-
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# Standard uvicorn start
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
