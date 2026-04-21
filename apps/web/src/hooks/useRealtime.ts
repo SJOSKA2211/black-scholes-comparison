@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
  
 type RealtimeEvent = "INSERT" | "UPDATE" | "DELETE" | "*";
@@ -17,17 +17,30 @@ export function useRealtime<T extends object>(
 ) {
   const supabase = createBrowserClient();
   const [connected, setConnected] = useState(false);
- 
+  const callbackRef = useRef(onData);
+
+  useEffect(() => {
+    callbackRef.current = onData;
+  }, [onData]);
+
   useEffect(() => {
     const name = filter
-      ? `${table}_${filter.replace(/[^a-z0-9]/gi,"_")}` : table;
-    const ch = supabase.channel(name)
-      .on("postgres_changes",
+      ? `${table}_${filter.replace(/[^a-z0-9]/gi, "_")}`
+      : table;
+    const ch = supabase
+      .channel(name)
+      .on(
+        "postgres_changes",
         { event, schema: "public", table, ...(filter ? { filter } : {}) },
-        payload => { if (payload.new) onData(payload.new as T); })
-      .subscribe(s => setConnected(s === "SUBSCRIBED"));
-    return () => { supabase.removeChannel(ch); };
-  }, [table, event, filter, onData, supabase]); 
+        (payload) => {
+          if (payload.new) callbackRef.current(payload.new as T);
+        }
+      )
+      .subscribe((s) => setConnected(s === "SUBSCRIBED"));
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [table, event, filter, supabase]);
  
   return { connected };
 }
