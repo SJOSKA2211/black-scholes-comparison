@@ -2,7 +2,7 @@ version: "3.9"
 services:
   api:
     build:
-      target: builder     # Use builder stage in dev (has dev tools)
+      context: .
     volumes:
       - ./src:/app/src    # Mount source for hot reload
     environment:

@@ -22,7 +22,7 @@ jobs:
   scrape:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/SJOSKA2211/black-scholes-api:latest
+      image: ghcr.io/${{ github.repository_owner }}/black-scholes-api:latest
       env:
         SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

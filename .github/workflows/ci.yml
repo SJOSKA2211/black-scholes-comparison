@@ -1,10 +1,10 @@
 name: CI/CD Pipeline
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   test-api:
@@ -50,14 +50,3 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder-project.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-build-only
 
-  deploy-api:
-    needs: [test-api, test-web]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build and Push Docker Image
-        run: |
-          echo "Simulating Docker Push to Registry..."
-          # docker build -t black-scholes-api:latest -f apps/api/Dockerfile .
-          # docker push ...
