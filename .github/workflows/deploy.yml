@@ -31,7 +31,7 @@ jobs:
       - name: Build and Push to GHCR
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: apps/api
           file: apps/api/Dockerfile
           push: true
           tags: ghcr.io/${{ env.OWNER_LC }}/black-scholes-api:latest
