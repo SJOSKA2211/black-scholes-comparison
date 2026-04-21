@@ -1,89 +1,197 @@
-from fastapi import APIRouter, Depends
+import math
+import time
 from typing import List
+
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from src.methods.base import OptionParams, PriceResult, MethodType
+
+from src.auth.dependencies import get_current_user
 from src.methods.analytical import BlackScholesAnalytical
+from src.methods.base import MethodType, OptionParams, PriceResult
 from src.methods.finite_difference import FiniteDifferenceMethods
 from src.methods.monte_carlo import MonteCarloMethods
 from src.methods.trees import TreeMethods
-from src.auth.dependencies import get_current_user
-import time
+from src.metrics import (
+    PRICE_COMPUTATION_DURATION_SECONDS,
+    PRICE_COMPUTATIONS_TOTAL,
+    PRICE_MAPE_GAUGE,
+)
 
 router = APIRouter()
+
 
 class PriceRequest(BaseModel):
     params: OptionParams
     methods: List[MethodType]
+
 
 class PriceResponse(BaseModel):
     results: List[PriceResult]
     analytical_reference: float
     exec_ms: float
 
+
+# Registry of pricer instances
+analytical_engine = BlackScholesAnalytical()
+fdm_engine = FiniteDifferenceMethods()
+mc_engine = MonteCarloMethods()
+tree_engine = TreeMethods()
+
+METHOD_MAP = {
+    "analytical": analytical_engine.price,
+    "explicit_fdm": fdm_engine.explicit_fdm,
+    "implicit_fdm": fdm_engine.implicit_fdm,
+    "crank_nicolson": fdm_engine.crank_nicolson,
+    "standard_mc": mc_engine.standard_mc,
+    "antithetic_mc": mc_engine.antithetic_mc,
+    "control_variate_mc": mc_engine.control_variate_mc,
+    "quasi_mc": mc_engine.quasi_mc,
+    "binomial_crr": tree_engine.binomial_crr,
+    "trinomial": tree_engine.trinomial,
+    "binomial_crr_richardson": tree_engine.binomial_crr_richardson,
+    "trinomial_richardson": tree_engine.trinomial_richardson,
+}
+
+
 @router.post("/price", response_model=PriceResponse)
 async def price_options(
-    request: PriceRequest,
-    current_user: dict = Depends(get_current_user)
+    request: PriceRequest, current_user: dict = Depends(get_current_user)
 ):
     """
     Prices options using requested numerical methods.
-    Protected by JWT validation.
+    Instruments computations with Prometheus metrics.
     """
     start_time = time.time()
-    
-    analytical = BlackScholesAnalytical()
-    fdm = FiniteDifferenceMethods()
-    mc = MonteCarloMethods()
-    trees = TreeMethods()
-    
+
+    # Analytical reference always computed for MAPE tracking
+    ref_res = analytical_engine.price(request.params)
+    analytical_price = ref_res.computed_price
+
     results = []
-    
-    # Analytical reference always computed
-    ref_res = analytical.price(request.params)
-    
-    for method in request.methods:
-        if method == "analytical":
-            results.append(ref_res)
-        elif method == "explicit_fdm":
-            results.append(fdm.explicit_fdm(request.params))
-        elif method == "implicit_fdm":
-            results.append(fdm.implicit_fdm(request.params))
-        elif method == "crank_nicolson":
-            results.append(fdm.crank_nicolson(request.params))
-        elif method == "standard_mc":
-            results.append(mc.standard_mc(request.params))
-        elif method == "antithetic_mc":
-            results.append(mc.antithetic_mc(request.params))
-        elif method == "control_variate_mc":
-            results.append(mc.control_variate_mc(request.params))
-        elif method == "quasi_mc":
-            results.append(mc.quasi_mc(request.params))
-        elif method == "binomial_crr":
-            results.append(trees.binomial_crr(request.params))
-        elif method == "trinomial":
-            results.append(trees.trinomial(request.params))
-        elif method == "binomial_crr_richardson":
-            results.append(trees.binomial_crr_richardson(request.params))
-        elif method == "trinomial_richardson":
-            results.append(trees.trinomial_richardson(request.params))
-            
+
+    for method_type in request.methods:
+        if method_type not in METHOD_MAP:
+            continue
+
+        pricer_fn = METHOD_MAP[method_type]
+
+        # Track duration
+        with PRICE_COMPUTATION_DURATION_SECONDS.labels(method_type=method_type).time():
+            result = pricer_fn(request.params)
+
+        # Track total computations and convergence status
+        converged_status = "True"
+        if math.isnan(result.computed_price) or math.isinf(result.computed_price):
+            converged_status = "False"
+
+        PRICE_COMPUTATIONS_TOTAL.labels(
+            method_type=method_type,
+            option_type=request.params.option_type,
+            converged=converged_status,
+        ).inc()
+
+        # Track MAPE if converged
+        if converged_status == "True" and analytical_price > 0:
+            mape = (
+                abs(result.computed_price - analytical_price) / analytical_price * 100
+            )
+            PRICE_MAPE_GAUGE.labels(method_type=method_type).set(mape)
+
+        results.append(result)
+
     exec_ms = (time.time() - start_time) * 1000
-    
+
     return PriceResponse(
-        results=results,
-        analytical_reference=ref_res.computed_price,
-        exec_ms=exec_ms
+        results=results, analytical_reference=analytical_price, exec_ms=exec_ms
     )
+
 
 @router.get("/methods")
 async def get_methods():
     """Returns list of available numerical methods with metadata."""
     return [
-        {"id": "analytical", "name": "Black-Scholes Analytical", "convergence_order": "N/A", "stability_class": "Exact", "american_suitable": False},
-        {"id": "explicit_fdm", "name": "Explicit FDM (FTCS)", "convergence_order": "O(dt + dS^2)", "stability_class": "Conditionally Stable", "american_suitable": False},
-        {"id": "implicit_fdm", "name": "Implicit FDM (BTCS)", "convergence_order": "O(dt + dS^2)", "stability_class": "Unconditionally Stable", "american_suitable": False},
-        {"id": "crank_nicolson", "name": "Crank-Nicolson FDM", "convergence_order": "O(dt^2 + dS^2)", "stability_class": "Unconditionally Stable", "american_suitable": False},
-        {"id": "standard_mc", "name": "Standard Monte Carlo", "convergence_order": "O(N^-0.5)", "stability_class": "Stochastic", "american_suitable": False},
-        {"id": "binomial_crr", "name": "Binomial CRR Tree", "convergence_order": "O(N^-1)", "stability_class": "Stable", "american_suitable": True},
-        # ... and so on for all 12 methods
+        {
+            "id": "analytical",
+            "name": "Black-Scholes Analytical",
+            "convergence_order": "Exact",
+            "stability_class": "Exact",
+            "american_suitable": False,
+        },
+        {
+            "id": "explicit_fdm",
+            "name": "Explicit FDM (FTCS)",
+            "convergence_order": "1 (time), 2 (space)",
+            "stability_class": "Conditional",
+            "american_suitable": False,
+        },
+        {
+            "id": "implicit_fdm",
+            "name": "Implicit FDM (BTCS)",
+            "convergence_order": "1 (time), 2 (space)",
+            "stability_class": "Unconditional",
+            "american_suitable": False,
+        },
+        {
+            "id": "crank_nicolson",
+            "name": "Crank-Nicolson FDM",
+            "convergence_order": "2 (time), 2 (space)",
+            "stability_class": "Unconditional",
+            "american_suitable": False,
+        },
+        {
+            "id": "standard_mc",
+            "name": "Standard Monte Carlo",
+            "convergence_order": "0.5",
+            "stability_class": "Stochastic",
+            "american_suitable": False,
+        },
+        {
+            "id": "antithetic_mc",
+            "name": "Antithetic Variates MC",
+            "convergence_order": "0.5 (reduced var)",
+            "stability_class": "Stochastic",
+            "american_suitable": False,
+        },
+        {
+            "id": "control_variate_mc",
+            "name": "Control Variate MC",
+            "convergence_order": "0.5 (high var red)",
+            "stability_class": "Stochastic",
+            "american_suitable": False,
+        },
+        {
+            "id": "quasi_mc",
+            "name": "Quasi-Monte Carlo (Sobol)",
+            "convergence_order": "~1.0",
+            "stability_class": "Deterministic",
+            "american_suitable": False,
+        },
+        {
+            "id": "binomial_crr",
+            "name": "Binomial CRR Tree",
+            "convergence_order": "1",
+            "stability_class": "Stable",
+            "american_suitable": True,
+        },
+        {
+            "id": "trinomial",
+            "name": "Trinomial Tree (Boyle)",
+            "convergence_order": "1 (Smoother)",
+            "stability_class": "Stable",
+            "american_suitable": True,
+        },
+        {
+            "id": "binomial_crr_richardson",
+            "name": "Binomial + Richardson",
+            "convergence_order": "2",
+            "stability_class": "Stable",
+            "american_suitable": True,
+        },
+        {
+            "id": "trinomial_richardson",
+            "name": "Trinomial + Richardson",
+            "convergence_order": "2",
+            "stability_class": "Stable",
+            "american_suitable": True,
+        },
     ]

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Literal, Any
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 MethodType = Literal[
@@ -20,6 +20,7 @@ MethodType = Literal[
 OptionType = Literal["call", "put"]
 MarketSource = Literal["synthetic", "spy", "nse"]
 
+
 class OptionParams(BaseModel):
     underlying_price: float = Field(gt=0)
     strike_price: float = Field(gt=0)
@@ -29,6 +30,7 @@ class OptionParams(BaseModel):
     option_type: OptionType
     is_american: bool = False
     market_source: MarketSource = "synthetic"
+
 
 class PriceResult(BaseModel):
     method_type: MethodType

@@ -56,6 +56,10 @@ playwright-report/
 # Docker
 *.tar
  
+# Prometheus / Grafana local data
+apps/api/prometheus/data/
+apps/api/grafana/data/
+
 # Jupyter
 .ipynb_checkpoints/
  

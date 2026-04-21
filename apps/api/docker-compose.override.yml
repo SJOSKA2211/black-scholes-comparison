@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  api:
+    build:
+      target: builder     # Use builder stage in dev (has dev tools)
+    volumes:
+      - ./src:/app/src    # Mount source for hot reload
+    environment:
+      LOG_LEVEL: DEBUG
+    command:
+      - uvicorn
+      - src.main:app
+      - --host=0.0.0.0
+      - --port=8000
+      - --reload          # Watches mounted /app/src for changes

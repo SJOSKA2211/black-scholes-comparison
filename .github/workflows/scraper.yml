@@ -1,0 +1,38 @@
+name: Scraper Cron
+
+on:
+  schedule:
+    - cron: "0 6 * * 1-5"  # Mon-Fri 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      market:
+        description: 'Market to scrape'
+        required: true
+        default: 'spy'
+        type: choice
+        options:
+          - spy
+          - nse
+      date:
+        description: 'Date (YYYY-MM-DD)'
+        required: false
+        type: string
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/SJOSKA2211/black-scholes-api:latest
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+    steps:
+      - name: Run Collector
+        run: |
+          MARKET=${{ github.event.inputs.market || 'spy' }}
+          DATE=${{ github.event.inputs.date || '' }}
+          if [ -z "$DATE" ]; then
+            python -m scripts.collect --market $MARKET
+          else
+            python -m scripts.collect --market $MARKET --date $DATE
+          fi

@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd apps/api
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          cd apps/api
+          pytest --cov=src
+
+  test-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: |
+          cd apps/web
+          npm install
+      - name: Lint & Build
+        run: |
+          cd apps/web
+          npm run lint
+          npm run build
+
+  deploy-api:
+    needs: [test-api, test-web]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and Push Docker Image
+        run: |
+          echo "Simulating Docker Push to Registry..."
+          # docker build -t black-scholes-api:latest -f apps/api/Dockerfile .
+          # docker push ...

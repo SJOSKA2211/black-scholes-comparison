@@ -1,5 +1,6 @@
 -- 001_initial_schema.sql
 -- Master schema for Black-Scholes Research Platform
+-- Project: smawxojcohoqeqyksuvp
 
 -- 1. user_profiles
 CREATE TABLE IF NOT EXISTS user_profiles (
@@ -111,7 +112,18 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Indexes
+-- 9. scrape_errors
+CREATE TABLE IF NOT EXISTS scrape_errors (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scrape_run_id UUID REFERENCES scrape_runs(id) ON DELETE CASCADE,
+    url TEXT,
+    attempt INT4,
+    error_type TEXT,
+    error_message TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Performance Indexes
 CREATE INDEX IF NOT EXISTS ix_method_results_method_type ON method_results(method_type);
 CREATE INDEX IF NOT EXISTS ix_method_results_option_id ON method_results(option_id);
 CREATE INDEX IF NOT EXISTS ix_method_results_run_at ON method_results(run_at DESC);
@@ -130,20 +142,71 @@ ALTER PUBLICATION supabase_realtime ADD TABLE
     validation_metrics,
     scrape_runs,
     audit_log,
-    notifications;
+    notifications,
+    scrape_errors;
 
--- RLS
+-- RLS: enable on all tables
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE option_parameters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE method_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE market_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE validation_metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scrape_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scrape_errors ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view their own profile" ON user_profiles
-    FOR SELECT USING (auth.uid() = id);
+-- Anon key: SELECT on result tables
+CREATE POLICY anon_read ON method_results FOR SELECT TO anon USING (true);
+CREATE POLICY anon_read ON market_data    FOR SELECT TO anon USING (true);
+CREATE POLICY anon_read ON option_parameters FOR SELECT TO anon USING (true);
 
-CREATE POLICY "Users can update their own profile" ON user_profiles
-    FOR UPDATE USING (auth.uid() = id);
+-- Service role: full access everywhere
+CREATE POLICY svc_all ON user_profiles FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON option_parameters FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON method_results FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON market_data FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON validation_metrics FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON scrape_runs FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON audit_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON notifications FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY svc_all ON scrape_errors FOR ALL TO service_role USING (true) WITH CHECK (true);
 
-CREATE POLICY "Users can view their own notifications" ON notifications
-    FOR SELECT USING (auth.uid() = user_id);
+-- Authenticated users: own notifications only
+CREATE POLICY notif_owner ON notifications FOR ALL TO authenticated
+    USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
-CREATE POLICY "Users can update their own notifications" ON notifications
-    FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY profile_owner ON user_profiles FOR ALL TO authenticated
+    USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+
+-- 10. push_subscriptions
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    subscription_info JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (user_id, subscription_info)
+);
+
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY push_owner ON push_subscriptions FOR ALL TO authenticated
+    USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+CREATE POLICY push_svc ON push_subscriptions FOR ALL TO service_role
+    USING (true) WITH CHECK (true);
+
+-- Profile trigger on auth.users INSERT
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.user_profiles (id, display_name, avatar_url)
+    VALUES (new.id, new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'avatar_url');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Update Realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE push_subscriptions;

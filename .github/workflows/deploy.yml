@@ -1,0 +1,31 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-backend:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and Push to GHCR
+        run: |
+          echo "Logging into GHCR..."
+          # echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          echo "Building production image..."
+          # docker build -t ghcr.io/SJOSKA2211/black-scholes-api:latest -f apps/api/Dockerfile .
+          # docker push ghcr.io/SJOSKA2211/black-scholes-api:latest
+          echo "Backend deployment simulation complete."
+
+  deploy-frontend:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel Deploy Hook
+        run: |
+          curl -X POST ${{ secrets.VERCEL_DEPLOY_HOOK }}

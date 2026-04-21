@@ -1,12 +1,12 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from supabase import Client
-from src.database.supabase_client import get_supabase_client
-from src.exceptions import AuthenticationError
 import structlog
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from src.database.supabase_client import get_supabase_client
 
 security = HTTPBearer()
 logger = structlog.get_logger(__name__)
+
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -24,18 +24,28 @@ async def get_current_user(
         if not user_response or not user_response.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token"
+                detail="Invalid or expired token",
             )
-        
-        logger.info("user_authenticated", user_id=user_response.user.id)
+
+        # Fetch profile for role-based access control
+        profile_res = (
+            supabase.table("user_profiles")
+            .select("role")
+            .eq("id", user_response.user.id)
+            .execute()
+        )
+        role = profile_res.data[0]["role"] if profile_res.data else "researcher"
+
+        logger.info("user_authenticated", user_id=user_response.user.id, role=role)
         return {
             "id": user_response.user.id,
             "email": user_response.user.email,
-            "token": token
+            "token": token,
+            "role": role,
         }
     except Exception as exc:
         logger.warning("auth_validation_failed", reason=str(exc))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
+            detail="Could not validate credentials",
         ) from exc

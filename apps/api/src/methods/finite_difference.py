@@ -1,197 +1,272 @@
-import numpy as np
 import time
-from src.methods.base import OptionParams, PriceResult
+
+import numpy as np
+
 from src.exceptions import CFLViolationError
+from src.methods.base import OptionParams, PriceResult
+
 
 class FiniteDifferenceMethods:
     """Finite Difference Methods for option pricing."""
 
-    def _thomas_algorithm(self, a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray) -> np.ndarray:
+    def _thomas_algorithm(
+        self,
+        lower_diag: np.ndarray,
+        main_diag: np.ndarray,
+        upper_diag: np.ndarray,
+        rhs: np.ndarray,
+    ) -> np.ndarray:
         """
-        Solves Ax = d where A is a tridiagonal matrix.
-        a: lower diagonal, b: main diagonal, c: upper diagonal, d: right hand side.
+        Solves Ax = rhs where A is a tridiagonal matrix.
         O(n) complexity.
         """
-        n = len(d)
-        c_prime = np.zeros(n)
-        d_prime = np.zeros(n)
-        
-        c_prime[0] = c[0] / b[0]
-        d_prime[0] = d[0] / b[0]
-        
-        for i in range(1, n):
-            m = 1.0 / (b[i] - a[i] * c_prime[i-1])
-            c_prime[i] = c[i] * m
-            d_prime[i] = (d[i] - a[i] * d_prime[i-1]) * m
-            
-        x = np.zeros(n)
-        x[-1] = d_prime[-1]
-        for i in range(n-2, -1, -1):
-            x[i] = d_prime[i] - c_prime[i] * x[i+1]
-            
-        return x
+        num_elements = len(rhs)
+        c_prime = np.zeros(num_elements)
+        d_prime = np.zeros(num_elements)
 
-    def explicit_fdm(self, params: OptionParams, num_s: int = 100, num_t: int = 1000) -> PriceResult:
+        c_prime[0] = upper_diag[0] / main_diag[0]
+        d_prime[0] = rhs[0] / main_diag[0]
+
+        for idx in range(1, num_elements):
+            denominator = main_diag[idx] - lower_diag[idx] * c_prime[idx - 1]
+            c_prime[idx] = upper_diag[idx] / denominator
+            d_prime[idx] = (rhs[idx] - lower_diag[idx] * d_prime[idx - 1]) / denominator
+
+        solution = np.zeros(num_elements)
+        solution[-1] = d_prime[-1]
+        for idx in range(num_elements - 2, -1, -1):
+            solution[idx] = d_prime[idx] - c_prime[idx] * solution[idx + 1]
+
+        return solution
+
+    def explicit_fdm(
+        self, params: OptionParams, num_spatial: int = 100, num_time: int = 1000
+    ) -> PriceResult:
         start_time = time.time()
-        S_max = 4 * params.strike_price
-        dt = params.maturity_years / num_t
-        dS = S_max / num_s
-        
-        # CFL Condition check: dt < 1 / (sigma^2 * num_s + r)
-        # More accurately for BS: dt < (dS^2) / (sigma^2 * S^2)
-        # Simplified conservative check:
-        cfl_threshold = 0.5 * (dS**2) / (params.volatility**2 * S_max**2)
-        if dt > cfl_threshold:
-            suggested_num_t = int(params.maturity_years / (0.9 * cfl_threshold)) + 1
+        strike_price = params.strike_price
+        max_underlying = 4 * strike_price
+        time_step = params.maturity_years / num_time
+        spatial_step = max_underlying / num_spatial  # noqa: F841
+
+        volatility = params.volatility
+        risk_free_rate = params.risk_free_rate
+
+        # CFL Condition check
+        cfl_threshold = 0.5 * (spatial_step**2) / (volatility**2 * max_underlying**2)
+        if time_step > cfl_threshold:
+            suggested_num_time = int(params.maturity_years / (0.9 * cfl_threshold)) + 1
             raise CFLViolationError(
-                f"CFL condition violated. dt ({dt:.6f}) > threshold ({cfl_threshold:.6f}).",
-                suggested_dt=params.maturity_years / suggested_num_t
+                f"CFL condition violated. dt ({time_step:.6f}) > threshold ({cfl_threshold:.6f}).",
+                suggested_dt=params.maturity_years / suggested_num_time,
             )
 
-        S_values = np.linspace(0, S_max, num_s + 1)
-        grid = np.zeros((num_t + 1, num_s + 1))
-        
+        underlying_values = np.linspace(0, max_underlying, num_spatial + 1)
+        grid = np.zeros((num_time + 1, num_spatial + 1))
+
         # Terminal condition
         if params.option_type == "call":
-            grid[0, :] = np.maximum(S_values - params.strike_price, 0)
+            grid[0, :] = np.maximum(underlying_values - strike_price, 0)
         else:
-            grid[0, :] = np.maximum(params.strike_price - S_values, 0)
-            
+            grid[0, :] = np.maximum(strike_price - underlying_values, 0)
+
         # Time stepping
-        for j in range(0, num_t):
-            for i in range(1, num_s):
-                sigma2 = params.volatility**2
-                r = params.risk_free_rate
-                
-                a = 0.5 * dt * (sigma2 * i**2 - r * i)
-                b = 1 - dt * (sigma2 * i**2 + r)
-                c = 0.5 * dt * (sigma2 * i**2 + r * i)
-                
-                grid[j+1, i] = a * grid[j, i-1] + b * grid[j, i] + c * grid[j, i+1]
-            
+        for time_idx in range(0, num_time):
+            for space_idx in range(1, num_spatial):
+                vol_sq = volatility**2
+
+                a_coeff = (
+                    0.5
+                    * time_step
+                    * (vol_sq * space_idx**2 - risk_free_rate * space_idx)
+                )
+                b_coeff = 1 - time_step * (vol_sq * space_idx**2 + risk_free_rate)
+                c_coeff = (
+                    0.5
+                    * time_step
+                    * (vol_sq * space_idx**2 + risk_free_rate * space_idx)
+                )
+
+                grid[time_idx + 1, space_idx] = (
+                    a_coeff * grid[time_idx, space_idx - 1]
+                    + b_coeff * grid[time_idx, space_idx]
+                    + c_coeff * grid[time_idx, space_idx + 1]
+                )
+
             # Boundary conditions
             if params.option_type == "call":
-                grid[j+1, 0] = 0
-                grid[j+1, num_s] = S_max - params.strike_price * np.exp(-r * (j+1) * dt)
+                grid[time_idx + 1, 0] = 0
+                grid[time_idx + 1, num_spatial] = (
+                    max_underlying
+                    - strike_price
+                    * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
+                )
             else:
-                grid[j+1, 0] = params.strike_price * np.exp(-r * (j+1) * dt)
-                grid[j+1, num_s] = 0
-                
-        price = np.interp(params.underlying_price, S_values, grid[num_t, :])
+                grid[time_idx + 1, 0] = strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
+                grid[time_idx + 1, num_spatial] = 0
+
+        price = np.interp(params.underlying_price, underlying_values, grid[num_time, :])
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type="explicit_fdm",
             computed_price=float(price),
             exec_seconds=exec_seconds,
-            parameter_set={"num_s": num_s, "num_t": num_t}
+            parameter_set={"num_spatial": num_spatial, "num_time": num_time},
         )
 
-    def implicit_fdm(self, params: OptionParams, num_s: int = 100, num_t: int = 100) -> PriceResult:
+    def implicit_fdm(
+        self, params: OptionParams, num_spatial: int = 100, num_time: int = 100
+    ) -> PriceResult:
         start_time = time.time()
-        S_max = 4 * params.strike_price
-        dt = params.maturity_years / num_t
-        dS = S_max / num_s
-        S_values = np.linspace(0, S_max, num_s + 1)
-        
+        strike_price = params.strike_price
+        max_underlying = 4 * strike_price
+        time_step = params.maturity_years / num_time
+        spatial_step = max_underlying / num_spatial  # noqa: F841
+        underlying_values = np.linspace(0, max_underlying, num_spatial + 1)
+
         # Payoff at maturity
         if params.option_type == "call":
-            V = np.maximum(S_values - params.strike_price, 0)
+            values = np.maximum(underlying_values - strike_price, 0)
         else:
-            V = np.maximum(params.strike_price - S_values, 0)
-            
-        sigma2 = params.volatility**2
-        r = params.risk_free_rate
-        
+            values = np.maximum(strike_price - underlying_values, 0)
+
+        vol_sq = params.volatility**2
+        risk_free_rate = params.risk_free_rate
+
         # Tridiagonal matrix coefficients
-        idx = np.arange(1, num_s)
-        a = -0.5 * dt * (sigma2 * idx**2 - r * idx)
-        b = 1 + dt * (sigma2 * idx**2 + r)
-        c = -0.5 * dt * (sigma2 * idx**2 + r * idx)
-        
-        for j in range(num_t):
-            d = V[1:-1].copy()
-            # Boundary adjustments to right-hand side
+        space_indices = np.arange(1, num_spatial)
+        lower_diag = (
+            -0.5
+            * time_step
+            * (vol_sq * space_indices**2 - risk_free_rate * space_indices)
+        )
+        main_diag = 1 + time_step * (vol_sq * space_indices**2 + risk_free_rate)
+        upper_diag = (
+            -0.5
+            * time_step
+            * (vol_sq * space_indices**2 + risk_free_rate * space_indices)
+        )
+
+        for time_idx in range(num_time):
+            rhs_values = values[1:-1].copy()
+            # Boundary adjustments
             if params.option_type == "call":
-                # V[0] = 0, V[num_s] = S_max - K*exp(-r*t)
-                d[-1] -= c[-1] * (S_max - params.strike_price * np.exp(-r * (j+1) * dt))
+                rhs_values[-1] -= upper_diag[-1] * (
+                    max_underlying
+                    - strike_price
+                    * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
+                )
             else:
-                d[0] -= a[0] * (params.strike_price * np.exp(-r * (j+1) * dt))
-            
-            V[1:-1] = self._thomas_algorithm(a, b, c, d)
-            
+                rhs_values[0] -= lower_diag[0] * (
+                    strike_price * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
+                )
+
+            values[1:-1] = self._thomas_algorithm(
+                lower_diag, main_diag, upper_diag, rhs_values
+            )
+
             # Boundary conditions
             if params.option_type == "call":
-                V[0] = 0
-                V[num_s] = S_max - params.strike_price * np.exp(-r * (j+1) * dt)
+                values[0] = 0
+                values[num_spatial] = max_underlying - strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
             else:
-                V[0] = params.strike_price * np.exp(-r * (j+1) * dt)
-                V[num_s] = 0
-                
-        price = np.interp(params.underlying_price, S_values, V)
+                values[0] = strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
+                values[num_spatial] = 0
+
+        price = np.interp(params.underlying_price, underlying_values, values)
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type="implicit_fdm",
             computed_price=float(price),
             exec_seconds=exec_seconds,
-            parameter_set={"num_s": num_s, "num_t": num_t}
+            parameter_set={"num_spatial": num_spatial, "num_time": num_time},
         )
 
-    def crank_nicolson(self, params: OptionParams, num_s: int = 100, num_t: int = 100) -> PriceResult:
+    def crank_nicolson(
+        self, params: OptionParams, num_spatial: int = 100, num_time: int = 100
+    ) -> PriceResult:
         start_time = time.time()
-        S_max = 4 * params.strike_price
-        dt = params.maturity_years / num_t
-        dS = S_max / num_s
-        S_values = np.linspace(0, S_max, num_s + 1)
-        
+        strike_price = params.strike_price
+        max_underlying = 4 * strike_price
+        time_step = params.maturity_years / num_time
+        spatial_step = max_underlying / num_spatial  # noqa: F841
+        underlying_values = np.linspace(0, max_underlying, num_spatial + 1)
+
         if params.option_type == "call":
-            V = np.maximum(S_values - params.strike_price, 0)
+            values = np.maximum(underlying_values - strike_price, 0)
         else:
-            V = np.maximum(params.strike_price - S_values, 0)
-            
-        sigma2 = params.volatility**2
-        r = params.risk_free_rate
-        idx = np.arange(1, num_s)
-        
-        # Coefficients for (I - theta*dt*L)V^{n+1} = (I + (1-theta)*dt*L)V^n
-        # Here theta = 0.5
-        alpha = 0.25 * dt * (sigma2 * idx**2 - r * idx)
-        beta = 0.5 * dt * (sigma2 * idx**2 + r)
-        gamma = 0.25 * dt * (sigma2 * idx**2 + r * idx)
-        
-        # Matrix A (Implicit part)
-        a_mat = -alpha
-        b_mat = 1 + beta
-        c_mat = -gamma
-        
-        for j in range(num_t):
-            # Right hand side (Explicit part)
-            d = (alpha * V[:-2] + (1 - beta) * V[1:-1] + gamma * V[2:])
-            
+            values = np.maximum(strike_price - underlying_values, 0)
+
+        vol_sq = params.volatility**2
+        risk_free_rate = params.risk_free_rate
+        space_indices = np.arange(1, num_spatial)
+
+        alpha = (
+            0.25
+            * time_step
+            * (vol_sq * space_indices**2 - risk_free_rate * space_indices)
+        )
+        beta = 0.5 * time_step * (vol_sq * space_indices**2 + risk_free_rate)
+        gamma = (
+            0.25
+            * time_step
+            * (vol_sq * space_indices**2 + risk_free_rate * space_indices)
+        )
+
+        lower_diag = -alpha
+        main_diag = 1 + beta
+        upper_diag = -gamma
+
+        for time_idx in range(num_time):
+            # Explicit part for RHS
+            rhs_values = (
+                alpha * values[:-2] + (1 - beta) * values[1:-1] + gamma * values[2:]
+            )
+
             # Boundary adjustments
             if params.option_type == "call":
-                boundary_prev = S_max - params.strike_price * np.exp(-r * j * dt)
-                boundary_curr = S_max - params.strike_price * np.exp(-r * (j+1) * dt)
-                d[-1] += gamma[-1] * (boundary_curr + boundary_prev)
+                bound_prev = max_underlying - strike_price * np.exp(
+                    -risk_free_rate * time_idx * time_step
+                )
+                bound_curr = max_underlying - strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
+                rhs_values[-1] += gamma[-1] * (bound_curr + bound_prev)
             else:
-                boundary_prev = params.strike_price * np.exp(-r * j * dt)
-                boundary_curr = params.strike_price * np.exp(-r * (j+1) * dt)
-                d[0] += alpha[0] * (boundary_curr + boundary_prev)
-                
-            V[1:-1] = self._thomas_algorithm(a_mat, b_mat, c_mat, d)
-            
+                bound_prev = strike_price * np.exp(
+                    -risk_free_rate * time_idx * time_step
+                )
+                bound_curr = strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
+                rhs_values[0] += alpha[0] * (bound_curr + bound_prev)
+
+            values[1:-1] = self._thomas_algorithm(
+                lower_diag, main_diag, upper_diag, rhs_values
+            )
+
             # Update boundaries
             if params.option_type == "call":
-                V[0] = 0
-                V[num_s] = S_max - params.strike_price * np.exp(-r * (j+1) * dt)
+                values[0] = 0
+                values[num_spatial] = max_underlying - strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
             else:
-                V[0] = params.strike_price * np.exp(-r * (j+1) * dt)
-                V[num_s] = 0
-                
-        price = np.interp(params.underlying_price, S_values, V)
+                values[0] = strike_price * np.exp(
+                    -risk_free_rate * (time_idx + 1) * time_step
+                )
+                values[num_spatial] = 0
+
+        price = np.interp(params.underlying_price, underlying_values, values)
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type="crank_nicolson",
             computed_price=float(price),
             exec_seconds=exec_seconds,
-            parameter_set={"num_s": num_s, "num_t": num_t}
+            parameter_set={"num_spatial": num_spatial, "num_time": num_time},
         )

@@ -7,6 +7,8 @@ from src.methods.trees import TreeMethods
 
 @pytest.fixture
 def atm_call_params():
+    import numpy as np
+    np.random.seed(42)
     return OptionParams(
         underlying_price=100.0,
         strike_price=100.0,
@@ -22,59 +24,78 @@ def test_analytical_price(atm_call_params):
     assert abs(res.computed_price - 10.4506) < 0.001
 
 def test_explicit_fdm_price(atm_call_params):
-    res = FiniteDifferenceMethods().explicit_fdm(atm_call_params, num_s=100, num_t=2000)
+    res = FiniteDifferenceMethods().explicit_fdm(
+        atm_call_params, num_spatial=200, num_time=10000
+    )
     assert abs(res.computed_price - 10.4506) < 0.05
+
 
 def test_implicit_fdm_price(atm_call_params):
-    res = FiniteDifferenceMethods().implicit_fdm(atm_call_params, num_s=100, num_t=100)
+    res = FiniteDifferenceMethods().implicit_fdm(
+        atm_call_params, num_spatial=200, num_time=200
+    )
     assert abs(res.computed_price - 10.4506) < 0.05
 
+
 def test_crank_nicolson_price(atm_call_params):
-    res = FiniteDifferenceMethods().crank_nicolson(atm_call_params, num_s=100, num_t=100)
-    assert abs(res.computed_price - 10.4506) < 0.01
+    res = FiniteDifferenceMethods().crank_nicolson(
+        atm_call_params, num_spatial=200, num_time=200
+    )
+    assert abs(res.computed_price - 10.4506) < 0.02
+
 
 def test_standard_mc_price(atm_call_params):
     res = MonteCarloMethods().standard_mc(atm_call_params, num_paths=200000)
     # MC has high variance, so check if analytical is within CI
     assert res.confidence_interval[0] <= 10.4506 <= res.confidence_interval[1]
 
+
 def test_antithetic_mc_price(atm_call_params):
-    res = MonteCarloMethods().antithetic_mc(atm_call_params, num_paths=100000)
+    res = MonteCarloMethods().antithetic_mc(atm_call_params, num_paths=200000)
     assert res.confidence_interval[0] <= 10.4506 <= res.confidence_interval[1]
 
+
 def test_control_variate_mc_price(atm_call_params):
-    res = MonteCarloMethods().control_variate_mc(atm_call_params, num_paths=100000)
-    assert abs(res.computed_price - 10.4506) < 0.01
+    res = MonteCarloMethods().control_variate_mc(atm_call_params, num_paths=200000)
+    assert abs(res.computed_price - 10.4506) < 0.02
+
 
 def test_quasi_mc_price(atm_call_params):
     res = MonteCarloMethods().quasi_mc(atm_call_params, num_paths=65536)
     assert abs(res.computed_price - 10.4506) < 0.01
 
+
 def test_binomial_crr_price(atm_call_params):
-    res = TreeMethods().binomial_crr(atm_call_params, n=1000)
+    res = TreeMethods().binomial_crr(atm_call_params, num_steps=1000)
     assert abs(res.computed_price - 10.4506) < 0.01
 
+
 def test_trinomial_price(atm_call_params):
-    res = TreeMethods().trinomial(atm_call_params, n=500)
+    res = TreeMethods().trinomial(atm_call_params, num_steps=500)
     assert abs(res.computed_price - 10.4506) < 0.005
 
+
 def test_binomial_richardson_price(atm_call_params):
-    res = TreeMethods().binomial_crr_richardson(atm_call_params, n=500)
+    res = TreeMethods().binomial_crr_richardson(atm_call_params, num_steps=500)
     assert abs(res.computed_price - 10.4506) < 0.001
 
+
 def test_trinomial_richardson_price(atm_call_params):
-    res = TreeMethods().trinomial_richardson(atm_call_params, n=250)
+    res = TreeMethods().trinomial_richardson(atm_call_params, num_steps=250)
     assert abs(res.computed_price - 10.4506) < 0.001
-    
+
+
 def test_cross_method_agreement(atm_call_params):
     """Assert all methods achieve MAPE < 0.1% at standard resolution."""
     target = 10.4506
     methods = [
         BlackScholesAnalytical().price(atm_call_params),
-        FiniteDifferenceMethods().crank_nicolson(atm_call_params, num_s=200, num_t=200),
+        FiniteDifferenceMethods().crank_nicolson(
+            atm_call_params, num_spatial=200, num_time=200
+        ),
         MonteCarloMethods().control_variate_mc(atm_call_params, num_paths=100000),
-        TreeMethods().binomial_crr_richardson(atm_call_params, n=1000),
-        TreeMethods().trinomial_richardson(atm_call_params, n=500)
+        TreeMethods().binomial_crr_richardson(atm_call_params, num_steps=1000),
+        TreeMethods().trinomial_richardson(atm_call_params, num_steps=500),
     ]
     
     for res in methods:

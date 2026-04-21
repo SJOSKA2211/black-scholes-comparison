@@ -1,5 +1,4 @@
 "use client";
-import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -7,70 +6,56 @@ import {
   LayoutDashboard, 
   Calculator, 
   FlaskConical, 
-  TrendingUp, 
+  BarChart3, 
   Database, 
-  BookOpen,
-  Settings
+  Layers 
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-const menuItems = [
-  { name: "Overview", icon: LayoutDashboard, href: "/" },
-  { name: "Live Pricer", icon: Calculator, href: "/pricer" },
-  { name: "Experiments", icon: FlaskConical, href: "/experiments" },
-  { name: "Validation", icon: TrendingUp, href: "/validation" },
-  { name: "Scrapers", icon: Database, href: "/scrapers" },
-  { name: "Methods Guide", icon: BookOpen, href: "/methods" },
+const navItems = [
+  { name: "Overview", href: "/", icon: LayoutDashboard },
+  { name: "Live Pricer", href: "/pricer", icon: Calculator },
+  { name: "Experiments", href: "/experiments", icon: FlaskConical },
+  { name: "Validation", href: "/validation", icon: BarChart3 },
+  { name: "Scrapers", href: "/scrapers", icon: Database },
+  { name: "Methods", href: "/methods", icon: Layers },
 ];
 
-export function Sidebar() {
+export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 border-r border-slate-800 flex flex-col bg-slate-900/50 backdrop-blur-xl">
-      <div className="p-6">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-          Black-Scholes
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">Research Platform</p>
+    <aside className="w-64 border-r border-slate-800 bg-slate-900/50 p-4">
+      <div className="mb-8 flex items-center gap-3 px-2">
+        <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold">B</div>
+        <span className="font-bold tracking-tight text-white">BS Research</span>
       </div>
-
-      <nav className="flex-1 px-4 space-y-1">
-        {menuItems.map((item) => {
+      <nav className="space-y-1">
+        {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link key={item.name} href={item.href}>
-              <div className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all relative",
-                isActive 
-                  ? "text-white bg-blue-600/10" 
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
-              )}>
+              <div className={`relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                isActive ? "text-white" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}>
                 {isActive && (
-                  <motion.div 
-                    layoutId="active-pill"
-                    className="absolute left-0 w-1 h-6 bg-blue-500 rounded-full"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  <motion.div
+                    layoutId="active-nav"
+                    className="absolute inset-0 rounded-lg bg-blue-600/10 border-r-2 border-blue-600"
                   />
                 )}
-                <item.icon className={cn(
-                  "mr-3 h-5 w-5 transition-colors",
-                  isActive ? "text-blue-400" : "group-hover:text-white"
-                )} />
+                <item.icon className={`h-4 w-4 ${isActive ? "text-blue-500" : ""}`} />
                 {item.name}
               </div>
             </Link>
           );
         })}
       </nav>
-
-      <div className="p-4 border-t border-slate-800">
-        <Link href="/settings">
-          <div className="flex items-center px-3 py-2 text-sm font-medium text-slate-400 rounded-lg hover:text-white hover:bg-slate-800">
-            <Settings className="mr-3 h-5 w-5" />
-            Settings
-          </div>
-        </Link>
+      <div className="absolute bottom-8 left-4 right-4">
+        <div className="rounded-xl bg-slate-800/50 p-4 border border-slate-700/50">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Academic Project</p>
+          <p className="mt-1 text-xs text-slate-300">MATH499 Senior Research</p>
+          <p className="text-[10px] text-slate-500">UEAB · SJOSKA2211</p>
+        </div>
       </div>
     </aside>
   );

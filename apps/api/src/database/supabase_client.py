@@ -1,6 +1,9 @@
-from supabase import create_client, Client
-from src.config import get_settings
 from functools import lru_cache
+
+from supabase import Client, create_client
+
+from src.config import get_settings
+
 
 @lru_cache()
 def get_supabase_client() -> Client:
