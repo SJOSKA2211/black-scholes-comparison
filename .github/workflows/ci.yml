@@ -23,6 +23,11 @@ jobs:
         run: |
           cd apps/api
           PYTHONPATH=. pytest --cov=src
+        env:
+          SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_KEY: placeholder-key
+          SUPABASE_ANON_KEY: placeholder-anon-key
+          GRAFANA_ADMIN_PASSWORD: placeholder-password
 
   test-web:
     runs-on: ubuntu-latest
