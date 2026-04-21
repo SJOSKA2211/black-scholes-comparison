@@ -5,7 +5,7 @@ import { usePricer } from "@/hooks/usePricer";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { OptionParams, PriceResult } from "@/types";
-import { Sliders, Calculator, Zap, CheckCircle2 } from "lucide-react";
+import { Sliders, Calculator, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatCurrency, cn } from "@/lib/utils";
 

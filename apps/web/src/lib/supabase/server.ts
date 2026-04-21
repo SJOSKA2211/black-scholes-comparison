@@ -15,14 +15,14 @@ export async function createServerClient() {
         set(name: string, value: string, options: any) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
+          } catch {
             // The `set` method was called from a Server Component.
           }
         },
         remove(name: string, options: any) {
           try {
             cookieStore.set({ name, value: "", ...options });
-          } catch (error) {
+          } catch {
             // The `remove` method was called from a Server Component.
           }
         },
