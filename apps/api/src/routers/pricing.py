@@ -1,58 +1,61 @@
 import math
 import time
 from typing import List
-
+ 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-
+ 
 from src.auth.dependencies import get_current_user
 from src.methods.analytical import BlackScholesAnalytical
 from src.methods.base import MethodType, OptionParams, PriceResult
-from src.methods.finite_difference import FiniteDifferenceMethods
-from src.methods.monte_carlo import MonteCarloMethods
-from src.methods.trees import TreeMethods
+ 
+# Modular imports for v4
+from src.methods.finite_difference.explicit import price_explicit_fdm
+from src.methods.finite_difference.implicit import price_implicit_fdm
+from src.methods.finite_difference.crank_nicolson import price_crank_nicolson
+from src.methods.monte_carlo.standard import price_standard_mc
+from src.methods.monte_carlo.antithetic import price_antithetic_mc
+from src.methods.monte_carlo.control_variates import price_control_variate_mc
+from src.methods.monte_carlo.quasi_mc import price_quasi_mc
+from src.methods.tree_methods.binomial_crr import price_binomial_crr
+from src.methods.tree_methods.trinomial import price_trinomial
+from src.methods.tree_methods.richardson import price_binomial_crr_richardson, price_trinomial_richardson
+ 
 from src.metrics import (
     PRICE_COMPUTATION_DURATION_SECONDS,
     PRICE_COMPUTATIONS_TOTAL,
     PRICE_MAPE_GAUGE,
 )
-
+ 
 router = APIRouter()
-
-
+ 
 class PriceRequest(BaseModel):
     params: OptionParams
     methods: List[MethodType]
-
-
+ 
 class PriceResponse(BaseModel):
     results: List[PriceResult]
     analytical_reference: float
     exec_ms: float
-
-
-# Registry of pricer instances
+ 
+# Registry of pricer functions
 analytical_engine = BlackScholesAnalytical()
-fdm_engine = FiniteDifferenceMethods()
-mc_engine = MonteCarloMethods()
-tree_engine = TreeMethods()
-
+ 
 METHOD_MAP = {
     "analytical": analytical_engine.price,
-    "explicit_fdm": fdm_engine.explicit_fdm,
-    "implicit_fdm": fdm_engine.implicit_fdm,
-    "crank_nicolson": fdm_engine.crank_nicolson,
-    "standard_mc": mc_engine.standard_mc,
-    "antithetic_mc": mc_engine.antithetic_mc,
-    "control_variate_mc": mc_engine.control_variate_mc,
-    "quasi_mc": mc_engine.quasi_mc,
-    "binomial_crr": tree_engine.binomial_crr,
-    "trinomial": tree_engine.trinomial,
-    "binomial_crr_richardson": tree_engine.binomial_crr_richardson,
-    "trinomial_richardson": tree_engine.trinomial_richardson,
+    "explicit_fdm": price_explicit_fdm,
+    "implicit_fdm": price_implicit_fdm,
+    "crank_nicolson": price_crank_nicolson,
+    "standard_mc": price_standard_mc,
+    "antithetic_mc": price_antithetic_mc,
+    "control_variate_mc": price_control_variate_mc,
+    "quasi_mc": price_quasi_mc,
+    "binomial_crr": price_binomial_crr,
+    "trinomial": price_trinomial,
+    "binomial_crr_richardson": price_binomial_crr_richardson,
+    "trinomial_richardson": price_trinomial_richardson,
 }
-
-
+ 
 @router.post("/price", response_model=PriceResponse)
 async def price_options(
     request: PriceRequest, current_user: dict = Depends(get_current_user)
@@ -62,50 +65,49 @@ async def price_options(
     Instruments computations with Prometheus metrics.
     """
     start_time = time.time()
-
+ 
     # Analytical reference always computed for MAPE tracking
     ref_res = analytical_engine.price(request.params)
     analytical_price = ref_res.computed_price
-
+ 
     results = []
-
+ 
     for method_type in request.methods:
         if method_type not in METHOD_MAP:
             continue
-
+ 
         pricer_fn = METHOD_MAP[method_type]
-
+ 
         # Track duration
         with PRICE_COMPUTATION_DURATION_SECONDS.labels(method_type=method_type).time():
             result = pricer_fn(request.params)
-
+ 
         # Track total computations and convergence status
         converged_status = "True"
         if math.isnan(result.computed_price) or math.isinf(result.computed_price):
             converged_status = "False"
-
+ 
         PRICE_COMPUTATIONS_TOTAL.labels(
             method_type=method_type,
             option_type=request.params.option_type,
             converged=converged_status,
         ).inc()
-
+ 
         # Track MAPE if converged
         if converged_status == "True" and analytical_price > 0:
             mape = (
                 abs(result.computed_price - analytical_price) / analytical_price * 100
             )
             PRICE_MAPE_GAUGE.labels(method_type=method_type).set(mape)
-
+ 
         results.append(result)
-
+ 
     exec_ms = (time.time() - start_time) * 1000
-
+ 
     return PriceResponse(
         results=results, analytical_reference=analytical_price, exec_ms=exec_ms
     )
-
-
+ 
 @router.get("/methods")
 async def get_methods():
     """Returns list of available numerical methods with metadata."""

@@ -13,6 +13,18 @@ class Settings(BaseSettings):
     api_url: str = "http://localhost:8000"
     environment: str = "development"
 
+    # Infrastructure
+    redis_url: str = "redis://redis:6379/0"
+    redis_password: str
+    
+    rabbitmq_url: str = "amqp://rabbitmq_user:guest@rabbitmq:5672/"
+    rabbitmq_user: str = "rabbitmq_user"
+    rabbitmq_password: str
+    
+    minio_endpoint: str = "minio:9000"
+    minio_access_key: str
+    minio_secret_key: str
+
     # Observability
     grafana_admin_password: str
 

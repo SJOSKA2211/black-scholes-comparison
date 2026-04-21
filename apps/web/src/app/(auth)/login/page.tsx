@@ -1,11 +1,14 @@
 "use client";
 import { motion } from "framer-motion";
 import { createBrowserClient } from "@/lib/supabase/client";
-import { useState } from "react";
-import { Code, Mail, LineChart } from "lucide-react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Code, Mail, LineChart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const errorParam = searchParams.get("error");
   const supabase = createBrowserClient();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -67,6 +70,17 @@ export default function LoginPage() {
             <h1 className="text-2xl font-black text-white tracking-tight mb-2">Research Platform</h1>
             <p className="text-slate-500 text-sm">Numerical methods for option pricing · MATH499</p>
           </div>
+
+          {errorParam === "auth_failed" && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-400 text-xs"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <p>Authentication failed. Please ensure your Supabase keys in <code className="bg-red-500/20 px-1 rounded">.env.local</code> are valid and GitHub OAuth is configured.</p>
+            </motion.div>
+          )}
 
           <div className="space-y-4">
             <Button 
@@ -136,5 +150,13 @@ export default function LoginPage() {
         </motion.p>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

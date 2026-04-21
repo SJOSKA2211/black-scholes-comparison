@@ -86,3 +86,31 @@ NOTIFICATIONS_SENT_TOTAL = Counter(
     "Notifications dispatched by channel and severity.",
     ["channel", "severity"],
 )
+
+# ── Redis metrics ────────────────────────────────────────────────────────
+REDIS_CACHE_HITS = Counter(
+    "black_scholes_redis_cache_hits_total", "Cache hits.", ["endpoint"]
+)
+REDIS_CACHE_MISSES = Counter(
+    "black_scholes_redis_cache_misses_total", "Cache misses.", ["endpoint"]
+)
+
+# ── RabbitMQ metrics ─────────────────────────────────────────────────────
+RABBITMQ_TASKS_PUBLISHED = Counter(
+    "black_scholes_rabbitmq_tasks_published_total", "Tasks queued.", ["queue"]
+)
+RABBITMQ_TASKS_CONSUMED = Counter(
+    "black_scholes_rabbitmq_tasks_consumed_total",
+    "Tasks processed.",
+    ["queue", "status"],
+)
+
+# ── WebSocket metrics ────────────────────────────────────────────────────
+WS_CONNECTIONS_ACTIVE = Gauge(
+    "black_scholes_ws_connections_active", "Open WS connections.", ["channel"]
+)
+
+# ── MinIO metrics ────────────────────────────────────────────────────────
+MINIO_UPLOADS_TOTAL = Counter(
+    "black_scholes_minio_uploads_total", "MinIO uploads.", ["bucket"]
+)

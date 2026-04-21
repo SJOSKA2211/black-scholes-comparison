@@ -51,6 +51,13 @@ async def insert_method_result(result: dict[str, Any]):
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
+        
+        # Publish to Redis for WebSocket real-time push
+        from src.cache.redis_client import get_redis
+        import json
+        redis = get_redis()
+        await redis.publish("ws:experiments", json.dumps(response.data[0]))
+        
         return response.data
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()

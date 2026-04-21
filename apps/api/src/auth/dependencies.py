@@ -1,5 +1,5 @@
 import structlog
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, WebSocket
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from src.database.supabase_client import get_supabase_client
@@ -49,3 +49,28 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
         ) from exc
+
+
+async def verify_ws_token(websocket: WebSocket) -> dict:
+    """
+    Validate the Supabase JWT passed as a query parameter for WebSocket connections.
+    Closes connection with 403 if invalid.
+    """
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise HTTPException(status_code=403, detail="Token required")
+
+    supabase = get_supabase_client()
+    try:
+        user_response = supabase.auth.get_user(token)
+        if not user_response or not user_response.user:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            raise HTTPException(status_code=403, detail="Invalid token")
+
+        logger.info("ws_user_authenticated", user_id=user_response.user.id)
+        return {"id": user_response.user.id, "email": user_response.user.email}
+    except Exception as exc:
+        logger.warning("ws_auth_failed", reason=str(exc))
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        raise HTTPException(status_code=403, detail="Auth failed") from exc

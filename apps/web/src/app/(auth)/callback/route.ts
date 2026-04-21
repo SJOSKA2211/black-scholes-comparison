@@ -4,14 +4,16 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const next = requestUrl.searchParams.get("next") ?? "/";
 
   if (code) {
     const supabase = await createServerClient();
-    // Exchange the auth code for a session, which handles cookie setting automatically
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      return NextResponse.redirect(new URL(next, request.url));
+    }
   }
 
-  // URL to redirect to after sign in process completes
-  // This matches the login page's redirect expectations
-  return NextResponse.redirect(new URL("/", request.url));
+  // If we reach here, there was an error or no code
+  return NextResponse.redirect(new URL("/login?error=auth_failed", request.url));
 }
