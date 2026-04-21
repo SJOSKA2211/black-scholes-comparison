@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+ 
+# Build outputs
+.next/
+out/
+dist/
+build/
+*.pyc
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+*.egg-info/
+.ruff_cache/
+ 
+# Environment files (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
+.env.production
+*.env
+ 
+# Python virtual environments
+.venv/
+venv/
+env/
+ 
+# Test + coverage
+coverage/
+*.lcov
+.coverage
+htmlcov/
+coverage.xml
+ 
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+ 
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+ 
+# Playwright
+test-results/
+playwright-report/
+ 
+# Docker
+*.tar
+ 
+# Jupyter
+.ipynb_checkpoints/
+ 
+# Secrets / keys (extra guard)
+*.pem
+*.key
+*.p12
+serviceAccount*.json
