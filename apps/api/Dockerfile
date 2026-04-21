@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY apps/api/requirements.txt .
+COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Stage 2: Production image
@@ -21,9 +21,9 @@ COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy source code
-COPY apps/api/src ./src
-COPY apps/api/scripts ./scripts
-COPY apps/api/.env.example ./.env
+COPY src ./src
+COPY scripts ./scripts
+COPY .env.example ./.env
 
 EXPOSE 8000
 
