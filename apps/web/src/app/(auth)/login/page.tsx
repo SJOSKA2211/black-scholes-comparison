@@ -4,7 +4,7 @@ import { createBrowserClient } from "@/lib/supabase/client";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Code, Mail, LineChart, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 function LoginContent() {
   const searchParams = useSearchParams();

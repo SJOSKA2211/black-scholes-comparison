@@ -1,7 +1,7 @@
 "use client";
-import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useMarketData } from "@/hooks/useMarketData";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { LineChart, Activity, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { formatCurrency, cn } from "@/lib/utils";
 

@@ -1,8 +1,8 @@
 "use client";
-import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useApi } from "@/hooks/useApi";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Database, Play, CheckCircle2, XCircle, Clock, RefreshCcw } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDate, cn } from "@/lib/utils";

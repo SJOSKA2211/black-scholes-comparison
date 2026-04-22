@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useExperiments } from "@/hooks/useExperiments";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { useDownload } from "@/hooks/useDownload";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import { Download, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDate, formatCurrency } from "@/lib/utils";
 

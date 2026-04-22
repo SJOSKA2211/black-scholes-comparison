@@ -11,12 +11,29 @@ class TestWebSocketManager:
     async def test_connect_disconnect(self):
         manager = WebSocketManager()
         mock_ws = AsyncMock()
+        mock_ws2 = AsyncMock()
         
         with patch.object(manager, "start_redis_listener", return_value=AsyncMock()):
+            # Branch 32->37: New channel
             await manager.connect(mock_ws, "test")
             assert mock_ws in manager._connections["test"]
+            assert "test" in manager._listeners
+            
+            # Branch 32->37: Existing channel
+            await manager.connect(mock_ws2, "test")
+            assert mock_ws2 in manager._connections["test"]
+            
+            # Branch 49->55: Still has connections
             await manager.disconnect(mock_ws, "test")
+            assert "test" in manager._connections
+            
+            # Branch 49->55: Last connection
+            await manager.disconnect(mock_ws2, "test")
             assert "test" not in manager._connections
+            assert "test" not in manager._listeners
+            
+            # Branch 47->55: Channel doesn't exist
+            await manager.disconnect(mock_ws, "unknown")
 
     @pytest.mark.asyncio
     async def test_broadcast(self):

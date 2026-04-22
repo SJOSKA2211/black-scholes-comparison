@@ -89,14 +89,14 @@ async def get_experiments(
     start_idx = (page - 1) * page_size
     end_idx = start_idx + page_size - 1
 
-    query = supabase.table(table).select("*, option_parameters(*)", count=cast("Any", "exact"))
-
-    if method_type:
-        query = query.eq("method_type", method_type)
-    if market_source:
-        query = query.eq("option_parameters.market_source", market_source)
-
     try:
+        query = supabase.table(table).select("*, option_parameters(*)", count=cast("Any", "exact"))
+
+        if method_type:
+            query = query.eq("method_type", method_type)
+        if market_source:
+            query = query.eq("option_parameters.market_source", market_source)
+
         response = query.range(start_idx, end_idx).order("run_at", desc=True).execute()
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
@@ -161,9 +161,10 @@ async def get_user_profile(user_id: str) -> dict[str, Any] | None:
             time.time() - start
         )
         return cast("dict[str, Any] | None", response.data)
-    except Exception:
-        logger.debug("user_profile_not_found", user_id=user_id)
-        return None
+    except Exception as e:
+        SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
+        logger.error("repository_error", operation="get_user_profile", error=str(e))
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def upsert_user_profile(profile: dict[str, Any]) -> dict[str, Any]:
@@ -437,9 +438,10 @@ async def get_experiment_by_id(experiment_id: str) -> dict[str, Any] | None:
             time.time() - start
         )
         return cast("dict[str, Any] | None", response.data)
-    except Exception:
-        logger.debug("experiment_not_found", experiment_id=experiment_id)
-        return None
+    except Exception as e:
+        SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
+        logger.error("repository_error", operation="get_experiment_by_id", error=str(e))
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def get_push_subscriptions(user_id: str) -> list[dict[str, Any]]:
@@ -454,8 +456,9 @@ async def get_push_subscriptions(user_id: str) -> list[dict[str, Any]]:
         )
         return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
+        SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_push_subscriptions", error=str(e))
-        return []
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def delete_push_subscription(subscription_id: str) -> None:
@@ -469,7 +472,9 @@ async def delete_push_subscription(subscription_id: str) -> None:
             time.time() - start
         )
     except Exception as e:
+        SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="delete_push_subscription", error=str(e))
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def get_experiments_by_method(method_type: str) -> list[dict[str, Any]]:
@@ -489,5 +494,6 @@ async def get_experiments_by_method(method_type: str) -> list[dict[str, Any]]:
         )
         return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
+        SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_experiments_by_method", error=str(e))
-        return []
+        raise RepositoryError(f"Database operation failed: {e!s}") from e

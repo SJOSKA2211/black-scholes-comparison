@@ -50,7 +50,7 @@ export function FilterBar({
         <Select
           key={key}
           value={filters[key]}
-          onValueChange={(val) => onFilterChange(key, val)}
+          onValueChange={(val: string) => onFilterChange(key, val)}
         >
           <SelectTrigger className="w-[160px] bg-background/50">
             <SelectValue placeholder={`Filter by ${key}`} />

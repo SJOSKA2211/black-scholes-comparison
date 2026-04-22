@@ -7,8 +7,12 @@ from src.queue.consumer import handle_scrape_task, handle_experiment_task, start
 class TestConsumerFinal:
     async def test_handle_scrape_task_empty(self):
         message = AsyncMock()
-        message.process.return_value.__aenter__ = AsyncMock()
-        message.process.return_value.__aexit__ = AsyncMock()
+        # Mocking the async context manager 'process'
+        process_mock = MagicMock()
+        process_mock.__aenter__ = AsyncMock()
+        process_mock.__aexit__ = AsyncMock()
+        message.process = MagicMock(return_value=process_mock)
+        
         message.body = json.dumps({"run_id": "1", "market": "spy"}).encode()
         
         with patch("src.queue.consumer.DataPipeline") as mock_pipeline:
@@ -17,8 +21,11 @@ class TestConsumerFinal:
 
     async def test_handle_experiment_task(self):
         message = AsyncMock()
-        message.process.return_value.__aenter__ = AsyncMock()
-        message.process.return_value.__aexit__ = AsyncMock()
+        process_mock = MagicMock()
+        process_mock.__aenter__ = AsyncMock()
+        process_mock.__aexit__ = AsyncMock()
+        message.process = MagicMock(return_value=process_mock)
+        
         message.body = json.dumps({"exp_id": "1"}).encode()
         await handle_experiment_task(message)
         # Verify it processes

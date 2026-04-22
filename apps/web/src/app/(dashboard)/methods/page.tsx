@@ -1,9 +1,9 @@
 "use client";
-import { Card, CardHeader, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { useApi } from "@/hooks/useApi";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, ShieldCheck, Zap, Layers, Target } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export default function MethodsPage() {

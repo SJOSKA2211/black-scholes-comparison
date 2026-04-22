@@ -23,7 +23,7 @@ async def _fetch_data(resource: str) -> pd.DataFrame:
     if resource == "experiments":
         # Use get_experiments and extract data list
         results_dict = await get_experiments(page_size=1000)
-        data = results_dict.get("data", [])
+        data = results_dict.get("items", [])
     elif resource == "market_data":
         data = await get_market_data(source="synthetic", limit=1000)
     else:

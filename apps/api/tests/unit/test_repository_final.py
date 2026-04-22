@@ -18,7 +18,10 @@ from src.database.repository import (
     get_experiment_by_id,
     get_push_subscriptions,
     delete_push_subscription,
-    get_experiments_by_method
+    get_experiments_by_method,
+    get_notifications,
+    create_audit_log,
+    insert_audit_log
 )
 from src.exceptions import RepositoryError
 
@@ -200,10 +203,162 @@ class TestRepository:
         assert res[0]["id"] == "e1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_error_handling(self, mock_get_supabase):
+    async def test_get_notifications(self, mock_get_supabase):
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
-        mock_client.table.side_effect = Exception("DB Fail")
+        mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [{"id": "n1"}]
         
+        res = await get_notifications("u1")
+        assert res[0]["id"] == "n1"
+        
+        # Test error
+        mock_client.table.side_effect = Exception("Fail")
         with pytest.raises(RepositoryError):
-            await upsert_option_parameters({})
+            await get_notifications("u1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_create_audit_log(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        await create_audit_log("p1", "step", "ok")
+        assert mock_client.table.called
+        
+        # Test error (should not raise but log)
+        mock_client.table.side_effect = Exception("Fail")
+        await create_audit_log("p1", "step", "ok")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_push_subscriptions_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_push_subscriptions("u1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_delete_push_subscription_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await delete_push_subscription("s1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_mark_notification_read_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await mark_notification_read("n1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_mark_all_notifications_read_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await mark_all_notifications_read("u1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_experiment_by_id_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_experiment_by_id("e1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_experiments_by_method_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_experiments_by_method("analytical")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_scrape_runs_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_scrape_runs()
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_update_scrape_run_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await update_scrape_run("r1", {})
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_create_scrape_run_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await create_scrape_run("spy")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_validation_summary_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_validation_summary()
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_insert_market_data_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await insert_market_data([])
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_market_data_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_market_data("spy")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_upsert_user_profile_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await upsert_user_profile({})
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_user_profile_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_user_profile("u1")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_insert_notification_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await insert_notification("u1", "t", "b", "info", "web")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_get_experiments_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await get_experiments("analytical", "spy")
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_insert_method_result_error(self, mock_get_supabase):
+        mock_client = MagicMock()
+        mock_get_supabase.return_value = mock_client
+        mock_client.table.side_effect = Exception("Fail")
+        with pytest.raises(RepositoryError):
+            await insert_method_result({})

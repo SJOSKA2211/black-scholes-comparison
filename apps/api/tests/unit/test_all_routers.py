@@ -51,7 +51,7 @@ class TestAllRouters:
 
     def test_experiments_router_results(self, mock_auth):
         with patch("src.routers.experiments.get_experiments") as mock_get:
-            mock_get.return_value = {"data": [{"id": "exp-1"}]}
+            mock_get.return_value = {"items": [{"id": "exp-1"}]}
             response = client.get("/api/v1/experiments/results", headers={"Authorization": "Bearer token"})
             assert response.status_code == 200
             assert response.json()[0]["id"] == "exp-1"
@@ -70,7 +70,7 @@ class TestAllRouters:
     def test_downloads_router(self, mock_auth):
         with patch("src.routers.downloads.get_experiments") as mock_get_exp:
             with patch("src.routers.downloads.upload_export") as mock_upload:
-                mock_get_exp.return_value = {"data": [{"id": "1", "val": 100}]}
+                mock_get_exp.return_value = {"items": [{"id": "1", "val": 100}]}
                 mock_upload.return_value = "http://minio/file.csv"
                 response = client.get("/api/v1/download/experiments?format=csv", headers={"Authorization": "Bearer token"})
                 assert response.status_code == 200

@@ -34,9 +34,29 @@ class TestDownloadsFinal:
         res = await download_resource("experiments", "csv", {"id": "u1"})
         assert res["url"] == "http://presigned"
 
-    async def test_download_resource_invalid_format(self):
-        # The Query regex handles it usually, but we test the handler if it bypasses
-        pass
+    @patch("src.routers.downloads.get_experiments")
+    @patch("src.routers.downloads.get_market_data")
+    async def test_fetch_data_logic(self, mock_get_market, mock_get_exp):
+        from src.routers.downloads import _fetch_data
+        
+        # Experiments
+        mock_get_exp.return_value = {"items": [{"id": "e1"}]} # Note: actually extrait from "items" or "data"?
+        # Wait, let's check downloads.py line 26: data = results_dict.get("data", [])
+        # But get_experiments returns {"items": ..., "total": ...}
+        # Let's fix downloads.py to use "items" if that's what it returns.
+        
+        mock_get_exp.return_value = {"items": [{"id": "e1"}]}
+        df = await _fetch_data("experiments")
+        assert not df.empty
+        
+        # Market
+        mock_get_market.return_value = [{"id": "m1"}]
+        df = await _fetch_data("market_data")
+        assert not df.empty
+        
+        # Invalid
+        with pytest.raises(ValueError):
+            await _fetch_data("unknown")
 
     @patch("src.routers.downloads._fetch_data")
     async def test_download_resource_empty(self, mock_fetch):
@@ -44,3 +64,10 @@ class TestDownloadsFinal:
         with pytest.raises(HTTPException) as exc:
             await download_resource("experiments", "csv", {"id": "u1"})
         assert exc.value.status_code == 404
+
+    @patch("src.routers.downloads._fetch_data")
+    async def test_download_resource_failure(self, mock_fetch):
+        mock_fetch.side_effect = Exception("Generic fail")
+        with pytest.raises(HTTPException) as exc:
+            await download_resource("experiments", "csv", {"id": "u1"})
+        assert exc.value.status_code == 500

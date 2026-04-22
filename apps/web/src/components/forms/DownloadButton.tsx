@@ -10,7 +10,7 @@ interface DownloadButtonProps {
   resource: "experiments" | "market_data" | "scrapers";
   format?: "csv" | "json" | "xlsx";
   label?: string;
-  variant?: "default" | "outline" | "ghost";
+  variant?: "primary" | "outline" | "ghost";
 }
 
 /**
