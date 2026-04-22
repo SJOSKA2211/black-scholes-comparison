@@ -31,9 +31,8 @@ async def websocket_endpoint(
         # verify_ws_token should have closed the socket already
         return
 
-    await ws_manager.connect(websocket, channel)
-
     try:
+        await ws_manager.connect(websocket, channel)
         while True:
             # Keep connection alive; client can send pings
             await websocket.receive_text()

@@ -23,13 +23,13 @@ def get_minio() -> Minio:
         endpoint=settings.minio_endpoint,
         access_key=settings.minio_access_key,
         secret_key=settings.minio_secret_key,
-        secure=False,  # nginx terminates TLS; MinIO is internal
+        secure=settings.minio_secure,
     )
     for bucket in BUCKETS:
         try:
             if not client.bucket_exists(bucket):
                 client.make_bucket(bucket)
                 logger.info("minio_bucket_created", bucket=bucket, step="init", rows=0)
-        except S3Error as e:
-            logger.error("minio_bucket_error", bucket=bucket, error=str(e), step="init")
+        except Exception as e:
+            logger.error("minio_init_failed", bucket=bucket, error=str(e), step="init")
     return client

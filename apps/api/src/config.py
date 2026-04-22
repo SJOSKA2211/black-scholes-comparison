@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "minio_admin"
     minio_secret_key: str = "minio_secret"  # noqa: S105
+    minio_secure: bool = False
 
     # Observability
     grafana_admin_password: str = "admin"  # noqa: S105
