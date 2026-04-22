@@ -280,6 +280,30 @@ async def update_scrape_run(run_id: str, data: dict[str, Any]) -> dict[str, Any]
         raise RepositoryError(f"Database operation failed: {str(e)}")
 
 
+async def create_audit_log(
+    pipeline_run_id: str, step_name: str, status: str, rows_affected: int = 0, message: str | None = None
+) -> None:
+    supabase = get_supabase_client()
+    table = "audit_log"
+    op = "insert"
+    start = time.time()
+    try:
+        data = {
+            "pipeline_run_id": pipeline_run_id,
+            "step_name": step_name,
+            "status": status,
+            "rows_affected": rows_affected,
+            "message": message,
+        }
+        supabase.table(table).insert(data).execute()
+        SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
+            time.time() - start
+        )
+    except Exception as e:
+        SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
+        logger.error("repository_error", operation="create_audit_log", error=str(e))
+
+
 async def get_scrape_runs(limit: int = 20) -> list[dict[str, Any]]:
     supabase = get_supabase_client()
     table = "scrape_runs"

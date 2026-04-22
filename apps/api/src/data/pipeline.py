@@ -9,7 +9,13 @@ import pandas as pd
 from src.scrapers.scraper_factory import ScraperFactory
 from src.data.transformers import transform_batch_df
 from src.data.validators import validate_quote
-from src.database.repository import upsert_option_parameters, insert_market_data, create_scrape_run, update_scrape_run
+from src.database.repository import (
+    upsert_option_parameters, 
+    insert_market_data, 
+    create_scrape_run, 
+    update_scrape_run,
+    create_audit_log
+)
 from src.metrics import SCRAPE_RUNS_TOTAL, SCRAPE_ROWS_INSERTED, SCRAPE_DURATION_SECONDS
 
 logger = structlog.get_logger(__name__)
@@ -21,7 +27,7 @@ class DataPipeline:
         self.run_id = run_id
         self.market = market
 
-    async def run(self, trade_date: Optional[date] = None) -> Dict[str, int]:
+    async def run(self, trade_date: Optional[date] = None) -> Dict[str, Any]:
         """Full run: Scrape -> Transform -> Validate -> Upsert."""
         if not self.market:
             raise ValueError("Market must be specified for a full run.")
@@ -30,76 +36,83 @@ class DataPipeline:
             trade_date = date.today()
 
         start_time = time.time()
-        scraper = ScraperFactory.get_scraper(self.market, self.run_id)
+        market = self.market
         
-        SCRAPE_RUNS_TOTAL.labels(market=self.market, status="running").inc()
+        SCRAPE_RUNS_TOTAL.labels(market=market, status="running").inc()
         
         try:
-            logger.info("pipeline_scrape_started", market=self.market, run_id=self.run_id)
-            raw_data = await scraper.scrape(trade_date)
-            return await self.process_rows(raw_data, trade_date)
-        except Exception as e:
-            logger.error("pipeline_failed", market=self.market, run_id=self.run_id, error=str(e))
-            SCRAPE_RUNS_TOTAL.labels(market=self.market, status="failed").inc()
-            await update_scrape_run(self.run_id, {"status": "failed"})
-            raise
-
-    async def process_rows(self, rows: List[Dict[str, Any]], trade_date: Optional[date] = None) -> Dict[str, int]:
-        """Processes a batch of raw rows."""
-        if trade_date is None:
-            trade_date = date.today()
+            # 1. Scrape
+            await create_audit_log(self.run_id, "scrape", "started")
+            scraper = ScraperFactory.get_scraper(market, self.run_id)
+            df = await scraper.scrape(trade_date)
+            rows = df.to_dict("records")
+            await create_audit_log(self.run_id, "scrape", "completed", rows_affected=len(rows))
             
-        start_time = time.time()
-        market = self.market or "unknown"
-        
-        logger.info("pipeline_processing_batch", run_id=self.run_id, count=len(rows))
-        
-        # Transform
-        params_list = transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
-        
-        inserted_count = 0
-        market_data_to_insert = []
-        
-        for params in params_list:
-            try:
-                # Validate
-                validate_quote(
-                    params.underlying_price, 
-                    params.strike_price, 
-                    params.volatility, 
-                    params.risk_free_rate, 
-                    params.maturity_years
-                )
-                
-                # Persistence
-                option_id = await upsert_option_parameters(params.dict())
-                
-                market_data_to_insert.append({
-                    "option_id": option_id,
-                    "trade_date": trade_date.isoformat(),
-                    "bid_price": 0.0,
-                    "ask_price": 0.0,
-                    "data_source": market
-                })
-                inserted_count += 1
-            except Exception:
-                continue
+            # 2. Transform & Validate
+            await create_audit_log(self.run_id, "transform_validate", "started")
+            params_list = transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
+            
+            inserted_count = 0
+            market_data_to_insert = []
+            
+            for params in params_list:
+                try:
+                    # Validate
+                    validate_quote({
+                        "bid": rows[params_list.index(params)].get("bid_price", 0),
+                        "ask": rows[params_list.index(params)].get("ask_price", 0),
+                        "underlying": params.underlying_price
+                    })
+                    
+                    # Persistence
+                    option_id = await upsert_option_parameters(params.dict())
+                    
+                    # Prepare market data
+                    orig_row = rows[params_list.index(params)]
+                    market_data_to_insert.append({
+                        "option_id": option_id,
+                        "trade_date": trade_date.isoformat(),
+                        "bid_price": float(orig_row.get("bid_price", 0)),
+                        "ask_price": float(orig_row.get("ask_price", 0)),
+                        "volume": int(orig_row.get("volume", 0)),
+                        "open_interest": int(orig_row.get("open_interest", 0)),
+                        "data_source": market
+                    })
+                    inserted_count += 1
+                except Exception as e:
+                    logger.warning("row_skipped", error=str(e), run_id=self.run_id)
+                    continue
 
-        if market_data_to_insert:
-            await insert_market_data(market_data_to_insert)
-
-        # Metrics
-        duration = time.time() - start_time
-        SCRAPE_DURATION_SECONDS.labels(market=market).observe(duration)
-        SCRAPE_ROWS_INSERTED.labels(market=market).set(inserted_count)
-        
-        await update_scrape_run(
-            self.run_id, 
-            {
-                "status": "success", 
-                "rows_scraped": len(rows), 
-                "rows_inserted": inserted_count
+            # 3. Batch Insert Market Data
+            if market_data_to_insert:
+                await insert_market_data(market_data_to_insert)
+            
+            await create_audit_log(self.run_id, "transform_validate", "completed", rows_affected=inserted_count)
+            
+            # Success
+            result = {
+                "status": "success",
+                "rows_scraped": len(rows),
+                "rows_inserted": inserted_count,
+                "duration": time.time() - start_time
             }
-        )
-        
-        return {"scraped": len(rows), "inserted": inserted_count}
+            await update_scrape_run(self.run_id, {
+                "status": "success",
+                "rows_scraped": len(rows),
+                "rows_validated": inserted_count,
+                "rows_inserted": inserted_count,
+                "error_count": 0
+            })
+            
+            SCRAPE_RUNS_TOTAL.labels(market=market, status="success").inc()
+            return result
+
+        except Exception as e:
+            logger.error("pipeline_failed", error=str(e), run_id=self.run_id)
+            await create_audit_log(self.run_id, "pipeline", "failed", message=str(e))
+            await update_scrape_run(self.run_id, {"status": "failed", "error_count": 1})
+            SCRAPE_RUNS_TOTAL.labels(market=market, status="failed").inc()
+            return {"status": "failed", "error": str(e)}
+        finally:
+            duration = time.time() - start_time
+            SCRAPE_DURATION_SECONDS.labels(market=market).observe(duration)

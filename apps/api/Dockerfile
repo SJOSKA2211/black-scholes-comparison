@@ -1,23 +1,37 @@
+# ── Stage 1: Builder ───────────────────────────────────────────
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libffi-dev libssl-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# ── Stage 2: Final ─────────────────────────────────────────────
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-# Note: fonts-unifont replaces ttf-unifont in newer Debian/Ubuntu
+# Install runtime dependencies for Playwright/Chromium
+# We avoid --with-deps because it fails on Debian Trixie due to hardcoded Ubuntu package names
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc g++ libffi-dev libssl-dev curl \
     libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libdbus-1-3 libexpat1 libxcb1 libxkbcommon0 \
     libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
     libgbm1 libpango-1.0-0 libcairo2 libasound2 libxshmfence1 \
     fonts-liberation fonts-noto-color-emoji fonts-unifont \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy installed python packages from builder
+COPY --from=builder /install /usr/local
 
-# Install Playwright Chromium (without --with-deps to avoid ttf-ubuntu error)
+# Install Playwright Chromium
 RUN playwright install chromium
 
 # Copy source code

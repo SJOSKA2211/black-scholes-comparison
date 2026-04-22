@@ -12,6 +12,7 @@ from src.methods.monte_carlo.quasi_mc import price_quasi_mc
 from src.methods.tree_methods.binomial_crr import price_binomial_crr
 from src.methods.tree_methods.trinomial import price_trinomial
 from src.methods.tree_methods.richardson import price_binomial_crr_richardson, price_trinomial_richardson
+from src.exceptions import CFLViolationError
 
 @pytest.fixture
 def standard_params():
@@ -78,33 +79,32 @@ def test_american_put(standard_params):
 @pytest.mark.unit
 def test_analytical_extras(standard_params):
     bs = BlackScholesAnalytical()
-    # Greeks
     assert bs.delta(standard_params) > 0
     assert bs.gamma(standard_params) > 0
     assert bs.vega(standard_params) > 0
     
-    # Put Greeks
     standard_params.option_type = "put"
     assert bs.delta(standard_params) < 0
     
-    # Asian
-    standard_params.option_type = "call"
     res_asian = bs.geometric_asian_price(standard_params)
     assert res_asian.computed_price > 0
     
-    standard_params.option_type = "put"
-    res_asian_put = bs.geometric_asian_price(standard_params)
-    assert res_asian_put.computed_price > 0
+    standard_params.option_type = "call"
+    res_asian_call = bs.geometric_asian_price(standard_params)
+    assert res_asian_call.computed_price > 0
 
 @pytest.mark.unit
 def test_implied_volatility_logic(standard_params):
     bs = BlackScholesAnalytical()
-    # Success
-    price = bs.price(standard_params).computed_price
-    iv = bs.implied_volatility(price, standard_params)
-    assert abs(iv - 0.2) < 1e-3
+    price_call = bs.price(standard_params).computed_price
+    iv = bs.implied_volatility(price_call, standard_params)
+    assert abs(iv - 0.2) < 1e-4
     
-    # Force ValueError in brentq
-    # Price too high for the range [1e-6, 5.0]
-    iv_err = bs.implied_volatility(1000.0, standard_params)
+    iv_err = bs.implied_volatility(-10.0, standard_params)
     assert iv_err == 0.0
+
+@pytest.mark.unit
+def test_explicit_fdm_cfl_violation(standard_params):
+    # Trigger CFL violation
+    with pytest.raises(CFLViolationError):
+        price_explicit_fdm(standard_params, num_spatial=200, num_time=10)
