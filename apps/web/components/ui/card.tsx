@@ -40,3 +40,5 @@ export function CardContent({ children, className }: { children: React.ReactNode
     </div>
   );
 }
+
+export default Card;

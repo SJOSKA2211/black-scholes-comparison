@@ -26,3 +26,5 @@ export function Badge({ children, variant = "slate", className }: BadgeProps) {
     </span>
   );
 }
+
+export default Badge;

@@ -88,7 +88,7 @@ function LoginContent() {
               className="w-full h-12 gap-3" 
               onClick={signInWithGitHub}
             >
-              <Code className="w-5 h-5" />
+              <Github className="w-5 h-5" />
               Continue with GitHub
             </Button>
             
