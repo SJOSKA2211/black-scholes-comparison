@@ -39,7 +39,9 @@ def _thomas_algorithm(
 class ImplicitFDM:
     """Implicit Finite Difference Method wrapper."""
 
-    def price(self, params: OptionParams, num_spatial: int = 100, num_time: int = 100) -> PriceResult:
+    def price(
+        self, params: OptionParams, num_spatial: int = 100, num_time: int = 100
+    ) -> PriceResult:
         """BTCS Implicit FDM solver."""
         start_time = time.time()
         strike_price = params.strike_price
@@ -64,7 +66,8 @@ class ImplicitFDM:
             rhs_values = values[1:-1].copy()
             if params.option_type == "call":
                 rhs_values[-1] -= upper_diag[-1] * (
-                    max_underlying - strike_price * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
+                    max_underlying
+                    - strike_price * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
                 )
             else:
                 rhs_values[0] -= lower_diag[0] * (

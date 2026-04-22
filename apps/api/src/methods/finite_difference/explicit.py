@@ -13,7 +13,9 @@ from src.methods.base import OptionParams, PriceResult
 class ExplicitFDM:
     """Explicit Finite Difference Method wrapper."""
 
-    def price(self, params: OptionParams, num_spatial: int = 100, num_time: int = 1000) -> PriceResult:
+    def price(
+        self, params: OptionParams, num_spatial: int = 100, num_time: int = 1000
+    ) -> PriceResult:
         """FTCS Explicit FDM solver."""
         start_time = time.time()
         strike_price = params.strike_price

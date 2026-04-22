@@ -13,7 +13,9 @@ from src.methods.base import OptionParams, PriceResult
 class ControlVariateMC:
     """Control Variate Monte Carlo wrapper."""
 
-    def price(self, params: OptionParams, num_paths: int = 100000, num_steps: int = 50) -> PriceResult:
+    def price(
+        self, params: OptionParams, num_paths: int = 100000, num_steps: int = 50
+    ) -> PriceResult:
         """Monte Carlo with Geometric Asian Control Variate."""
         start_time = time.time()
 
@@ -59,7 +61,9 @@ class ControlVariateMC:
 
         # CV Adjusted payoffs
         discount_factor = np.exp(-risk_free_rate * maturity_years)
-        adjusted_payoffs = target_payoffs - beta_star * (cv_payoffs - analytical_cv / discount_factor)
+        adjusted_payoffs = target_payoffs - beta_star * (
+            cv_payoffs - analytical_cv / discount_factor
+        )
 
         price = discount_factor * np.mean(adjusted_payoffs)
         std_error = np.std(adjusted_payoffs) / np.sqrt(num_paths)

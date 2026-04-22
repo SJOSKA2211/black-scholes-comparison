@@ -13,7 +13,9 @@ from src.methods.finite_difference.implicit import _thomas_algorithm
 class CrankNicolsonFDM:
     """Crank-Nicolson Finite Difference Method wrapper."""
 
-    def price(self, params: OptionParams, num_spatial: int = 100, num_time: int = 100) -> PriceResult:
+    def price(
+        self, params: OptionParams, num_spatial: int = 100, num_time: int = 100
+    ) -> PriceResult:
         """Crank-Nicolson FDM solver."""
         start_time = time.time()
         strike_price = params.strike_price
