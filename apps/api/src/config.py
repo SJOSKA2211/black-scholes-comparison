@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
 
     # OAuth
-    github_client_id: str | None = None
-    github_client_secret: str | None = None
+    gh_client_id: str | None = None
+    gh_client_secret: str | None = None
     google_client_id: str | None = None
     google_client_secret: str | None = None
 

@@ -22,8 +22,8 @@ async def get_github_user(code: str) -> dict[str, Any]:
         token_res = await client.post(
             "https://github.com/login/oauth/access_token",
             params={
-                "client_id": settings.github_client_id,
-                "client_secret": settings.github_client_secret,
+                "client_id": settings.gh_client_id,
+                "client_secret": settings.gh_client_secret,
                 "code": code,
             },
             headers={"Accept": "application/json"},

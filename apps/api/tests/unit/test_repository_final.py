@@ -20,8 +20,7 @@ from src.database.repository import (
     delete_push_subscription,
     get_experiments_by_method,
     get_notifications,
-    create_audit_log,
-    insert_audit_log
+    create_audit_log
 )
 from src.exceptions import RepositoryError
 
