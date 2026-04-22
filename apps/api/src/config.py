@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     def rabbitmq_url(self) -> str:
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
 
-    minio_endpoint: str = "minio:9000"
+    minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minio_admin"
     minio_secret_key: str = "minio_secret"  # noqa: S105
     minio_secure: bool = False
