@@ -8,6 +8,7 @@ from src.exceptions import RepositoryError
 from src.database.supabase_client import get_supabase_client
 from src.queue.rabbitmq_client import get_rabbitmq_connection
 from src.auth.dependencies import get_current_user
+from src.routers.websocket import websocket_endpoint
 
 @pytest.mark.unit
 class TestBackendFinalCoverage:
@@ -86,49 +87,33 @@ class TestBackendFinalCoverage:
                 assert mock_start.called
 
     @patch("src.routers.websocket.verify_ws_token", new_callable=AsyncMock)
-    @patch("src.routers.websocket.ws_manager")
-    def test_websocket_endpoint_full(self, mock_ws_manager, mock_verify):
-        client = TestClient(app)
-        mock_verify.return_value = {"id": "user123"}
+    @patch("src.routers.websocket.ws_manager", new_callable=AsyncMock)
+    async def test_websocket_endpoint_direct(self, mock_ws_manager, mock_verify):
+        mock_ws = AsyncMock()
+        mock_verify.return_value = {"id": "u1"}
         
-        async def mock_connect(ws, channel):
-            await ws.accept()
-        
-        mock_ws_manager.connect = AsyncMock(side_effect=mock_connect)
-        mock_ws_manager.disconnect = AsyncMock()
-        
-        with client.websocket_connect("/ws/experiments?token=good") as websocket:
-            websocket.close()
-        
-        assert mock_ws_manager.connect.called
-        assert mock_ws_manager.disconnect.called
-
-    @patch("src.routers.websocket.verify_ws_token", new_callable=AsyncMock)
-    @patch("src.routers.websocket.ws_manager")
-    def test_websocket_endpoint_exception(self, mock_ws_manager, mock_verify):
-        client = TestClient(app)
-        mock_verify.return_value = {"id": "user123"}
-        
-        async def mock_connect_fail(ws, channel):
-            # No accept() here to trigger failure at router level if it calls it
-            # Or just raise
-            raise Exception("WS Fail")
-            
-        mock_ws_manager.connect = AsyncMock(side_effect=mock_connect_fail)
-        mock_ws_manager.disconnect = AsyncMock()
-        
-        # We use a try-except to catch the Starlette side-effect
+        # Test valid connection, then disconnect
+        mock_ws.receive_text.side_effect = asyncio.exceptions.CancelledError()
         try:
-            with client.websocket_connect("/ws/experiments") as websocket:
-                pass
-        except Exception:
+            await websocket_endpoint(mock_ws, "experiments", "token")
+        except asyncio.exceptions.CancelledError:
             pass
             
+        assert mock_ws_manager.connect.called
+        
+        # Test unknown channel
+        mock_ws = AsyncMock()
+        await websocket_endpoint(mock_ws, "invalid", "token")
+        assert mock_ws.close.called
+
+        # Test exception branch
+        mock_ws = AsyncMock()
+        mock_ws_manager.connect.side_effect = Exception("Fail")
+        await websocket_endpoint(mock_ws, "experiments", "token")
         assert mock_ws_manager.disconnect.called
 
     @patch("src.routers.scrapers.publish_scrape_task", new_callable=AsyncMock)
     def test_scrapers_router_branches(self, mock_publish):
-        # Override dependency
         app.dependency_overrides[get_current_user] = lambda: {"id": "u1"}
         client = TestClient(app)
         try:
