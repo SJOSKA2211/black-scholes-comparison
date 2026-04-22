@@ -1,5 +1,5 @@
 # Black-Scholes Research Platform
- 
+
 ## Project Overview
 A full-stack research system for evaluating Black-Scholes numerical methods (FDM, Monte Carlo, Binomial Trees). Developed for the MATH499 senior research project at the University of Eastern Africa, Baraton.
  
@@ -74,3 +74,5 @@ SJOSKA2211/black-scholes-comparison/
  
 ---
 *MATH499 Senior Research · UEAB · SJOSKA2211*
+
+
