@@ -19,7 +19,7 @@ from src.auth.oauth import get_github_user, get_google_user, sync_user_profile
 from src.routers.websocket import websocket_endpoint
 from src.websocket.manager import WebSocketManager
 from src.data.pipeline import DataPipeline
-from src.scrapers.nse_next_scraper import NSENextScraper
+from src.scrapers.nse_next_scraper import NSEScraper
 
 @pytest.mark.unit
 class TestBackendFinalCoverage:
@@ -75,6 +75,7 @@ class TestBackendFinalCoverage:
 
     def test_startup_event(self):
         with patch("src.main.get_minio") as mock_minio:
+            mock_minio.side_effect = Exception("MinIO Fail")
             with patch("src.main.start_consumers", new_callable=AsyncMock) as mock_start:
                 with TestClient(app) as client:
                     pass
@@ -88,32 +89,22 @@ class TestBackendFinalCoverage:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.auth.get_user.return_value.user.id = "u1"
-        
-        # Test CancelledError
         mock_ws.receive_text.side_effect = asyncio.exceptions.CancelledError()
         try:
             await websocket_endpoint(mock_ws, "experiments", "token")
         except asyncio.exceptions.CancelledError:
             pass
-            
-        # Test WebSocketDisconnect
         mock_ws.receive_text.side_effect = WebSocketDisconnect()
         await websocket_endpoint(mock_ws, "experiments", "token")
         assert mock_ws_manager.disconnect.called
-        
-        # Test unknown channel
         mock_ws = AsyncMock()
         await websocket_endpoint(mock_ws, "invalid", "token")
         assert mock_ws.close.called
-
-        # Test verify_ws_token fail branch (line 32)
-        mock_ws = AsyncMock()
-        mock_client.auth.get_user.return_value = None
-        await websocket_endpoint(mock_ws, "experiments", "token")
-
-        # Test exception branch in router (line 43-44)
         mock_ws = AsyncMock()
         mock_ws_manager.connect.side_effect = Exception("Fail")
+        await websocket_endpoint(mock_ws, "experiments", "token")
+        assert mock_ws_manager.disconnect.called
+        mock_client.auth.get_user.return_value = None
         await websocket_endpoint(mock_ws, "experiments", "token")
 
     @patch("src.routers.scrapers.publish_scrape_task", new_callable=AsyncMock)
@@ -139,8 +130,6 @@ class TestBackendFinalCoverage:
         mock_client.auth.get_user.side_effect = Exception("Auth fail")
         with pytest.raises(HTTPException):
             await get_current_user(MagicMock(credentials="error"))
-
-        # verify_ws_token fail (58-61)
         mock_ws = AsyncMock()
         mock_client.auth.get_user.side_effect = Exception("WS Auth fail")
         res = await verify_ws_token(mock_ws, "error")
@@ -150,21 +139,37 @@ class TestBackendFinalCoverage:
     @patch("httpx.AsyncClient.post", new_callable=AsyncMock)
     @patch("httpx.AsyncClient.get", new_callable=AsyncMock)
     async def test_oauth_errors(self, mock_get, mock_post):
+        # 1. Github Exchange Fail (status_code != 200)
         mock_post.return_value = MagicMock(status_code=400)
         with pytest.raises(AuthenticationError):
             await get_github_user("code")
+            
+        # 2. Github No access token
         mock_post.return_value = MagicMock(status_code=200)
-        mock_post.return_value.json.return_value = {}
-        with pytest.raises(AuthenticationError):
-            await get_github_user("code")
-        mock_post.return_value.json.return_value = {"access_token": "at"}
-        mock_get.return_value = MagicMock(status_code=400)
+        mock_post.return_value.json.return_value = {"error": "bad"}
         with pytest.raises(AuthenticationError):
             await get_github_user("code")
             
-        # Google user fetch fail (75)
+        # 3. Github User Fetch Fail (line 44)
         mock_post.return_value.json.return_value = {"access_token": "at"}
-        mock_get.return_value = MagicMock(status_code=400)
+        mock_get.return_value = MagicMock(status_code=404)
+        with pytest.raises(AuthenticationError):
+            await get_github_user("code")
+            
+        # 4. Google Exchange Fail
+        mock_post.return_value = MagicMock(status_code=500)
+        with pytest.raises(AuthenticationError):
+            await get_google_user("code")
+            
+        # 5. Google No access token
+        mock_post.return_value = MagicMock(status_code=200)
+        mock_post.return_value.json.return_value = {"error": "bad"}
+        with pytest.raises(AuthenticationError):
+            await get_google_user("code")
+            
+        # 6. Google User Fetch Fail
+        mock_post.return_value.json.return_value = {"access_token": "at"}
+        mock_get.return_value = MagicMock(status_code=401)
         with pytest.raises(AuthenticationError):
             await get_google_user("code")
 
@@ -175,6 +180,9 @@ class TestBackendFinalCoverage:
         mock_upsert.side_effect = Exception("Sync fail")
         with pytest.raises(Exception):
             await sync_user_profile({"id": "u1"})
+        mock_upsert.side_effect = None
+        mock_upsert.return_value = {"id": "u1"}
+        await sync_user_profile({"id": "u1", "email": "test@test.com"})
 
     @patch("src.websocket.manager.get_redis")
     async def test_websocket_manager_exit_loop(self, mock_get_redis):
@@ -203,10 +211,35 @@ class TestBackendFinalCoverage:
         client = TestClient(app)
         client.options("/api/v1/methods", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"})
 
-    @patch("httpx.AsyncClient.get", new_callable=AsyncMock)
-    async def test_nse_scraper_exit_loop(self, mock_get):
-        scraper = NSENextScraper("run1")
-        mock_get.return_value = MagicMock(status_code=200)
-        mock_get.return_value.json.return_value = {"records": {"data": [{"strikePrice": 100, "expiryDate": "2024-01-01", "CE": {"lastPrice": 10}}]}}
+    @patch("src.scrapers.nse_next_scraper.async_playwright")
+    async def test_nse_scraper_branches(self, mock_p):
+        scraper = NSEScraper("run1")
+        mock_browser = AsyncMock()
+        mock_p.return_value.__aenter__.return_value.chromium.launch.return_value = mock_browser
+        mock_context = AsyncMock()
+        mock_browser.new_context.return_value = mock_context
+        mock_page = AsyncMock()
+        mock_context.new_page.return_value = mock_page
+        mock_val_elem = AsyncMock()
+        mock_val_elem.inner_text.return_value = "Underlying: 22000"
+        mock_page.query_selector.return_value = mock_val_elem
+        
+        mock_row = AsyncMock()
+        mock_cols = [AsyncMock() for _ in range(21)]
+        for i, col in enumerate(mock_cols):
+            col.inner_text.return_value = "100" if i == 11 else "10"
+        mock_row.query_selector_all.return_value = mock_cols
+        
+        mock_row_fail = AsyncMock()
+        mock_cols_fail = [AsyncMock() for _ in range(21)]
+        for i, col in enumerate(mock_cols_fail):
+            col.inner_text.return_value = "100" if i == 11 else "0"
+        mock_row_fail.query_selector_all.return_value = mock_cols_fail
+        
+        mock_page.query_selector_all.return_value = [mock_row, mock_row_fail]
+        
         import datetime
         await scraper.scrape(datetime.date(2024, 1, 1))
+        mock_page.goto.side_effect = Exception("Fail")
+        with pytest.raises(Exception):
+            await scraper.scrape(datetime.date(2024, 1, 1))
