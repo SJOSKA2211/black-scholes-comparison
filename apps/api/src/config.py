@@ -5,9 +5,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Supabase
-    supabase_url: str
-    supabase_key: str  # service_role key
-    supabase_anon_key: str
+    supabase_url: str = "http://localhost:54321"
+    supabase_key: str = "dummy_service_key"  # service_role key
+    supabase_anon_key: str = "dummy_anon_key"
 
     # API
     api_url: str = "http://localhost:8000"
