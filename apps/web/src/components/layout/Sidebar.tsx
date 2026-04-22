@@ -20,7 +20,7 @@ const navItems = [
   { name: "Methods", href: "/methods", icon: Layers },
 ];
 
-export default function Sidebar() {
+export function Sidebar() {
   const pathname = usePathname();
 
   return (
@@ -60,3 +60,5 @@ export default function Sidebar() {
     </aside>
   );
 }
+
+export default Sidebar;

@@ -4,7 +4,7 @@ import NotificationBell from "./NotificationBell";
 import ConnectionStatus from "./ConnectionStatus";
 import { User } from "@supabase/supabase-js";
 
-export default function Header({ user }: { user: User }) {
+export function Header({ user }: { user: User }) {
   const { signOut } = useAuth();
 
   return (
@@ -32,3 +32,5 @@ export default function Header({ user }: { user: User }) {
     </header>
   );
 }
+
+export default Header;

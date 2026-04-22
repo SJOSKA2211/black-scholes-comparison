@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Code, Mail, LineChart, AlertCircle } from "lucide-react";
+import { Github, Globe, Mail, Lock, ArrowRight, LineChart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function LoginContent() {

@@ -37,3 +37,5 @@ export function Button({ className, variant = "primary", size = "md", ...props }
     />
   );
 }
+
+export default Button;

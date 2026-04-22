@@ -51,7 +51,7 @@ async def get_results(
         else:
             # use get_experiments
             results_dict = await get_experiments(page_size=limit)
-            results = results_dict.get("data", [])
+            results = results_dict.get("items", [])
         return results
     except Exception as e:
         logger.error("results_fetch_failed", error=str(e), step="router")

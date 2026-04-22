@@ -165,7 +165,7 @@ class TestAPI:
         response = client.post("/api/v1/experiments/run", json={"params": {"underlying_price": 100, "strike_price": 100, "maturity_years": 1, "volatility": 0.2, "risk_free_rate": 0.05, "option_type": "call"}})
         assert response.status_code == 200
         
-        mock_get.return_value = {"data": []}
+        mock_get.return_value = {"items": []}
         response = client.get("/api/v1/experiments/results")
         assert response.status_code == 200
         
@@ -200,7 +200,7 @@ class TestAPI:
     async def test_download_branches(self, mock_upload, mock_get_exp, mock_get_market):
         # Success
         mock_get_market.return_value = [{"a": 1}]
-        mock_get_exp.return_value = {"data": [{"b": 2}]}
+        mock_get_exp.return_value = {"items": [{"b": 2}]}
         mock_upload.return_value = "http://minio/file.csv"
         
         # Experiments resource

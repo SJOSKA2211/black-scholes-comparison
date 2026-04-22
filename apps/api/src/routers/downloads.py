@@ -52,7 +52,7 @@ def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
 @router.get("/{resource}")
 async def download_resource(
     resource: str,
-    format: str = Query("csv", regex="^(csv|json|xlsx)$"),
+    format: str = Query("csv", pattern="^(csv|json|xlsx)$"),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     """

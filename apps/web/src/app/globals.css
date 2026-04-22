@@ -26,15 +26,24 @@
 
 @layer utilities {
   .glass {
-    @apply bg-slate-900/50 backdrop-blur-xl border border-white/10;
+    background-color: var(--color-slate-900);
+    background-color: color-mix(in srgb, var(--color-slate-900) 50%, transparent);
+    backdrop-filter: blur(24px);
+    border: 1px solid color-mix(in srgb, white 10%, transparent);
   }
   
   .glass-card {
-    @apply bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-md border border-white/5 shadow-2xl;
+    background: linear-gradient(to bottom right, color-mix(in srgb, var(--color-slate-900) 80%, transparent), color-mix(in srgb, var(--color-slate-950) 80%, transparent));
+    backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in srgb, white 5%, transparent);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, var(--color-indigo-400), var(--color-cyan-400), var(--color-emerald-400));
   }
 
   .glow-blue {
@@ -58,8 +67,13 @@ body {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-slate-950;
+  background-color: var(--color-slate-950);
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+  background-color: var(--color-slate-800);
+  border-radius: 9999px;
+  transition: background-color 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-slate-700);
 }
