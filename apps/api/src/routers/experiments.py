@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -17,8 +17,8 @@ logger = structlog.get_logger(__name__)
 
 @router.post("/run")
 async def run_experiment(
-    params: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, str]:
+    params: dict[str, Any], current_user: dict[str, Any] = Depends(get_current_user)
+) -> dict[str, str]:
     """
     Submits an experiment task to the message queue.
     The payload includes pricing parameters and methods to test.
@@ -31,15 +31,15 @@ async def run_experiment(
         return {"message": "Experiment submitted successfully", "status": "queued"}
     except Exception as e:
         logger.error("experiment_submission_failed", error=str(e), step="router")
-        raise HTTPException(status_code=500, detail="Failed to submit experiment")
+        raise HTTPException(status_code=500, detail="Failed to submit experiment") from e
 
 
 @router.get("/results")
 async def get_results(
-    method_type: Optional[str] = Query(None),
+    method_type: str | None = Query(None),
     limit: int = Query(50, ge=1, le=500),
-    current_user: Dict[str, Any] = Depends(get_current_user),
-) -> List[Dict[str, Any]]:
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> list[dict[str, Any]]:
     """Retrieves experiment results from the database."""
     try:
         if method_type:
@@ -51,4 +51,4 @@ async def get_results(
         return results
     except Exception as e:
         logger.error("results_fetch_failed", error=str(e), step="router")
-        raise HTTPException(status_code=500, detail="Failed to fetch results")
+        raise HTTPException(status_code=500, detail="Failed to fetch results") from e

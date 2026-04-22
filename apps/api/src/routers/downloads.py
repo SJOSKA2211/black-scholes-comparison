@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 import time
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 import structlog
@@ -53,8 +53,8 @@ def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
 async def download_resource(
     resource: str,
     format: str = Query("csv", regex="^(csv|json|xlsx)$"),
-    current_user: Dict[str, Any] = Depends(get_current_user),
-) -> Dict[str, Any]:
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, Any]:
     """
     Generates the export file, uploads to MinIO, returns a presigned URL.
     The frontend redirects the browser to the URL for direct download.
@@ -81,4 +81,4 @@ async def download_resource(
         raise
     except Exception as e:
         logger.error("download_failed", error=str(e), resource=resource, step="router")
-        raise HTTPException(status_code=500, detail=f"Failed to generate download: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate download: {e!s}") from e

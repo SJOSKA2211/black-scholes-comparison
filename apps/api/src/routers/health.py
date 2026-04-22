@@ -39,18 +39,17 @@ async def health_check() -> dict[str, Any]:
         get_supabase_client().table("user_profiles").select("id").limit(1).execute()
         health["services"]["database"] = "connected"
     except Exception as e:
-        health["services"]["database"] = f"error: {str(e)}"
+        health["services"]["database"] = f"error: {e!s}"
         health["status"] = "error"
 
     # 2. Redis
     try:
         redis = get_redis()
-        from typing import Any
 
-        await cast(Any, redis.ping())
+        await cast("Any", redis.ping())
         health["services"]["redis"] = "connected"
     except Exception as e:
-        health["services"]["redis"] = f"error: {str(e)}"
+        health["services"]["redis"] = f"error: {e!s}"
         health["status"] = "error"
 
     # 3. RabbitMQ
@@ -59,7 +58,7 @@ async def health_check() -> dict[str, Any]:
         if not conn.is_closed:
             health["services"]["rabbitmq"] = "connected"
     except Exception as e:
-        health["services"]["rabbitmq"] = f"error: {str(e)}"
+        health["services"]["rabbitmq"] = f"error: {e!s}"
         health["status"] = "error"
 
     # 4. Storage (MinIO)
@@ -67,7 +66,7 @@ async def health_check() -> dict[str, Any]:
         get_minio().list_buckets()
         health["services"]["storage"] = "connected"
     except Exception as e:
-        health["services"]["storage"] = f"error: {str(e)}"
+        health["services"]["storage"] = f"error: {e!s}"
         health["status"] = "error"
 
     return health

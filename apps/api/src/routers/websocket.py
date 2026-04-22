@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import structlog
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
@@ -17,7 +15,7 @@ logger = structlog.get_logger(__name__)
 
 @router.websocket("/ws/{channel}")
 async def websocket_endpoint(
-    websocket: WebSocket, channel: str, token: Optional[str] = Query(None)
+    websocket: WebSocket, channel: str, token: str | None = Query(None)
 ) -> None:
     """
     WebSocket endpoint. Clients connect to /ws/{channel}?token={jwt}.

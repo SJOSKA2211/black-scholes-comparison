@@ -1,6 +1,6 @@
 import math
 import time
-from typing import Any, List
+from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException
@@ -36,11 +36,11 @@ logger = structlog.get_logger(__name__)
 
 class PriceRequest(BaseModel):
     params: OptionParams
-    methods: List[MethodType]
+    methods: list[MethodType]
 
 
 class PriceResponse(BaseModel):
-    results: List[PriceResult]
+    results: list[PriceResult]
     analytical_reference: float
     exec_ms: float
 
@@ -116,7 +116,7 @@ async def price_options(
         )
     except Exception as e:
         logger.error("pricing_failed", error=str(e), step="router")
-        raise HTTPException(status_code=500, detail=f"Pricing computation failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pricing computation failed: {e!s}") from e
 
 
 @router.get("/methods", response_model=None)

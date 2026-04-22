@@ -15,21 +15,21 @@ class Settings(BaseSettings):
 
     # Infrastructure
     redis_url: str = "redis://redis:6379/0"
-    redis_password: str
+    redis_password: str = "redis_pass"
 
     rabbitmq_user: str = "research_admin"
-    rabbitmq_password: str
+    rabbitmq_password: str = "rabbit_pass"
 
     @property
     def rabbitmq_url(self) -> str:
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
 
     minio_endpoint: str = "minio:9000"
-    minio_access_key: str
-    minio_secret_key: str
+    minio_access_key: str = "minio_admin"
+    minio_secret_key: str = "minio_secret"
 
     # Observability
-    grafana_admin_password: str
+    grafana_admin_password: str = "admin"
 
     # Notifications
     resend_api_key: str | None = None

@@ -1,6 +1,11 @@
+[build-system]
+requires = ["setuptools>=68","wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
 [project]
-name = "black-scholes-api"
+name    = "black-scholes-api"
 version = "1.0.0"
+requires-python = ">=3.11"
 description = "Numerical methods for option pricing — MATH499"
 authors = [{ name = "Joseph Kamau Maina", email = "SJOSKA2211@users.noreply.github.com" }]
 dependencies = [
@@ -28,17 +33,67 @@ dependencies = [
     "redis>=5.0.0",
     "aio-pika>=9.4.0",
     "minio>=7.2.0",
+    "xlsxwriter>=3.2.0",
 ]
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-asyncio_mode = "auto"
-
 [tool.black]
-line-length = 88
-target-version = ['py311']
+line-length    = 100
+target-version = ["py311"]
 
 [tool.isort]
-profile = "black"
-line_length = 88
+profile     = "black"
+line_length = 100
+
+[tool.ruff]
+line-length    = 100
+target-version = "py311"
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+  "N",   # pep8-naming
+  "S",   # flake8-bandit (security)
+  "ANN", # flake8-annotations (type hints)
+  "SIM", # flake8-simplify
+  "TCH", # flake8-type-checking
+  "RUF", # ruff-specific rules
+]
+ignore = ["ANN101","ANN102","S101","B008","TC003","TC002","TC001"]  # allow assert in tests, Depends in routes, datetime in runtime
+
+[tool.mypy]
+python_version   = "3.11"
+strict           = true
+warn_return_any  = true
+warn_unused_configs = true
+disallow_untyped_defs  = true
+disallow_any_generics  = true
+no_implicit_optional   = true
+
+[tool.pytest.ini_options]
+testpaths    = ["tests"]
+asyncio_mode = "auto"
+addopts      = "--strict-markers --tb=short -v"
+markers = [
+  "unit: pure unit tests — no network, no DB",
+  "integration: tests against real Supabase, Redis, RabbitMQ, MinIO",
+  "e2e: Playwright browser tests against running stack",
+]
+
+[tool.coverage.run]
+source        = ["src"]
+omit          = ["tests/*","scripts/*"]
+branch        = true
+
+[tool.coverage.report]
+fail_under    = 100
+show_missing  = true
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "@abstractmethod",
+]
