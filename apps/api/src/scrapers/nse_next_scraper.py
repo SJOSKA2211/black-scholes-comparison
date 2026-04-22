@@ -1,31 +1,40 @@
 """Scraper for NSE (National Stock Exchange of India) NIFTY options."""
+
 from __future__ import annotations
+
 import asyncio
-from datetime import date, datetime
-from typing import List, Dict, Any
+from datetime import date
+from typing import Any
+
 import structlog
 from playwright.async_api import async_playwright
+
 from src.scrapers.base_scraper import BaseScraper
 
 logger = structlog.get_logger(__name__)
 
+
 class NSEScraper(BaseScraper):
     """Scraper for NSE (National Stock Exchange of India) NIFTY options."""
 
-    def __init__(self, run_id: str):
+    def __init__(self, run_id: str) -> None:
         super().__init__(run_id)
         self.target_url = "https://www.nseindia.com/option-chain"
 
-    async def scrape(self, trade_date: date) -> List[Dict[str, Any]]:
+    async def scrape(self, trade_date: date) -> list[dict[str, Any]]:
         """Scrapes raw data for the given date."""
         logger.info("scraper_scrape_started", market="nse", run_id=self.run_id)
-        scraped_data: List[Dict[str, Any]] = []
+        scraped_data: list[dict[str, Any]] = []
 
         async with async_playwright() as p:
             try:
                 browser = await p.chromium.launch(headless=True)
                 context = await browser.new_context(
-                    user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    user_agent=(
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/120.0.0.0 Safari/537.36"
+                    )
                 )
                 page = await context.new_page()
 
@@ -84,7 +93,7 @@ class NSEScraper(BaseScraper):
             except Exception as e:
                 logger.error("scraper_scrape_failed", market="nse", error=str(e))
                 raise
-                
+
         return scraped_data
 
     async def run(self) -> None:

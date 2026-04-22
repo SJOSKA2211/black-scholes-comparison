@@ -1,14 +1,15 @@
 """WebSocket connection manager backed by Redis pub/sub."""
+
 from __future__ import annotations
+
 import asyncio
 import json
-from typing import Any, Dict, Set
+from typing import Any
 
+import structlog
 from fastapi import WebSocket
 
 from src.cache.redis_client import get_redis
-
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -22,8 +23,8 @@ class WebSocketManager:
 
     def __init__(self) -> None:
         # {channel: set of connected WebSocket objects}
-        self._connections: Dict[str, Set[WebSocket]] = {}
-        self._listeners: Dict[str, asyncio.Task[None]] = {}
+        self._connections: dict[str, set[WebSocket]] = {}
+        self._listeners: dict[str, asyncio.Task[None]] = {}
 
     async def connect(self, websocket: WebSocket, channel: str) -> None:
         """Accepts a connection and adds it to the specified channel."""
@@ -32,9 +33,14 @@ class WebSocketManager:
             self._connections[channel] = set()
             # Start a Redis listener for this channel if not already running
             self._listeners[channel] = asyncio.create_task(self.start_redis_listener(channel))
-            
+
         self._connections[channel].add(websocket)
-        logger.info("ws_client_connected", channel=channel, total=len(self._connections[channel]), step="websocket")
+        logger.info(
+            "ws_client_connected",
+            channel=channel,
+            total=len(self._connections[channel]),
+            step="websocket",
+        )
 
     async def disconnect(self, websocket: WebSocket, channel: str) -> None:
         """Removes a connection from the channel."""
@@ -48,18 +54,18 @@ class WebSocketManager:
                 del self._connections[channel]
         logger.info("ws_client_disconnected", channel=channel, step="websocket")
 
-    async def broadcast(self, channel: str, message: Dict[str, Any]) -> None:
+    async def broadcast(self, channel: str, message: dict[str, Any]) -> None:
         """Sends a message to all connected clients on a channel."""
         if channel not in self._connections:
             return
-            
+
         dead: list[WebSocket] = []
         for ws in self._connections[channel]:
             try:
                 await ws.send_json(message)
             except Exception:
                 dead.append(ws)
-                
+
         for ws in dead:
             await self.disconnect(ws, channel)
 
@@ -71,7 +77,7 @@ class WebSocketManager:
             redis_channel = f"ws:{channel}"
             await pubsub.subscribe(redis_channel)
             logger.info("redis_ws_listener_started", channel=redis_channel)
-            
+
             async for msg in pubsub.listen():
                 if msg["type"] == "message":
                     try:
@@ -83,6 +89,7 @@ class WebSocketManager:
             logger.info("redis_ws_listener_stopped", channel=channel)
         except Exception as e:
             logger.error("redis_ws_listener_failed", error=str(e), channel=channel)
+
 
 # Singleton instance
 ws_manager = WebSocketManager()

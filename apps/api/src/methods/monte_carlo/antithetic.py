@@ -30,8 +30,8 @@ def price_antithetic_mc(params: OptionParams, num_paths: int = 100000) -> PriceR
             + volatility * np.sqrt(maturity_years) * noise
         )
         if params.option_type == "call":
-            return cast(np.ndarray, np.maximum(st_price - strike_price, 0))
-        return cast(np.ndarray, np.maximum(strike_price - st_price, 0))
+            return cast("np.ndarray", np.maximum(st_price - strike_price, 0))
+        return cast("np.ndarray", np.maximum(strike_price - st_price, 0))
 
     payoffs_primary = compute_payoff(random_shocks)
     payoffs_antithetic = compute_payoff(-random_shocks)

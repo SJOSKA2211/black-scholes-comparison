@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Type
+from typing import ClassVar
 
 from src.scrapers.base_scraper import BaseScraper
 from src.scrapers.nse_next_scraper import NSEScraper
@@ -12,7 +12,7 @@ from src.scrapers.spy_scraper import SPYScraper
 class ScraperFactory:
     """Factory to retrieve scraper classes by market identifier."""
 
-    _SCRAPERS: dict[str, Type[BaseScraper]] = {
+    _SCRAPERS: ClassVar[dict[str, type[BaseScraper]]] = {
         "spy": SPYScraper,
         "nse": NSEScraper,
     }

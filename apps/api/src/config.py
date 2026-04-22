@@ -15,10 +15,10 @@ class Settings(BaseSettings):
 
     # Infrastructure
     redis_url: str = "redis://redis:6379/0"
-    redis_password: str = "redis_pass"
+    redis_password: str = "redis_pass"  # noqa: S105
 
     rabbitmq_user: str = "research_admin"
-    rabbitmq_password: str = "rabbit_pass"
+    rabbitmq_password: str = "rabbit_pass"  # noqa: S105
 
     @property
     def rabbitmq_url(self) -> str:
@@ -26,10 +26,10 @@ class Settings(BaseSettings):
 
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "minio_admin"
-    minio_secret_key: str = "minio_secret"
+    minio_secret_key: str = "minio_secret"  # noqa: S105
 
     # Observability
-    grafana_admin_password: str = "admin"
+    grafana_admin_password: str = "admin"  # noqa: S105
 
     # Notifications
     resend_api_key: str | None = None
@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     return Settings()  # type: ignore
 

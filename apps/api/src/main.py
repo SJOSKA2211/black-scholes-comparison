@@ -1,23 +1,27 @@
 """FastAPI application entry point."""
+
 from __future__ import annotations
+
 import asyncio
+from typing import Any
+
+import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from src.routers import (
-    pricing,
-    experiments,
-    market_data,
-    scrapers,
-    downloads,
-    notifications,
-    websocket,
-    health
-)
 from src.queue.consumer import start_consumers
+from src.routers import (
+    downloads,
+    experiments,
+    health,
+    market_data,
+    notifications,
+    pricing,
+    scrapers,
+    websocket,
+)
 from src.storage.minio_client import get_minio
-import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -26,7 +30,7 @@ app = FastAPI(
     description="Full-stack research platform for numerical methods in finance.",
     version="4.0.0",
     docs_url="/api/docs",
-    openapi_url="/api/openapi.json"
+    openapi_url="/api/openapi.json",
 )
 
 # CORS Configuration
@@ -42,7 +46,9 @@ app.add_middleware(
 Instrumentator().instrument(app).expose(app)
 
 # Register Routers (Mandate Aligned)
-app.include_router(pricing.router, prefix="/api/v1", tags=["Pricing"]) # /api/v1/price, /api/v1/methods
+app.include_router(
+    pricing.router, prefix="/api/v1", tags=["Pricing"]
+)  # /api/v1/price, /api/v1/methods
 app.include_router(experiments.router, prefix="/api/v1/experiments", tags=["Experiments"])
 app.include_router(market_data.router, prefix="/api/v1/market-data", tags=["Market Data"])
 app.include_router(scrapers.router, prefix="/api/v1/scrapers", tags=["Scrapers"])
@@ -51,13 +57,20 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(websocket.router, tags=["WebSocket"])
 app.include_router(health.router, tags=["Health"])
 
+
+# Global set to store references to long-running tasks to prevent garbage collection
+background_tasks: set[asyncio.Task[Any]] = set()
+
 @app.on_event("startup")
 async def startup_event() -> None:
     """Initializes infrastructure and background workers."""
     logger.info("api_starting_up")
     get_minio()
-    asyncio.create_task(start_consumers())
+    task = asyncio.create_task(start_consumers())
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
     logger.info("api_startup_completed")
+
 
 @app.get("/")
 async def root() -> dict[str, str]:

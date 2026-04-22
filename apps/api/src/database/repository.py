@@ -1,7 +1,7 @@
 import datetime
 import json
 import time
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 import structlog
 
@@ -33,7 +33,7 @@ async def upsert_option_parameters(params: dict[str, Any]) -> str:
             SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation="select").observe(
                 time.time() - start
             )
-            data_list = cast(List[Dict[str, Any]], existing.data)
+            data_list = cast("list[dict[str, Any]]", existing.data)
             return str(data_list[0]["id"])
 
         # If not found, insert
@@ -43,12 +43,12 @@ async def upsert_option_parameters(params: dict[str, Any]) -> str:
             time.time() - start
         )
 
-        data_list = cast(List[Dict[str, Any]], response.data)
+        data_list = cast("list[dict[str, Any]]", response.data)
         return str(data_list[0]["id"])
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="upsert_option_parameters", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def insert_method_result(result: dict[str, Any]) -> list[dict[str, Any]]:
@@ -68,16 +68,16 @@ async def insert_method_result(result: dict[str, Any]) -> list[dict[str, Any]]:
         redis = get_redis()
         await redis.publish("ws:experiments", json.dumps(response.data[0]))
 
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="insert_method_result", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def get_experiments(
-    method_type: Optional[str] = None,
-    market_source: Optional[str] = None,
+    method_type: str | None = None,
+    market_source: str | None = None,
     page: int = 1,
     page_size: int = 50,
 ) -> dict[str, Any]:
@@ -89,7 +89,7 @@ async def get_experiments(
     start_idx = (page - 1) * page_size
     end_idx = start_idx + page_size - 1
 
-    query = supabase.table(table).select("*, option_parameters(*)", count=cast(Any, "exact"))
+    query = supabase.table(table).select("*, option_parameters(*)", count=cast("Any", "exact"))
 
     if method_type:
         query = query.eq("method_type", method_type)
@@ -104,7 +104,7 @@ async def get_experiments(
 
         total = response.count
         return {
-            "items": cast(List[Dict[str, Any]], response.data),
+            "items": cast("list[dict[str, Any]]", response.data),
             "total": total,
             "page": page,
             "page_size": page_size,
@@ -114,7 +114,7 @@ async def get_experiments(
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_experiments", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def insert_notification(
@@ -123,7 +123,7 @@ async def insert_notification(
     body: str,
     severity: str,
     channel: str,
-    action_url: Optional[str] = None,
+    action_url: str | None = None,
 ) -> list[dict[str, Any]]:
     supabase = get_supabase_client()
     table = "notifications"
@@ -143,14 +143,14 @@ async def insert_notification(
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="insert_notification", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
-async def get_user_profile(user_id: str) -> Optional[dict[str, Any]]:
+async def get_user_profile(user_id: str) -> dict[str, Any] | None:
     supabase = get_supabase_client()
     table = "user_profiles"
     op = "select"
@@ -160,7 +160,7 @@ async def get_user_profile(user_id: str) -> Optional[dict[str, Any]]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(Optional[Dict[str, Any]], response.data)
+        return cast("dict[str, Any] | None", response.data)
     except Exception:
         logger.debug("user_profile_not_found", user_id=user_id)
         return None
@@ -176,19 +176,19 @@ async def upsert_user_profile(profile: dict[str, Any]) -> dict[str, Any]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(Dict[str, Any], response.data[0])
+        return cast("dict[str, Any]", response.data[0])
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="upsert_user_profile", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def get_market_data(
     source: str,
-    trade_date: Optional[datetime.date] = None,
+    trade_date: datetime.date | None = None,
     limit: int = 100,
-    from_date: Optional[str] = None,
-    to_date: Optional[str] = None,
+    from_date: str | None = None,
+    to_date: str | None = None,
 ) -> list[dict[str, Any]]:
     supabase = get_supabase_client()
     table = "market_data"
@@ -207,11 +207,11 @@ async def get_market_data(
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_market_data", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def insert_market_data(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -224,11 +224,11 @@ async def insert_market_data(data: list[dict[str, Any]]) -> list[dict[str, Any]]
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="insert_market_data", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def get_validation_summary() -> list[dict[str, Any]]:
@@ -245,14 +245,14 @@ async def get_validation_summary() -> list[dict[str, Any]]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_validation_summary", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
-async def create_scrape_run(market: str, triggered_by: Optional[str] = None) -> str:
+async def create_scrape_run(market: str, triggered_by: str | None = None) -> str:
     supabase = get_supabase_client()
     table = "scrape_runs"
     op = "insert"
@@ -263,12 +263,12 @@ async def create_scrape_run(market: str, triggered_by: Optional[str] = None) -> 
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        data_list = cast(List[Dict[str, Any]], response.data)
+        data_list = cast("list[dict[str, Any]]", response.data)
         return str(data_list[0]["id"])
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="create_scrape_run", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def update_scrape_run(run_id: str, data: dict[str, Any]) -> dict[str, Any]:
@@ -281,15 +281,19 @@ async def update_scrape_run(run_id: str, data: dict[str, Any]) -> dict[str, Any]
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(Dict[str, Any], response.data[0])
+        return cast("dict[str, Any]", response.data[0])
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="update_scrape_run", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def create_audit_log(
-    pipeline_run_id: str, step_name: str, status: str, rows_affected: int = 0, message: str | None = None
+    pipeline_run_id: str,
+    step_name: str,
+    status: str,
+    rows_affected: int = 0,
+    message: str | None = None,
 ) -> None:
     supabase = get_supabase_client()
     table = "audit_log"
@@ -324,15 +328,15 @@ async def get_scrape_runs(limit: int = 20) -> list[dict[str, Any]]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_scrape_runs", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def insert_audit_log(
-    pipeline_run_id: Optional[str],
+    pipeline_run_id: str | None,
     step_name: str,
     status: str,
     rows_affected: int,
@@ -375,11 +379,11 @@ async def get_notifications(
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_notifications", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def mark_notification_read(notification_id: str) -> None:
@@ -395,7 +399,7 @@ async def mark_notification_read(notification_id: str) -> None:
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="mark_notification_read", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
 async def mark_all_notifications_read(user_id: str) -> None:
@@ -413,10 +417,10 @@ async def mark_all_notifications_read(user_id: str) -> None:
     except Exception as e:
         SUPABASE_ERRORS_TOTAL.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="mark_all_notifications_read", error=str(e))
-        raise RepositoryError(f"Database operation failed: {str(e)}")
+        raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
-async def get_experiment_by_id(experiment_id: str) -> Optional[dict[str, Any]]:
+async def get_experiment_by_id(experiment_id: str) -> dict[str, Any] | None:
     supabase = get_supabase_client()
     table = "method_results"
     op = "select"
@@ -432,7 +436,7 @@ async def get_experiment_by_id(experiment_id: str) -> Optional[dict[str, Any]]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(Optional[Dict[str, Any]], response.data)
+        return cast("dict[str, Any] | None", response.data)
     except Exception:
         logger.debug("experiment_not_found", experiment_id=experiment_id)
         return None
@@ -448,7 +452,7 @@ async def get_push_subscriptions(user_id: str) -> list[dict[str, Any]]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         logger.error("repository_error", operation="get_push_subscriptions", error=str(e))
         return []
@@ -483,7 +487,7 @@ async def get_experiments_by_method(method_type: str) -> list[dict[str, Any]]:
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )
-        return cast(List[Dict[str, Any]], response.data)
+        return cast("list[dict[str, Any]]", response.data)
     except Exception as e:
         logger.error("repository_error", operation="get_experiments_by_method", error=str(e))
         return []

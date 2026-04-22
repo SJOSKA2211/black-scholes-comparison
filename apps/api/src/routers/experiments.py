@@ -8,7 +8,11 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_experiments, get_experiments_by_method
+from src.database.repository import (
+    get_experiment_by_id,
+    get_experiments,
+    get_experiments_by_method,
+)
 from src.queue.publisher import publish_experiment_task
 
 router = APIRouter()
@@ -52,3 +56,22 @@ async def get_results(
     except Exception as e:
         logger.error("results_fetch_failed", error=str(e), step="router")
         raise HTTPException(status_code=500, detail="Failed to fetch results") from e
+
+
+@router.get("/results/{experiment_id}")
+async def get_result_detail(
+    experiment_id: str, current_user: dict[str, Any] = Depends(get_current_user)
+) -> dict[str, Any]:
+    """Retrieves specific experiment results by ID."""
+    try:
+        result = await get_experiment_by_id(experiment_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Experiment result not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            "experiment_detail_fetch_failed", error=str(e), id=experiment_id, step="router"
+        )
+        raise HTTPException(status_code=500, detail="Failed to fetch experiment detail") from e

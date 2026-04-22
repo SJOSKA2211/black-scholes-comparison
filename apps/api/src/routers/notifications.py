@@ -8,7 +8,11 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_notifications, mark_notification_read
+from src.database.repository import (
+    get_notifications,
+    mark_all_notifications_read,
+    mark_notification_read,
+)
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
@@ -44,3 +48,21 @@ async def acknowledge_notification(
     except Exception as e:
         logger.error("notification_update_failed", error=str(e), id=notification_id, step="router")
         raise HTTPException(status_code=500, detail="Failed to update notification") from e
+
+
+@router.post("/read-all")
+async def acknowledge_all_notifications(
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str]:
+    """Marks all notifications for the current user as read."""
+    try:
+        await mark_all_notifications_read(current_user["id"])
+        return {"message": "All notifications marked as read"}
+    except Exception as e:
+        logger.error(
+            "notifications_bulk_update_failed",
+            error=str(e),
+            user_id=current_user["id"],
+            step="router",
+        )
+        raise HTTPException(status_code=500, detail="Failed to update all notifications") from e

@@ -132,22 +132,26 @@ class TestAPI:
         mock_verify.return_value = {"id": "user-123"}
         mock_ws_manager.connect = AsyncMock()
         mock_ws_manager.disconnect = AsyncMock()
-        
-        # Valid
-        with client.websocket_connect("/ws/experiments?token=valid"):
-             pass
-        
-        # Invalid channel
-        try:
-            with client.websocket_connect("/ws/invalid?token=valid"):
-                 pass
-        except:
-            pass
-        
-        # Auth fail
+
+        # Mock the receiver loop to avoid hanging
+        from starlette.websockets import WebSocketDisconnect
+
+        with patch("fastapi.WebSocket.receive_text", side_effect=WebSocketDisconnect):
+            # Valid channel
+            with client.websocket_connect("/ws/experiments?token=valid") as ws:
+                ws.close()
+
+            # Invalid channel (returns 404/403 or closes)
+            try:
+                with client.websocket_connect("/ws/invalid?token=valid") as ws:
+                    ws.close()
+            except Exception:
+                pass
+
+        # Auth fail (verify returns None)
         mock_verify.return_value = None
         try:
-            with client.websocket_connect("/ws/experiments?token=invalid"):
-                 pass
-        except:
+            with client.websocket_connect("/ws/experiments?token=invalid") as ws:
+                ws.close()
+        except Exception:
             pass

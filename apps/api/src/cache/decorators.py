@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import functools
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import structlog
 
@@ -22,7 +23,7 @@ def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             redis = get_redis()
             # Generate key based on args and sorted kwargs for consistency
             key_data = (args, tuple(sorted(kwargs.items())))

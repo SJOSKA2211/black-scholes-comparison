@@ -1,45 +1,48 @@
 """Data pipeline — orchestrates scraping, transformation, validation, and storage."""
+
 from __future__ import annotations
-import asyncio
-from datetime import date
-from typing import Optional, List, Dict, Any
-import structlog
+
 import time
+from datetime import date
+from typing import Any
+
 import pandas as pd
-from src.scrapers.scraper_factory import ScraperFactory
+import structlog
+
 from src.data.transformers import transform_batch_df
 from src.data.validators import validate_quote
 from src.database.repository import (
-    upsert_option_parameters, 
-    insert_market_data, 
-    create_scrape_run, 
+    create_audit_log,
+    insert_market_data,
     update_scrape_run,
-    create_audit_log
+    upsert_option_parameters,
 )
-from src.metrics import SCRAPE_RUNS_TOTAL, SCRAPE_ROWS_INSERTED, SCRAPE_DURATION_SECONDS
+from src.metrics import SCRAPE_DURATION_SECONDS, SCRAPE_RUNS_TOTAL
+from src.scrapers.scraper_factory import ScraperFactory
 
 logger = structlog.get_logger(__name__)
+
 
 class DataPipeline:
     """Orchestrates the end-to-end data flow."""
 
-    def __init__(self, run_id: str, market: Optional[str] = None) -> None:
+    def __init__(self, run_id: str, market: str | None = None) -> None:
         self.run_id = run_id
         self.market = market
 
-    async def run(self, trade_date: Optional[date] = None) -> Dict[str, Any]:
+    async def run(self, trade_date: date | None = None) -> dict[str, Any]:
         """Full run: Scrape -> Transform -> Validate -> Upsert."""
         if not self.market:
             raise ValueError("Market must be specified for a full run.")
-            
+
         if trade_date is None:
             trade_date = date.today()
 
         start_time = time.time()
         market = self.market
-        
+
         SCRAPE_RUNS_TOTAL.labels(market=market, status="running").inc()
-        
+
         try:
             # 1. Scrape
             await create_audit_log(self.run_id, "scrape", "started")
@@ -47,37 +50,43 @@ class DataPipeline:
             df = await scraper.scrape(trade_date)
             rows = df.to_dict("records")
             await create_audit_log(self.run_id, "scrape", "completed", rows_affected=len(rows))
-            
+
             # 2. Transform & Validate
             await create_audit_log(self.run_id, "transform_validate", "started")
-            params_list = transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
-            
+            params_list = (
+                transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
+            )
+
             inserted_count = 0
             market_data_to_insert = []
-            
+
             for params in params_list:
                 try:
                     # Validate
-                    validate_quote({
-                        "bid": rows[params_list.index(params)].get("bid_price", 0),
-                        "ask": rows[params_list.index(params)].get("ask_price", 0),
-                        "underlying": params.underlying_price
-                    })
-                    
+                    validate_quote(
+                        {
+                            "bid": rows[params_list.index(params)].get("bid_price", 0),
+                            "ask": rows[params_list.index(params)].get("ask_price", 0),
+                            "underlying": params.underlying_price,
+                        }
+                    )
+
                     # Persistence
                     option_id = await upsert_option_parameters(params.dict())
-                    
+
                     # Prepare market data
                     orig_row = rows[params_list.index(params)]
-                    market_data_to_insert.append({
-                        "option_id": option_id,
-                        "trade_date": trade_date.isoformat(),
-                        "bid_price": float(orig_row.get("bid_price", 0)),
-                        "ask_price": float(orig_row.get("ask_price", 0)),
-                        "volume": int(orig_row.get("volume", 0)),
-                        "open_interest": int(orig_row.get("open_interest", 0)),
-                        "data_source": market
-                    })
+                    market_data_to_insert.append(
+                        {
+                            "option_id": option_id,
+                            "trade_date": trade_date.isoformat(),
+                            "bid_price": float(orig_row.get("bid_price", 0)),
+                            "ask_price": float(orig_row.get("ask_price", 0)),
+                            "volume": int(orig_row.get("volume", 0)),
+                            "open_interest": int(orig_row.get("open_interest", 0)),
+                            "data_source": market,
+                        }
+                    )
                     inserted_count += 1
                 except Exception as e:
                     logger.warning("row_skipped", error=str(e), run_id=self.run_id)
@@ -86,24 +95,29 @@ class DataPipeline:
             # 3. Batch Insert Market Data
             if market_data_to_insert:
                 await insert_market_data(market_data_to_insert)
-            
-            await create_audit_log(self.run_id, "transform_validate", "completed", rows_affected=inserted_count)
-            
+
+            await create_audit_log(
+                self.run_id, "transform_validate", "completed", rows_affected=inserted_count
+            )
+
             # Success
             result = {
                 "status": "success",
                 "rows_scraped": len(rows),
                 "rows_inserted": inserted_count,
-                "duration": time.time() - start_time
+                "duration": time.time() - start_time,
             }
-            await update_scrape_run(self.run_id, {
-                "status": "success",
-                "rows_scraped": len(rows),
-                "rows_validated": inserted_count,
-                "rows_inserted": inserted_count,
-                "error_count": 0
-            })
-            
+            await update_scrape_run(
+                self.run_id,
+                {
+                    "status": "success",
+                    "rows_scraped": len(rows),
+                    "rows_validated": inserted_count,
+                    "rows_inserted": inserted_count,
+                    "error_count": 0,
+                },
+            )
+
             SCRAPE_RUNS_TOTAL.labels(market=market, status="success").inc()
             return result
 
