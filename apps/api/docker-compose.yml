@@ -28,7 +28,7 @@ services:
  
   # ── FastAPI backend ──────────────────────────────────────────────
   api:
-    build: { context: ., target: runtime }
+    build: { context: . }
     env_file: .env
     expose: ["8000"]
     networks: [bs_network]

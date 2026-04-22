@@ -1,13 +1,18 @@
 """Storage service — uploads files to MinIO, returns presigned download URLs."""
+
 from __future__ import annotations
-import io
+
 import datetime
-from minio import Minio
-from src.storage.minio_client import get_minio
+import io
+
 import structlog
- 
+from minio import Minio
+
+from src.storage.minio_client import get_minio
+
 logger = structlog.get_logger(__name__)
- 
+
+
 def upload_export(
     data: bytes,
     filename: str,
@@ -32,5 +37,5 @@ def upload_export(
         object_name=object_name,
         expires=datetime.timedelta(hours=1),
     )
-    logger.info("export_uploaded",object=object_name,bucket=bucket,step="storage",rows=1)
+    logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage", rows=1)
     return url

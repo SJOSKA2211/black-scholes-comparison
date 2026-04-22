@@ -1,11 +1,10 @@
+"""FastAPI application entry point."""
+from __future__ import annotations
 import asyncio
-import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from src.logging_config import configure_logging
 from src.routers import (
     pricing,
     experiments,
@@ -14,58 +13,52 @@ from src.routers import (
     downloads,
     notifications,
     websocket,
-    health,
+    health
 )
 from src.queue.consumer import start_consumers
+from src.storage.minio_client import get_minio
+import structlog
 
 logger = structlog.get_logger(__name__)
-configure_logging()
 
 app = FastAPI(
-    title="Black-Scholes Research API",
-    version="1.0.0",
+    title="Black-Scholes Research API v4",
+    description="Full-stack research platform for numerical methods in finance.",
+    version="4.0.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    openapi_url="/api/openapi.json"
 )
 
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://black-scholes-comparison.vercel.app",
-        "http://localhost:3000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Prometheus instrumentation ───────────────────────────────────────────
-Instrumentator(
-    should_group_status_codes=True,
-    excluded_handlers=["/health", "/metrics"],
-).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+# Prometheus Instrumentation
+Instrumentator().instrument(app).expose(app)
 
-# ── Routers ──────────────────────────────────────────────────────────────
-app.include_router(health.router)
-app.include_router(pricing.router, prefix="/api/v1")
-app.include_router(experiments.router, prefix="/api/v1")
-app.include_router(market_data.router, prefix="/api/v1")
-app.include_router(scrapers.router, prefix="/api/v1")
-app.include_router(downloads.router, prefix="/api/v1")
-app.include_router(notifications.router, prefix="/api/v1")
-app.include_router(websocket.router) # No prefix for /ws
+# Register Routers (Mandate Aligned)
+app.include_router(pricing.router, prefix="/api/v1", tags=["Pricing"]) # /api/v1/price, /api/v1/methods
+app.include_router(experiments.router, prefix="/api/v1/experiments", tags=["Experiments"])
+app.include_router(market_data.router, prefix="/api/v1/market-data", tags=["Market Data"])
+app.include_router(scrapers.router, prefix="/api/v1/scrapers", tags=["Scrapers"])
+app.include_router(downloads.router, prefix="/api/v1/download", tags=["Downloads"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
+app.include_router(websocket.router, tags=["WebSocket"])
+app.include_router(health.router, tags=["Health"])
 
-# ── Startup Tasks ────────────────────────────────────────────────────────
 @app.on_event("startup")
-async def startup_event():
-    """Initialize background tasks and clients."""
-    logger.info("api_startup", status="initializing")
-    # Start RabbitMQ consumers in the background
+async def startup_event() -> None:
+    """Initializes infrastructure and background workers."""
+    logger.info("api_starting_up")
+    get_minio()
     asyncio.create_task(start_consumers())
-    logger.info("api_startup", status="consumers_started")
+    logger.info("api_startup_completed")
 
 @app.get("/")
-async def root():
-    return {"message": "Black-Scholes Research API v4 is running"}
+async def root() -> dict[str, str]:
+    return {"message": "Black-Scholes Research API v4 is active", "version": "4.0.0"}

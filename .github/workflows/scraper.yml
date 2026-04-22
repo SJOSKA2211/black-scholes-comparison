@@ -1,38 +1,30 @@
-name: Scraper Cron
-
+name: Scraper
 on:
   schedule:
-    - cron: "0 6 * * 1-5"  # Mon-Fri 06:00 UTC
+    - cron: "0 6 * * 1-5"   # Mon-Fri 06:00 UTC
   workflow_dispatch:
     inputs:
-      market:
-        description: 'Market to scrape'
-        required: true
-        default: 'spy'
-        type: choice
-        options:
-          - spy
-          - nse
-      date:
-        description: 'Date (YYYY-MM-DD)'
-        required: false
-        type: string
-
+      market: { required: true, default: spy, type: choice, options: [spy,nse,both] }
+      date:   { required: false, default: "" }
+ 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/sjoska2211/black-scholes-api:latest
-      env:
-        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      REDIS_URL:    ${{ secrets.REDIS_URL_PROD }}
     steps:
-      - name: Run Collector
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r apps/api/requirements.txt
+      - run: playwright install chromium --with-deps
+      - id: date
         run: |
-          MARKET=${{ github.event.inputs.market || 'spy' }}
-          DATE=${{ github.event.inputs.date || '' }}
-          if [ -z "$DATE" ]; then
-            python -m scripts.collect --market $MARKET
-          else
-            python -m scripts.collect --market $MARKET --date $DATE
-          fi
+          D="${{ github.event.inputs.date }}"
+          echo "trade_date=${D:-$(date +%F)}" >> $GITHUB_OUTPUT
+      - run: |
+          cd apps/api
+          python -m scripts.collect --market "${{ github.event.inputs.market || 'spy' }}" \
+            --date "${{ steps.date.outputs.trade_date }}"

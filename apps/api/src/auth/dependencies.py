@@ -1,76 +1,56 @@
-import structlog
+"""Authentication dependencies for FastAPI endpoints."""
+from __future__ import annotations
+from typing import Any, Dict, Optional
 from fastapi import Depends, HTTPException, status, WebSocket
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.database.supabase_client import get_supabase_client
+import structlog
 
-security = HTTPBearer()
 logger = structlog.get_logger(__name__)
+security = HTTPBearer()
 
-
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """
-    Validate the Bearer JWT from Supabase Auth.
-    Attached to every protected FastAPI route via Depends().
-    Raises HTTP 401 if token is missing, expired, or invalid.
-    """
-    token = credentials.credentials
+async def get_current_user(auth: HTTPAuthorizationCredentials = Depends(security)) -> Dict[str, Any]:
+    """Validates JWT token against Supabase and returns user info."""
     supabase = get_supabase_client()
     try:
-        # get_user() validates the JWT with the Supabase server
-        user_response = supabase.auth.get_user(token)
-        if not user_response or not user_response.user:
+        response = supabase.auth.get_user(auth.credentials)
+        if not response.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
+                headers={"WWW-Authenticate": "Bearer"},
             )
-
-        # Fetch profile for role-based access control
-        profile_res = (
-            supabase.table("user_profiles")
-            .select("role")
-            .eq("id", user_response.user.id)
-            .execute()
-        )
-        role = profile_res.data[0]["role"] if profile_res.data else "researcher"
-
-        logger.info("user_authenticated", user_id=user_response.user.id, role=role)
         return {
-            "id": user_response.user.id,
-            "email": user_response.user.email,
-            "token": token,
-            "role": role,
+            "id": response.user.id,
+            "email": response.user.email,
+            "role": response.user.user_metadata.get("role", "researcher")
         }
-    except Exception as exc:
-        logger.warning("auth_validation_failed", reason=str(exc))
+    except Exception as e:
+        logger.error("auth_error", error=str(e), step="auth")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-        ) from exc
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-
-async def verify_ws_token(websocket: WebSocket) -> dict:
-    """
-    Validate the Supabase JWT passed as a query parameter for WebSocket connections.
-    Closes connection with 403 if invalid.
-    """
-    token = websocket.query_params.get("token")
+async def verify_ws_token(websocket: WebSocket, token: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Validates WebSocket token and closes connection if invalid."""
     if not token:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        raise HTTPException(status_code=403, detail="Token required")
-
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Token required")
+        return None
+        
     supabase = get_supabase_client()
     try:
-        user_response = supabase.auth.get_user(token)
-        if not user_response or not user_response.user:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            raise HTTPException(status_code=403, detail="Invalid token")
-
-        logger.info("ws_user_authenticated", user_id=user_response.user.id)
-        return {"id": user_response.user.id, "email": user_response.user.email}
-    except Exception as exc:
-        logger.warning("ws_auth_failed", reason=str(exc))
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        raise HTTPException(status_code=403, detail="Auth failed") from exc
+        response = supabase.auth.get_user(token)
+        if not response.user:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
+            return None
+            
+        return {
+            "id": response.user.id,
+            "email": response.user.email
+        }
+    except Exception as e:
+        logger.error("ws_auth_error", error=str(e), step="auth")
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Auth failed")
+        return None

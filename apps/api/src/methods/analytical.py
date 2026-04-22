@@ -1,8 +1,8 @@
 import time
 
 import numpy as np
-from scipy.optimize import brentq
-from scipy.stats import norm
+from scipy.optimize import brentq  # type: ignore
+from scipy.stats import norm  # type: ignore
 
 from src.methods.base import OptionParams, PriceResult
 
@@ -69,9 +69,7 @@ class BlackScholesAnalytical:
             np.log(underlying_price / strike_price)
             + (risk_free_rate + 0.5 * volatility**2) * maturity_years
         ) / (volatility * np.sqrt(maturity_years))
-        gamma_value = norm.pdf(d1) / (
-            underlying_price * volatility * np.sqrt(maturity_years)
-        )
+        gamma_value = norm.pdf(d1) / (underlying_price * volatility * np.sqrt(maturity_years))
         return float(gamma_value)
 
     def vega(self, params: OptionParams) -> float:
@@ -89,7 +87,7 @@ class BlackScholesAnalytical:
         return float(vega_value)
 
     def implied_volatility(self, market_price: float, params: OptionParams) -> float:
-        def objective(sigma_test):
+        def objective(sigma_test: float) -> float:
             test_params = params.model_copy(update={"volatility": sigma_test})
             return self.price(test_params).computed_price - market_price
 
@@ -120,9 +118,7 @@ class BlackScholesAnalytical:
         if params.option_type == "call":
             price = underlying_price * np.exp(
                 (drift_geometric - risk_free_rate) * maturity_years
-            ) * norm.cdf(d1) - strike_price * np.exp(
-                -risk_free_rate * maturity_years
-            ) * norm.cdf(
+            ) * norm.cdf(d1) - strike_price * np.exp(-risk_free_rate * maturity_years) * norm.cdf(
                 d2
             )
         else:

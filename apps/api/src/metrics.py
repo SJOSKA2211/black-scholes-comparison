@@ -88,9 +88,7 @@ NOTIFICATIONS_SENT_TOTAL = Counter(
 )
 
 # ── Redis metrics ────────────────────────────────────────────────────────
-REDIS_CACHE_HITS = Counter(
-    "black_scholes_redis_cache_hits_total", "Cache hits.", ["endpoint"]
-)
+REDIS_CACHE_HITS = Counter("black_scholes_redis_cache_hits_total", "Cache hits.", ["endpoint"])
 REDIS_CACHE_MISSES = Counter(
     "black_scholes_redis_cache_misses_total", "Cache misses.", ["endpoint"]
 )
@@ -111,6 +109,4 @@ WS_CONNECTIONS_ACTIVE = Gauge(
 )
 
 # ── MinIO metrics ────────────────────────────────────────────────────────
-MINIO_UPLOADS_TOTAL = Counter(
-    "black_scholes_minio_uploads_total", "MinIO uploads.", ["bucket"]
-)
+MINIO_UPLOADS_TOTAL = Counter("black_scholes_minio_uploads_total", "MinIO uploads.", ["bucket"])

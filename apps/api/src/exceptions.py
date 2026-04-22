@@ -1,7 +1,10 @@
+from typing import Any
+
+
 class BlackScholesError(Exception):
     """Base exception for the Black-Scholes Research Platform."""
 
-    def __init__(self, message: str, details: dict | None = None):
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(message)
         self.message = message
         self.details = details or {}

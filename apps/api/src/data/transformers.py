@@ -1,32 +1,39 @@
-"""Data transformers for converting raw scraper data to validated models."""
+"""Data transformers — cleans and converts raw market data into canonical models."""
 from __future__ import annotations
+from typing import Any, Dict, List
 import pandas as pd
-from src.data.validators import MarketDataInput
- 
-def transform_raw_quotes(df: pd.DataFrame, source: str) -> list[MarketDataInput]:
+from src.methods.base import OptionParams
+import structlog
+
+logger = structlog.get_logger(__name__)
+
+def transform_market_row(row: Dict[str, Any], market_source: str = "synthetic") -> OptionParams:
     """
-    Clean and transform raw market data DataFrame to validated Input models.
-    Handles NaN removal and type coercion.
+    Converts a raw market data row into an OptionParams instance.
+    Expected row keys: underlying_price, strike_price, maturity_years, volatility, 
+    risk_free_rate, option_type, is_american.
     """
-    # Placeholder for actual transformation logic per source (SPY vs NSE)
-    # 1. Drop rows with missing critical prices
-    df = df.dropna(subset=['bid', 'ask', 'strike'])
-    
-    # 2. Convert to models
-    validated_rows = []
+    try:
+        return OptionParams(
+            underlying_price=float(row["underlying_price"]),
+            strike_price=float(row["strike_price"]),
+            maturity_years=float(row["maturity_years"]),
+            volatility=float(row["volatility"]),
+            risk_free_rate=float(row["risk_free_rate"]),
+            option_type=row["option_type"],
+            is_american=bool(row.get("is_american", False)),
+            market_source=market_source
+        )
+    except (KeyError, ValueError, TypeError) as e:
+        logger.error("transformation_error", error=str(e), row=row)
+        raise
+
+def transform_batch_df(df: pd.DataFrame, market_source: str = "synthetic") -> List[OptionParams]:
+    """Converts a DataFrame of market data into a list of OptionParams."""
+    params_list: List[OptionParams] = []
     for _, row in df.iterrows():
         try:
-            validated_rows.append(MarketDataInput(
-                option_id=row['option_id'], # Assigned during pipeline
-                trade_date=row['date'],
-                bid_price=float(row['bid']),
-                ask_price=float(row['ask']),
-                volume=int(row.get('volume', 0)),
-                open_interest=int(row.get('open_interest', 0)),
-                implied_vol=float(row['iv']) if not pd.isna(row.get('iv')) else None,
-                data_source=source
-            ))
+            params_list.append(transform_market_row(row.to_dict(), market_source))
         except Exception:
-            continue # Log via structlog in pipeline
-            
-    return validated_rows
+            continue
+    return params_list

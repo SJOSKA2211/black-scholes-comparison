@@ -1,79 +1,65 @@
-import io
-
-import pandas as pd
-import structlog
+"""Router for generating and retrieving data exports."""
+from __future__ import annotations
+import time
+from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
-
 from src.auth.dependencies import get_current_user
+from src.storage.storage_service import upload_export
+from src.database.repository import get_experiments, get_market_data
+import pandas as pd
+import io
+import structlog
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
-RESOURCES = ["experiments", "market-data", "validation"]
-FORMATS = ["csv", "json", "xlsx"]
+async def _fetch_data(resource: str) -> pd.DataFrame:
+    """Helper to fetch data based on resource type."""
+    if resource == "experiments":
+        # Use get_experiments and extract data list
+        results_dict = await get_experiments(page_size=1000)
+        data = results_dict.get("data", [])
+    elif resource == "market_data":
+        data = await get_market_data(limit=1000)
+    else:
+        raise ValueError(f"Unknown resource: {resource}")
+    return pd.DataFrame(data)
 
+def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
+    """Helper to serialize DataFrame to requested format."""
+    if format == "csv":
+        return df.to_csv(index=False).encode(), "text/csv"
+    elif format == "json":
+        return df.to_json(orient="records").encode(), "application/json"
+    elif format == "xlsx":
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False)
+        return output.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        raise ValueError(f"Unknown format: {format}")
 
-@router.get("/download/{resource}")
+@router.get("/{resource}")
 async def download_resource(
     resource: str,
     format: str = Query("csv", regex="^(csv|json|xlsx)$"),
-    current_user: dict = Depends(get_current_user),
-) -> StreamingResponse:
+    current_user: Dict[str, Any] = Depends(get_current_user)
+) -> Dict[str, Any]:
     """
-    Stream a downloadable file of research results.
-    Supports CSV, JSON, and Excel (xlsx) formats.
+    Generates the export file, uploads to MinIO, returns a presigned URL.
+    The frontend redirects the browser to the URL for direct download.
     """
-    if resource not in RESOURCES:
-        raise HTTPException(status_code=400, detail=f"Unknown resource: {resource}")
-
-    from src.database import repository
-
-    if resource == "experiments":
-        res = await repository.get_experiments(page_size=1000)
-        df = pd.DataFrame(res["items"])
-    elif resource == "market-data":
-        res = await repository.get_market_data(source="spy")
-        df = pd.DataFrame(res)
-    elif resource == "validation":
-        res = await repository.get_validation_summary()
-        df = pd.DataFrame(res)
-    else:
-        df = pd.DataFrame()
-
-    logger.info(
-        "download_generated",
-        user_id=current_user["id"],
-        resource=resource,
-        format=format,
-        rows=len(df),
-    )
-
-    if format == "csv":
-        output = io.StringIO()
-        df.to_csv(output, index=False)
-        output.seek(0)
-        return StreamingResponse(
-            iter([output.getvalue()]),
-            media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename={resource}.csv"},
-        )
-
-    elif format == "json":
-        content = df.to_json(orient="records", date_format="iso")
-        return StreamingResponse(
-            iter([content]),
-            media_type="application/json",
-            headers={"Content-Disposition": f"attachment; filename={resource}.json"},
-        )
-
-    else:  # xlsx
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name=resource)
-        output.seek(0)
-        return StreamingResponse(
-            output,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={resource}.xlsx"},
-        )
+    try:
+        df = await _fetch_data(resource)
+        if df.empty:
+            raise HTTPException(status_code=404, detail="No data found for resource")
+            
+        data, content_type = _serialize(df, format)
+        filename = f"{resource}_{int(time.time())}.{format}"
+        presigned_url = upload_export(data=data, filename=filename, content_type=content_type)
+        
+        logger.info("download_generated", resource=resource, format=format, rows=len(df), user_id=current_user["id"], step="download")
+        return {"url": presigned_url, "filename": filename, "expires_in": 3600}
+    except Exception as e:
+        logger.error("download_failed", error=str(e), resource=resource, step="router")
+        raise HTTPException(status_code=500, detail=f"Failed to generate download: {str(e)}")

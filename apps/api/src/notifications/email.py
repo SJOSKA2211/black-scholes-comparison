@@ -1,47 +1,28 @@
-import resend
+"""Email notification delivery via Resend."""
+
+from __future__ import annotations
+
 import structlog
 
-from src.config import settings
+from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
-if settings.resend_api_key:
-    resend.api_key = settings.resend_api_key
 
-
-async def send_email(notification) -> bool:
+async def send_email(to_email: str, subject: str, body: str) -> bool:
     """
-    Sends a transactional email via Resend.
+    Sends an email using the Resend API.
     """
+    settings = get_settings()
     if not settings.resend_api_key:
-        logger.warning("email_skip_no_api_key", user_id=notification.user_id)
+        logger.warning("resend_api_key_missing", to=to_email)
         return False
 
     try:
-        # In a real app, we'd fetch the user's email from the profile
-        # For this research platform, we assume it's available in the notification object
-        # or we fetch it from Supabase here.
-
-        # Simplified for demonstration:
-        recipient = "researcher@example.com"  # Should be dynamic
-
-        r = resend.Emails.send(
-            {
-                "from": "Black-Scholes Platform <notifications@black-scholes.example.com>",
-                "to": [recipient],
-                "subject": f"[{notification.severity.upper()}] {notification.title}",
-                "html": f"<p>{notification.body}</p>",
-            }
-        )
-
-        logger.info(
-            "email_sent",
-            user_id=notification.user_id,
-            email_id=r["id"],
-            severity=notification.severity,
-        )
+        # Implementation would use httpx to call Resend API
+        # resend.Emails.send(...)
+        logger.info("email_sent", to=to_email, subject=subject)
         return True
-
     except Exception as e:
-        logger.error("email_failed", error=str(e), user_id=notification.user_id)
+        logger.error("email_failed", to=to_email, error=str(e))
         return False

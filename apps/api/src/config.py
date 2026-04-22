@@ -16,11 +16,14 @@ class Settings(BaseSettings):
     # Infrastructure
     redis_url: str = "redis://redis:6379/0"
     redis_password: str
-    
-    rabbitmq_url: str = "amqp://rabbitmq_user:guest@rabbitmq:5672/"
-    rabbitmq_user: str = "rabbitmq_user"
+
+    rabbitmq_user: str = "research_admin"
     rabbitmq_password: str
-    
+
+    @property
+    def rabbitmq_url(self) -> str:
+        return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
+
     minio_endpoint: str = "minio:9000"
     minio_access_key: str
     minio_secret_key: str
@@ -43,14 +46,12 @@ class Settings(BaseSettings):
     # Scraper
     playwright_headless: bool = True
 
-    model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore"
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    return Settings()  # type: ignore
 
 
 settings = get_settings()

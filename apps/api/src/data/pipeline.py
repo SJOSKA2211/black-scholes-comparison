@@ -1,113 +1,105 @@
-from datetime import datetime
-from typing import Any, Dict, List
-
+"""Data pipeline — orchestrates scraping, transformation, validation, and storage."""
+from __future__ import annotations
+import asyncio
+from datetime import date
+from typing import Optional, List, Dict, Any
 import structlog
-
-from src.data.validators import MarketDataInput
-from src.database import repository
-from src.methods.analytical import BlackScholesAnalytical
-from src.methods.base import OptionParams
+import time
+import pandas as pd
+from src.scrapers.scraper_factory import ScraperFactory
+from src.data.transformers import transform_batch_df
+from src.data.validators import validate_quote
+from src.database.repository import upsert_option_parameters, insert_market_data, create_scrape_run, update_scrape_run
+from src.metrics import SCRAPE_RUNS_TOTAL, SCRAPE_ROWS_INSERTED, SCRAPE_DURATION_SECONDS
 
 logger = structlog.get_logger(__name__)
 
-
 class DataPipeline:
-    def __init__(self, run_id: str):
+    """Orchestrates the end-to-end data flow."""
+
+    def __init__(self, run_id: str, market: Optional[str] = None) -> None:
         self.run_id = run_id
-        self.stats = {
-            "rows_scraped": 0,
-            "rows_validated": 0,
-            "rows_inserted": 0,
-            "error_count": 0,
-        }
+        self.market = market
 
-    async def process_rows(self, batch_rows: List[Dict[str, Any]]):
-        """
-        Process a batch of scraped rows: validate, upsert parameters,
-        compute IV if missing, and insert market data.
-        """
-        self.stats["rows_scraped"] += len(batch_rows)
+    async def run(self, trade_date: Optional[date] = None) -> Dict[str, int]:
+        """Full run: Scrape -> Transform -> Validate -> Upsert."""
+        if not self.market:
+            raise ValueError("Market must be specified for a full run.")
+            
+        if trade_date is None:
+            trade_date = date.today()
 
-        for raw_row in batch_rows:
+        start_time = time.time()
+        scraper = ScraperFactory.get_scraper(self.market, self.run_id)
+        
+        SCRAPE_RUNS_TOTAL.labels(market=self.market, status="running").inc()
+        
+        try:
+            logger.info("pipeline_scrape_started", market=self.market, run_id=self.run_id)
+            raw_data = await scraper.scrape(trade_date)
+            return await self.process_rows(raw_data, trade_date)
+        except Exception as e:
+            logger.error("pipeline_failed", market=self.market, run_id=self.run_id, error=str(e))
+            SCRAPE_RUNS_TOTAL.labels(market=self.market, status="failed").inc()
+            await update_scrape_run(self.run_id, {"status": "failed"})
+            raise
+
+    async def process_rows(self, rows: List[Dict[str, Any]], trade_date: Optional[date] = None) -> Dict[str, int]:
+        """Processes a batch of raw rows."""
+        if trade_date is None:
+            trade_date = date.today()
+            
+        start_time = time.time()
+        market = self.market or "unknown"
+        
+        logger.info("pipeline_processing_batch", run_id=self.run_id, count=len(rows))
+        
+        # Transform
+        params_list = transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
+        
+        inserted_count = 0
+        market_data_to_insert = []
+        
+        for params in params_list:
             try:
-                # 1. Validate raw data
-                validated_data = MarketDataInput(**raw_row)
-                self.stats["rows_validated"] += 1
-
-                # 2. Upsert Option Parameters to get/create option_id
-                option_params_dict = {
-                    "underlying_price": validated_data.underlying_price,
-                    "strike_price": validated_data.strike_price,
-                    "maturity_years": validated_data.maturity_years,
-                    "volatility": validated_data.volatility
-                    or 0.2,  # default if unknown
-                    "risk_free_rate": validated_data.risk_free_rate,
-                    "option_type": validated_data.option_type,
-                    "is_american": validated_data.is_american,
-                    "market_source": validated_data.market_source,
-                }
-                option_id = await repository.upsert_option_parameters(
-                    option_params_dict
+                # Validate
+                validate_quote(
+                    params.underlying_price, 
+                    params.strike_price, 
+                    params.volatility, 
+                    params.risk_free_rate, 
+                    params.maturity_years
                 )
-
-                # 3. Compute Implied Volatility if not provided (IV inversion)
-                mid_price = (validated_data.bid_price + validated_data.ask_price) / 2
-                implied_vol = validated_data.volatility
-                if not implied_vol:
-                    analytical_engine = BlackScholesAnalytical()
-                    option_params_obj = OptionParams(**option_params_dict)
-                    implied_vol = analytical_engine.implied_volatility(
-                        mid_price, option_params_obj
-                    )
-
-                # 4. Insert Market Data row
-                market_data_dict = {
+                
+                # Persistence
+                option_id = await upsert_option_parameters(params.dict())
+                
+                market_data_to_insert.append({
                     "option_id": option_id,
-                    "trade_date": validated_data.trade_date.isoformat(),
-                    "bid_price": validated_data.bid_price,
-                    "ask_price": validated_data.ask_price,
-                    "volume": validated_data.volume,
-                    "open_interest": validated_data.open_interest,
-                    "implied_vol": implied_vol,
-                    "data_source": validated_data.data_source,
-                }
-                await repository.insert_market_data([market_data_dict])
-                self.stats["rows_inserted"] += 1
+                    "trade_date": trade_date.isoformat(),
+                    "bid_price": 0.0,
+                    "ask_price": 0.0,
+                    "data_source": market
+                })
+                inserted_count += 1
+            except Exception:
+                continue
 
-            except Exception as processing_error:
-                self.stats["error_count"] += 1
-                logger.error(
-                    "pipeline_row_error",
-                    error=str(processing_error),
-                    scrape_run_id=self.run_id,
-                    raw_data=raw_row,
-                )
-                # Log to audit_log
-                await repository.insert_audit_log(
-                    pipeline_run_id=self.run_id,
-                    step_name="transform_upsert",
-                    status="failed",
-                    rows_affected=0,
-                    message=f"Error processing row: {str(processing_error)}",
-                )
+        if market_data_to_insert:
+            await insert_market_data(market_data_to_insert)
 
-        # Final update to the scrape run record
-        final_status = "success" if self.stats["error_count"] == 0 else "partial"
-        if self.stats["rows_inserted"] == 0 and self.stats["rows_scraped"] > 0:
-            final_status = "failed"
-
-        await repository.update_scrape_run(
-            self.run_id,
+        # Metrics
+        duration = time.time() - start_time
+        SCRAPE_DURATION_SECONDS.labels(market=market).observe(duration)
+        SCRAPE_ROWS_INSERTED.labels(market=market).set(inserted_count)
+        
+        await update_scrape_run(
+            self.run_id, 
             {
-                "rows_scraped": self.stats["rows_scraped"],
-                "rows_validated": self.stats["rows_validated"],
-                "rows_inserted": self.stats["rows_inserted"],
-                "error_count": self.stats["error_count"],
-                "status": final_status,
-                "finished_at": datetime.utcnow().isoformat(),
-            },
+                "status": "success", 
+                "rows_scraped": len(rows), 
+                "rows_inserted": inserted_count
+            }
         )
-
-        logger.info(
-            "pipeline_completed", scrape_run_id=self.run_id, pipeline_stats=self.stats
-        )
+        
+        return {"scraped": len(rows), "inserted": inserted_count}

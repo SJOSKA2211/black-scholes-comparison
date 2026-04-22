@@ -1,12 +1,17 @@
 """Redis client singleton — cache, session store, and pub/sub for WebSockets."""
+
 from __future__ import annotations
+
 from functools import lru_cache
+
 import redis.asyncio as aioredis
-from src.config import get_settings
 import structlog
- 
+
+from src.config import get_settings
+
 logger = structlog.get_logger(__name__)
- 
+
+
 @lru_cache(maxsize=1)
 def get_redis() -> aioredis.Redis:
     """Return a cached async Redis client."""
