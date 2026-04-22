@@ -1,19 +1,23 @@
 """Router for managing numerical experiments and grid runs."""
+
 from __future__ import annotations
-from typing import List, Dict, Any, Optional
+
+from typing import Any, Dict, List, Optional
+
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from src.auth.dependencies import get_current_user
 from src.database.repository import get_experiments, get_experiments_by_method
 from src.queue.publisher import publish_experiment_task
-import structlog
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
+
 @router.post("/run")
 async def run_experiment(
-    params: Dict[str, Any],
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    params: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, str]:
     """
     Submits an experiment task to the message queue.
@@ -29,11 +33,12 @@ async def run_experiment(
         logger.error("experiment_submission_failed", error=str(e), step="router")
         raise HTTPException(status_code=500, detail="Failed to submit experiment")
 
+
 @router.get("/results")
 async def get_results(
     method_type: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=500),
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> List[Dict[str, Any]]:
     """Retrieves experiment results from the database."""
     try:

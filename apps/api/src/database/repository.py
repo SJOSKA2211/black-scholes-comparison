@@ -1,3 +1,4 @@
+import datetime
 import json
 import time
 from typing import Any, Dict, List, Optional, cast
@@ -183,7 +184,11 @@ async def upsert_user_profile(profile: dict[str, Any]) -> dict[str, Any]:
 
 
 async def get_market_data(
-    source: str, from_date: Optional[str] = None, to_date: Optional[str] = None
+    source: str,
+    trade_date: Optional[datetime.date] = None,
+    limit: int = 100,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     supabase = get_supabase_client()
     table = "market_data"
@@ -191,11 +196,14 @@ async def get_market_data(
     start = time.time()
     try:
         query = supabase.table(table).select("*, option_parameters(*)").eq("data_source", source)
+        if trade_date:
+            query = query.eq("trade_date", trade_date.isoformat())
         if from_date:
             query = query.gte("trade_date", from_date)
         if to_date:
             query = query.lte("trade_date", to_date)
-        response = query.order("trade_date", desc=True).execute()
+
+        response = query.order("trade_date", desc=True).limit(limit).execute()
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )

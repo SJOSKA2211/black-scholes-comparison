@@ -1,21 +1,26 @@
 """Router for accessing historical and real-time market data."""
+
 from __future__ import annotations
+
 import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from src.auth.dependencies import get_current_user
 from src.database.repository import get_market_data
-import structlog
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
+
 
 @router.get("/")
 async def get_market_quotes(
     source: str = Query("synthetic", pattern="^(synthetic|spy|nse)$"),
     trade_date: Optional[datetime.date] = Query(None),
     limit: int = Query(100, ge=1, le=1000),
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
 ) -> List[Dict[str, Any]]:
     """Retrieves market data quotes based on source and date."""
     try:

@@ -2,7 +2,8 @@ import math
 import time
 from typing import Any, List
 
-from fastapi import APIRouter, Depends
+import structlog
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from src.auth.dependencies import get_current_user
@@ -30,6 +31,7 @@ from src.metrics import (
 )
 
 router = APIRouter()
+logger = structlog.get_logger(__name__)
 
 
 class PriceRequest(BaseModel):
@@ -70,45 +72,51 @@ async def price_options(
     Prices options using requested numerical methods.
     Instruments computations with Prometheus metrics.
     """
-    start_time = time.time()
+    try:
+        start_time = time.time()
 
-    # Analytical reference always computed for MAPE tracking
-    ref_res = analytical_engine.price(request.params)
-    analytical_price = ref_res.computed_price
+        # Analytical reference always computed for MAPE tracking
+        ref_res = analytical_engine.price(request.params)
+        analytical_price = ref_res.computed_price
 
-    results = []
+        results = []
 
-    for method_type in request.methods:
-        if method_type not in METHOD_MAP:
-            continue
+        for method_type in request.methods:
+            if method_type not in METHOD_MAP:
+                continue
 
-        pricer_fn = METHOD_MAP[method_type]
+            pricer_fn = METHOD_MAP[method_type]
 
-        # Track duration
-        with PRICE_COMPUTATION_DURATION_SECONDS.labels(method_type=method_type).time():
-            result = pricer_fn(request.params)
+            # Track duration
+            with PRICE_COMPUTATION_DURATION_SECONDS.labels(method_type=method_type).time():
+                result = pricer_fn(request.params)
 
-        # Track total computations and convergence status
-        converged_status = "True"
-        if math.isnan(result.computed_price) or math.isinf(result.computed_price):
-            converged_status = "False"
+            # Track total computations and convergence status
+            converged_status = "True"
+            if math.isnan(result.computed_price) or math.isinf(result.computed_price):
+                converged_status = "False"
 
-        PRICE_COMPUTATIONS_TOTAL.labels(
-            method_type=method_type,
-            option_type=request.params.option_type,
-            converged=converged_status,
-        ).inc()
+            PRICE_COMPUTATIONS_TOTAL.labels(
+                method_type=method_type,
+                option_type=request.params.option_type,
+                converged=converged_status,
+            ).inc()
 
-        # Track MAPE if converged
-        if converged_status == "True" and analytical_price > 0:
-            mape = abs(result.computed_price - analytical_price) / analytical_price * 100
-            PRICE_MAPE_GAUGE.labels(method_type=method_type).set(mape)
+            # Track MAPE if converged
+            if converged_status == "True" and analytical_price > 0:
+                mape = abs(result.computed_price - analytical_price) / analytical_price * 100
+                PRICE_MAPE_GAUGE.labels(method_type=method_type).set(mape)
 
-        results.append(result)
+            results.append(result)
 
-    exec_ms = (time.time() - start_time) * 1000
+        exec_ms = (time.time() - start_time) * 1000
 
-    return PriceResponse(results=results, analytical_reference=analytical_price, exec_ms=exec_ms)
+        return PriceResponse(
+            results=results, analytical_reference=analytical_price, exec_ms=exec_ms
+        )
+    except Exception as e:
+        logger.error("pricing_failed", error=str(e), step="router")
+        raise HTTPException(status_code=500, detail=f"Pricing computation failed: {str(e)}")
 
 
 @router.get("/methods", response_model=None)
