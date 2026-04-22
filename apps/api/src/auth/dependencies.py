@@ -14,7 +14,7 @@ async def get_current_user(auth: HTTPAuthorizationCredentials = Depends(security
     supabase = get_supabase_client()
     try:
         response = supabase.auth.get_user(auth.credentials)
-        if not response.user:
+        if response is None or not response.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
@@ -42,7 +42,7 @@ async def verify_ws_token(websocket: WebSocket, token: Optional[str]) -> Optiona
     supabase = get_supabase_client()
     try:
         response = supabase.auth.get_user(token)
-        if not response.user:
+        if response is None or not response.user:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
             return None
             

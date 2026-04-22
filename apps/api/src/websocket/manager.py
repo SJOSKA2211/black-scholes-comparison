@@ -2,12 +2,16 @@
 from __future__ import annotations
 import asyncio
 import json
-from typing import Dict, Set
+from typing import Any, Dict, Set
+
 from fastapi import WebSocket
+
 from src.cache.redis_client import get_redis
+
 import structlog
 
 logger = structlog.get_logger(__name__)
+
 
 class WebSocketManager:
     """
@@ -19,7 +23,7 @@ class WebSocketManager:
     def __init__(self) -> None:
         # {channel: set of connected WebSocket objects}
         self._connections: Dict[str, Set[WebSocket]] = {}
-        self._listeners: Dict[str, asyncio.Task] = {}
+        self._listeners: Dict[str, asyncio.Task[None]] = {}
 
     async def connect(self, websocket: WebSocket, channel: str) -> None:
         """Accepts a connection and adds it to the specified channel."""

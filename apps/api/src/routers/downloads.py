@@ -25,7 +25,7 @@ async def _fetch_data(resource: str) -> pd.DataFrame:
         results_dict = await get_experiments(page_size=1000)
         data = results_dict.get("data", [])
     elif resource == "market_data":
-        data = await get_market_data(limit=1000)
+        data = await get_market_data(source="synthetic", limit=1000)
     else:
         raise ValueError(f"Unknown resource: {resource}")
     return pd.DataFrame(data)

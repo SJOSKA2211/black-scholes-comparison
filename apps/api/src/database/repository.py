@@ -296,7 +296,7 @@ async def create_audit_log(
     op = "insert"
     start = time.time()
     try:
-        data = {
+        data: dict[str, Any] = {
             "pipeline_run_id": pipeline_run_id,
             "step_name": step_name,
             "status": status,
@@ -343,7 +343,7 @@ async def insert_audit_log(
     op = "insert"
     start = time.time()
     try:
-        data = {
+        data: dict[str, Any] = {
             "pipeline_run_id": pipeline_run_id,
             "step_name": step_name,
             "status": status,
@@ -359,7 +359,9 @@ async def insert_audit_log(
         logger.error("repository_error", operation="insert_audit_log", error=str(e))
 
 
-async def get_notifications(user_id: str, unread_only: bool = True) -> list[dict[str, Any]]:
+async def get_notifications(
+    user_id: str, unread_only: bool = True, limit: int = 50
+) -> list[dict[str, Any]]:
     supabase = get_supabase_client()
     table = "notifications"
     op = "select"
@@ -368,7 +370,8 @@ async def get_notifications(user_id: str, unread_only: bool = True) -> list[dict
         query = supabase.table(table).select("*").eq("user_id", user_id)
         if unread_only:
             query = query.eq("read", False)
-        response = query.order("created_at", desc=True).execute()
+        query = query.order("created_at", desc=True).limit(limit)
+        response = query.execute()
         SUPABASE_QUERY_DURATION_SECONDS.labels(table=table, operation=op).observe(
             time.time() - start
         )

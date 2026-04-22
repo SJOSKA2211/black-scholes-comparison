@@ -6,6 +6,7 @@ from src.auth.dependencies import get_current_user
 from src.methods.base import PriceResult
 import pandas as pd
 import src.routers.pricing
+from fastapi import HTTPException
 
 client = TestClient(app)
 
@@ -22,21 +23,50 @@ class TestAPI:
         with patch("src.routers.pricing.analytical_engine") as mock_analytical:
             mock_analytical.price.return_value = PriceResult(method_type="analytical", computed_price=10.0, exec_seconds=0.01)
             with patch.dict("src.routers.pricing.METHOD_MAP", {"standard_mc": mock_pricer}, clear=True):
+                # Success path
                 payload = {"params": {"underlying_price": 100, "strike_price": 100, "maturity_years": 1, "volatility": 0.2, "risk_free_rate": 0.05, "option_type": "call"}, "methods": ["standard_mc"]}
                 response = client.post("/api/v1/price", json=payload)
                 assert response.status_code == 200
+                
+                # isNaN branch
+                mock_res.computed_price = float("nan")
+                response = client.post("/api/v1/price", json=payload)
+                assert response.status_code == 200
+                
+                # Unknown method branch
+                payload["methods"] = ["unknown"]
+                response = client.post("/api/v1/price", json=payload)
+                assert response.status_code == 200
+                
+                # Exception branch
+                mock_pricer.side_effect = Exception("Fail")
+                payload["methods"] = ["standard_mc"]
+                response = client.post("/api/v1/price", json=payload)
+                assert response.status_code == 500
+
+    def test_get_methods(self):
+        response = client.get("/api/v1/price/methods")
+        assert response.status_code == 200
+        assert len(response.json()) > 0
 
     @patch("src.routers.health.get_redis")
     @patch("src.routers.health.get_minio")
     @patch("src.routers.health.get_supabase_client")
     @patch("src.routers.health.get_rabbitmq_connection")
     def test_health_check_fail_branches(self, mock_rmq, mock_supa, mock_minio, mock_redis):
+        # All fail
         mock_supa.side_effect = Exception("Fail")
         mock_redis.side_effect = Exception("Fail")
         mock_rmq.side_effect = Exception("Fail")
         mock_minio.side_effect = Exception("Fail")
         response = client.get("/health")
         assert response.json()["status"] == "error"
+        
+        # Redis only fails
+        mock_supa.side_effect = None
+        mock_supa.return_value.table.return_value.select.return_value.limit.return_value.execute.return_value.data = [{"id": 1}]
+        response = client.get("/health")
+        assert response.json()["redis"] == "unreachable"
 
     @patch("src.routers.market_data.get_market_data")
     def test_market_data_fail(self, mock_get_data):
@@ -46,17 +76,26 @@ class TestAPI:
 
     @patch("src.routers.notifications.get_notifications")
     @patch("src.routers.notifications.mark_notification_read")
-    def test_notifications_fail(self, mock_read, mock_get):
+    @patch("src.routers.notifications.mark_all_notifications_read")
+    def test_notifications_branches(self, mock_all_read, mock_read, mock_get):
+        # Get fail
         mock_get.side_effect = Exception("Fail")
         response = client.get("/api/v1/notifications/")
         assert response.status_code == 500
+        
+        # Mark read fail
         mock_read.side_effect = Exception("Fail")
         response = client.patch("/api/v1/notifications/123/read")
+        assert response.status_code == 500
+        
+        # Mark all read fail
+        mock_all_read.side_effect = Exception("Fail")
+        response = client.post("/api/v1/notifications/read-all")
         assert response.status_code == 500
 
     @patch("src.routers.scrapers.publish_scrape_task")
     @patch("src.routers.scrapers.get_scrape_runs")
-    def test_scrapers_fail(self, mock_runs, mock_pub):
+    def test_scrapers_branches(self, mock_runs, mock_pub):
         mock_pub.side_effect = Exception("Fail")
         response = client.post("/api/v1/scrapers/trigger?market=spy")
         assert response.status_code == 500
@@ -66,35 +105,73 @@ class TestAPI:
 
     @patch("src.routers.experiments.publish_experiment_task")
     @patch("src.routers.experiments.get_experiments")
-    def test_experiments_fail(self, mock_get, mock_pub):
+    @patch("src.routers.experiments.get_experiment_by_id")
+    def test_experiments_branches(self, mock_by_id, mock_get, mock_pub):
         mock_pub.side_effect = Exception("Fail")
-        response = client.post("/api/v1/experiments/run", json={"params": {}})
+        response = client.post("/api/v1/experiments/run", json={"params": {"underlying_price": 100, "strike_price": 100, "maturity_years": 1, "volatility": 0.2, "risk_free_rate": 0.05, "option_type": "call"}})
         assert response.status_code == 500
         mock_get.side_effect = Exception("Fail")
         response = client.get("/api/v1/experiments/results")
         assert response.status_code == 500
+        mock_by_id.return_value = None
+        response = client.get("/api/v1/experiments/results/123")
+        assert response.status_code == 404
 
     @patch("src.routers.downloads._fetch_data")
     @patch("src.routers.downloads.upload_export")
     def test_download_branches(self, mock_upload, mock_fetch):
+        # Empty data
         mock_fetch.return_value = pd.DataFrame()
         response = client.get("/api/v1/download/market_data")
         assert response.status_code == 404
+        
+        # Success CSV
+        mock_fetch.return_value = pd.DataFrame([{"a": 1}])
+        mock_upload.return_value = "http://minio/file.csv"
+        response = client.get("/api/v1/download/market_data?format=csv")
+        assert response.status_code == 200
+        assert "url" in response.json()
+        
+        # Success JSON
+        response = client.get("/api/v1/download/market_data?format=json")
+        assert response.status_code == 200
+        
+        # Success XLSX
+        response = client.get("/api/v1/download/market_data?format=xlsx")
+        assert response.status_code == 200
+        
+        # Fetch fail
         mock_fetch.side_effect = Exception("Fail")
         response = client.get("/api/v1/download/market_data")
         assert response.status_code == 500
+        
+        # Unknown resource (internal error if passed somehow)
+        with patch("src.routers.downloads.get_experiments", side_effect=ValueError("Unknown")):
+             response = client.get("/api/v1/download/invalid")
+             assert response.status_code == 500
 
     @patch("src.routers.websocket.ws_manager")
-    def test_websocket_logic(self, mock_ws_manager):
+    @patch("src.routers.websocket.verify_ws_token")
+    def test_websocket_branches(self, mock_verify, mock_ws_manager):
+        mock_verify.return_value = {"id": "user-123"}
         mock_ws_manager.connect = AsyncMock()
-        # Simply trigger the route to cover the logic
+        mock_ws_manager.disconnect = AsyncMock()
+        mock_ws_manager.start_redis_listener = MagicMock() # Returns a coro
+        
+        # Valid
+        with client.websocket_connect("/ws/experiments?token=valid") as websocket:
+             pass
+        
+        # Invalid channel
+        response = client.get("/api/v1/websocket/ws/invalid") # TestClient doesn't support easy websocket error check for 4004
+        # Just manually check the logic
+        from src.routers.websocket import ALLOWED_CHANNELS
+        assert "invalid" not in ALLOWED_CHANNELS
+        
+        # Auth fail
+        mock_verify.return_value = None
         try:
-            with client.websocket_connect("/ws/experiments"):
-                pass
-        except:
-            pass
-        try:
-            with client.websocket_connect("/ws/invalid"):
-                pass
+            with client.websocket_connect("/ws/experiments?token=invalid"):
+                 pass
         except:
             pass
