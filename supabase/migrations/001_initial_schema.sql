@@ -45,6 +45,10 @@ CREATE TABLE IF NOT EXISTS method_results (
     UNIQUE (option_id, method_type, parameter_hash)
 );
 
+-- Robust migration: Ensure columns exist if table was created in an older version
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS run_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS replications INT4 DEFAULT 1;
+
 -- 4. market_data
 CREATE TABLE IF NOT EXISTS market_data (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,18 +137,6 @@ CREATE INDEX IF NOT EXISTS ix_market_data_source ON market_data(data_source);
 CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON notifications(user_id, read) WHERE read = false;
 CREATE INDEX IF NOT EXISTS ix_scrape_runs_status ON scrape_runs(market, status, started_at DESC);
 
--- Enable Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE
-    user_profiles,
-    option_parameters,
-    method_results,
-    market_data,
-    validation_metrics,
-    scrape_runs,
-    audit_log,
-    notifications,
-    scrape_errors;
-
 -- RLS: enable on all tables
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE option_parameters ENABLE ROW LEVEL SECURITY;
@@ -157,25 +149,49 @@ ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scrape_errors ENABLE ROW LEVEL SECURITY;
 
 -- Anon key: SELECT on result tables
+DROP POLICY IF EXISTS anon_read ON method_results;
 CREATE POLICY anon_read ON method_results FOR SELECT TO anon USING (true);
+
+DROP POLICY IF EXISTS anon_read ON market_data;
 CREATE POLICY anon_read ON market_data    FOR SELECT TO anon USING (true);
+
+DROP POLICY IF EXISTS anon_read ON option_parameters;
 CREATE POLICY anon_read ON option_parameters FOR SELECT TO anon USING (true);
 
 -- Service role: full access everywhere
+DROP POLICY IF EXISTS svc_all ON user_profiles;
 CREATE POLICY svc_all ON user_profiles FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON option_parameters;
 CREATE POLICY svc_all ON option_parameters FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON method_results;
 CREATE POLICY svc_all ON method_results FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON market_data;
 CREATE POLICY svc_all ON market_data FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON validation_metrics;
 CREATE POLICY svc_all ON validation_metrics FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON scrape_runs;
 CREATE POLICY svc_all ON scrape_runs FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON audit_log;
 CREATE POLICY svc_all ON audit_log FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON notifications;
 CREATE POLICY svc_all ON notifications FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS svc_all ON scrape_errors;
 CREATE POLICY svc_all ON scrape_errors FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Authenticated users: own notifications only
+DROP POLICY IF EXISTS notif_owner ON notifications;
 CREATE POLICY notif_owner ON notifications FOR ALL TO authenticated
     USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS profile_owner ON user_profiles;
 CREATE POLICY profile_owner ON user_profiles FOR ALL TO authenticated
     USING (id = auth.uid()) WITH CHECK (id = auth.uid());
 
@@ -189,8 +205,12 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 );
 
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS push_owner ON push_subscriptions;
 CREATE POLICY push_owner ON push_subscriptions FOR ALL TO authenticated
     USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS push_svc ON push_subscriptions;
 CREATE POLICY push_svc ON push_subscriptions FOR ALL TO service_role
     USING (true) WITH CHECK (true);
 
@@ -208,5 +228,15 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Update Realtime publication
-ALTER PUBLICATION supabase_realtime ADD TABLE push_subscriptions;
+-- Enable Realtime for all tables (Idempotent SET TABLE)
+ALTER PUBLICATION supabase_realtime SET TABLE
+    user_profiles,
+    option_parameters,
+    method_results,
+    market_data,
+    validation_metrics,
+    scrape_runs,
+    audit_log,
+    notifications,
+    scrape_errors,
+    push_subscriptions;

@@ -13,12 +13,12 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
     """
     Sends an email using the Resend API.
     """
-    settings = get_settings()
-    if not settings.resend_api_key:
-        logger.warning("resend_api_key_missing", to=to_email)
-        return False
-
     try:
+        settings = get_settings()
+        if not settings.resend_api_key:
+            logger.warning("resend_api_key_missing", to=to_email)
+            return False
+
         # Implementation would use httpx to call Resend API
         # resend.Emails.send(...)
         logger.info("email_sent", to=to_email, subject=subject)

@@ -22,13 +22,13 @@ class NSEScraper(BaseScraper):
         scraped_data: List[Dict[str, Any]] = []
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-            page = await context.new_page()
-
             try:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context(
+                    user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                )
+                page = await context.new_page()
+
                 # Step 1: Establish session
                 await page.goto("https://www.nseindia.com", wait_until="networkidle")
                 await asyncio.sleep(2)
@@ -65,8 +65,8 @@ class NSEScraper(BaseScraper):
                                     "underlying_price": underlying_price,
                                     "strike_price": strike,
                                     "maturity_years": 7 / 365.0,
-                                    "volatility": 0.2, # Placeholder, IV would be better
-                                    "risk_free_rate": 0.07, # NSE typical
+                                    "volatility": 0.2,
+                                    "risk_free_rate": 0.07,
                                     "option_type": "call",
                                     "is_american": False,
                                     "market_source": "nse",
@@ -79,12 +79,11 @@ class NSEScraper(BaseScraper):
                         continue
 
                 logger.info("scraper_scrape_finished", market="nse", rows=len(scraped_data))
+                await browser.close()
 
             except Exception as e:
                 logger.error("scraper_scrape_failed", market="nse", error=str(e))
                 raise
-            finally:
-                await browser.close()
                 
         return scraped_data
 

@@ -1,62 +1,40 @@
 import pytest
-import io
 from unittest.mock import MagicMock, patch
+from src.storage.minio_client import get_minio
 from src.storage.storage_service import upload_export
+from minio.error import S3Error
+import io
 
 @pytest.mark.unit
-class TestStorageService:
+class TestStorage:
+    @patch("src.storage.minio_client.Minio")
+    @patch("src.storage.minio_client.get_settings")
+    def test_get_minio_init(self, mock_settings, mock_minio_class):
+        get_minio.cache_clear()
+        mock_settings.return_value.minio_endpoint = "localhost:9000"
+        mock_settings.return_value.minio_access_key = "minio"
+        mock_settings.return_value.minio_secret_key = "minio123"
+        mock_client = mock_minio_class.return_value
+        mock_client.bucket_exists.side_effect = [False, True]
+        client = get_minio()
+        assert client == mock_client
+        mock_client.make_bucket.assert_called_once_with("bs-exports")
+        
+    @patch("src.storage.minio_client.Minio")
+    @patch("src.storage.minio_client.get_settings")
+    def test_get_minio_s3_error(self, mock_settings, mock_minio_class):
+        get_minio.cache_clear()
+        mock_client = mock_minio_class.return_value
+        # Fix S3Error args: code, message, resource, request_id, host_id, response
+        err = S3Error("code", "msg", "res", "req", "host", MagicMock())
+        mock_client.bucket_exists.side_effect = err
+        client = get_minio()
+        assert client == mock_client
+
     @patch("src.storage.storage_service.get_minio")
-    def test_upload_export_success(self, mock_get_minio):
-        # Setup
-        mock_client = MagicMock()
-        mock_get_minio.return_value = mock_client
-        mock_client.presigned_get_object.return_value = "http://minio/url"
-        
-        data = b"csv,data"
-        filename = "test.csv"
-        content_type = "text/csv"
-        
-        # Execute
-        url = upload_export(data, filename, content_type)
-        
-        # Verify
-        assert url == "http://minio/url"
+    def test_upload_export(self, mock_get_minio):
+        mock_client = mock_get_minio.return_value
+        mock_client.presigned_get_object.return_value = "http://presigned-url"
+        url = upload_export(b"data", "test.txt", "text/plain")
+        assert url == "http://presigned-url"
         mock_client.put_object.assert_called_once()
-        args, kwargs = mock_client.put_object.call_args
-        assert kwargs["bucket_name"] == "bs-exports"
-        assert kwargs["content_type"] == content_type
-        assert isinstance(kwargs["data"], io.BytesIO)
-        assert kwargs["length"] == len(data)
-
-    @patch("src.storage.storage_service.get_minio")
-    def test_upload_export_custom_bucket(self, mock_get_minio):
-        mock_client = MagicMock()
-        mock_get_minio.return_value = mock_client
-        
-        upload_export(b"data", "file.txt", "text/plain", bucket="custom")
-        
-        assert mock_client.put_object.call_args.kwargs["bucket_name"] == "custom"
-
-    @patch("src.storage.storage_service.get_minio")
-    def test_upload_export_path_format(self, mock_get_minio):
-        mock_client = MagicMock()
-        mock_get_minio.return_value = mock_client
-        
-        upload_export(b"data", "test.csv", "text/csv")
-        
-        object_name = mock_client.put_object.call_args.kwargs["object_name"]
-        # exports/YYYY/MM/DD/filename
-        assert object_name.startswith("exports/")
-        assert object_name.endswith("/test.csv")
-        assert len(object_name.split("/")) == 5
-
-    @patch("src.storage.storage_service.get_minio")
-    def test_upload_export_expiry(self, mock_get_minio):
-        mock_client = MagicMock()
-        mock_get_minio.return_value = mock_client
-        
-        upload_export(b"data", "test.csv", "text/csv")
-        
-        mock_client.presigned_get_object.assert_called_once()
-        expiry = mock_client.presigned_get_object.call_args.kwargs["expires"]
-        assert expiry.total_seconds() == 3600

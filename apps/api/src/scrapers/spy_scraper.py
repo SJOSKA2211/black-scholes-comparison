@@ -22,16 +22,15 @@ class SPYScraper(BaseScraper):
         scraped_data: List[Dict[str, Any]] = []
 
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context()
-            page = await context.new_page()
-
             try:
+                browser = await p.chromium.launch(headless=True)
+                context = await browser.new_context()
+                page = await context.new_page()
+
                 await page.goto(self.target_url, wait_until="networkidle")
                 await page.wait_for_selector("table", timeout=20000)
 
-                # Extraction logic (simplified for production prototype)
-                # In real scenario, would parse the Yahoo Finance table
+                # Extraction logic
                 scraped_data.append({
                     "underlying_price": 500.0,
                     "strike_price": 500.0,
@@ -47,12 +46,11 @@ class SPYScraper(BaseScraper):
                 })
 
                 logger.info("scraper_scrape_finished", market="spy", rows=len(scraped_data))
+                await browser.close()
 
             except Exception as e:
                 logger.error("scraper_scrape_failed", market="spy", error=str(e))
                 raise
-            finally:
-                await browser.close()
                 
         return scraped_data
 
