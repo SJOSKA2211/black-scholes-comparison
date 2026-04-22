@@ -7,9 +7,9 @@ import json
 import aio_pika
 import structlog
 
+from scripts.run_experiments import run_experiments
 from src.data.pipeline import DataPipeline
 from src.queue.rabbitmq_client import get_rabbitmq_connection
-from scripts.run_experiments import run_experiments
 
 logger = structlog.get_logger(__name__)
 

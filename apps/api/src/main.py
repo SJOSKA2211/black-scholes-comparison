@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
+from typing import Generator, AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
@@ -31,7 +32,7 @@ background_tasks: set[asyncio.Task[Any]] = set()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Initializes infrastructure and background workers."""
     logger.info("api_starting_up")
     try:

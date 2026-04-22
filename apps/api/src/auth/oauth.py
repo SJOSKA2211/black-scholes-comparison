@@ -4,16 +4,14 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+import httpx
 import structlog
 
+from src.config import settings
 from src.database import repository
+from src.exceptions import AuthenticationError
 
 logger = structlog.get_logger(__name__)
-
-
-import httpx
-from src.config import settings
-from src.exceptions import AuthenticationError
 
 
 async def get_github_user(code: str) -> dict[str, Any]:

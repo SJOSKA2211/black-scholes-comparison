@@ -6,7 +6,6 @@ from functools import lru_cache
 
 import structlog
 from minio import Minio
-from minio.error import S3Error
 
 from src.config import get_settings
 

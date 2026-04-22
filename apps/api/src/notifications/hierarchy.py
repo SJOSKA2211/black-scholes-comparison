@@ -29,13 +29,12 @@ async def notify_user(
     try:
         # 1. In-app notification (DB) - Always persistent
         await insert_notification(
-            {
-                "user_id": user_id,
-                "title": title,
-                "body": body,
-                "severity": severity,
-                "action_url": action_url,
-            }
+            user_id=user_id,
+            title=title,
+            body=body,
+            severity=severity,
+            channel=channel,
+            action_url=action_url,
         )
 
         # 2. WebSocket Push (Pub/Sub) - Always real-time

@@ -1,5 +1,7 @@
 from functools import lru_cache
+from typing import Generator
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -36,8 +38,8 @@ class Settings(BaseSettings):
     resend_api_key: str | None = None
 
     # OAuth
-    gh_client_id: str | None = None
-    gh_client_secret: str | None = None
+    gh_client_id: str | None = Field(None, alias="GH_CLIENT_ID")
+    gh_client_secret: str | None = Field(None, alias="GH_CLIENT_SECRET")
     google_client_id: str | None = None
     google_client_secret: str | None = None
 

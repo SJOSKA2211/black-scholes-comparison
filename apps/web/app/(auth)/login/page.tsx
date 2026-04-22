@@ -41,7 +41,7 @@ function LoginContent() {
 
   const containerVariants: any = {
     hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1, duration: 0.6, ease: "easeOut" } },
+    visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.05, duration: 0.4, ease: "easeOut" } },
   };
 
   const itemVariants: any = {

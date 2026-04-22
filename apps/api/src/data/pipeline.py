@@ -30,6 +30,57 @@ class DataPipeline:
         self.run_id = run_id
         self.market = market
 
+    async def process_rows(
+        self, rows: list[dict[str, Any]], market: str, trade_date: date
+    ) -> int:
+        """Handles Transformation, Validation, and Persistence for a batch of rows."""
+        await create_audit_log(self.run_id, "transform_validate", "started")
+        params_list = transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
+
+        inserted_count = 0
+        market_data_to_insert = []
+
+        for i, params in enumerate(params_list):
+            try:
+                # Validate
+                validate_quote(
+                    {
+                        "bid": rows[i].get("bid_price", 0),
+                        "ask": rows[i].get("ask_price", 0),
+                        "underlying": params.underlying_price,
+                    }
+                )
+
+                # Persistence
+                option_id = await upsert_option_parameters(params.model_dump())
+
+                # Prepare market data
+                orig_row = rows[i]
+                market_data_to_insert.append(
+                    {
+                        "option_id": option_id,
+                        "trade_date": trade_date.isoformat(),
+                        "bid_price": float(orig_row.get("bid_price", 0)),
+                        "ask_price": float(orig_row.get("ask_price", 0)),
+                        "volume": int(orig_row.get("volume", 0)),
+                        "open_interest": int(orig_row.get("open_interest", 0)),
+                        "data_source": market,
+                    }
+                )
+                inserted_count += 1
+            except Exception as e:
+                logger.warning("row_skipped", error=str(e), run_id=self.run_id, row_index=i)
+                continue
+
+        # 3. Batch Insert Market Data
+        if market_data_to_insert:
+            await insert_market_data(market_data_to_insert)
+
+        await create_audit_log(
+            self.run_id, "transform_validate", "completed", rows_affected=inserted_count
+        )
+        return inserted_count
+
     async def run(self, trade_date: date | None = None) -> dict[str, Any]:
         """Full run: Scrape -> Transform -> Validate -> Upsert."""
         if not self.market:
@@ -47,58 +98,11 @@ class DataPipeline:
             # 1. Scrape
             await create_audit_log(self.run_id, "scrape", "started")
             scraper = ScraperFactory.get_scraper(market, self.run_id)
-            df = await scraper.scrape(trade_date)
-            rows = df.to_dict("records")
+            rows = await scraper.scrape(trade_date)
             await create_audit_log(self.run_id, "scrape", "completed", rows_affected=len(rows))
 
-            # 2. Transform & Validate
-            await create_audit_log(self.run_id, "transform_validate", "started")
-            params_list = (
-                transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
-            )
-
-            inserted_count = 0
-            market_data_to_insert = []
-
-            for params in params_list:
-                try:
-                    # Validate
-                    validate_quote(
-                        {
-                            "bid": rows[params_list.index(params)].get("bid_price", 0),
-                            "ask": rows[params_list.index(params)].get("ask_price", 0),
-                            "underlying": params.underlying_price,
-                        }
-                    )
-
-                    # Persistence
-                    option_id = await upsert_option_parameters(params.dict())
-
-                    # Prepare market data
-                    orig_row = rows[params_list.index(params)]
-                    market_data_to_insert.append(
-                        {
-                            "option_id": option_id,
-                            "trade_date": trade_date.isoformat(),
-                            "bid_price": float(orig_row.get("bid_price", 0)),
-                            "ask_price": float(orig_row.get("ask_price", 0)),
-                            "volume": int(orig_row.get("volume", 0)),
-                            "open_interest": int(orig_row.get("open_interest", 0)),
-                            "data_source": market,
-                        }
-                    )
-                    inserted_count += 1
-                except Exception as e:
-                    logger.warning("row_skipped", error=str(e), run_id=self.run_id)
-                    continue
-
-            # 3. Batch Insert Market Data
-            if market_data_to_insert:
-                await insert_market_data(market_data_to_insert)
-
-            await create_audit_log(
-                self.run_id, "transform_validate", "completed", rows_affected=inserted_count
-            )
+            # 2. Process
+            inserted_count = await self.process_rows(rows, market, trade_date)
 
             # Success
             result = {
