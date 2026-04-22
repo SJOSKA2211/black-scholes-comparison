@@ -9,21 +9,21 @@ from pydantic import BaseModel
 from src.auth.dependencies import get_current_user
 from src.methods.analytical import BlackScholesAnalytical
 from src.methods.base import MethodType, OptionParams, PriceResult
-from src.methods.finite_difference.crank_nicolson import price_crank_nicolson
 
 # Modular imports for v4
-from src.methods.finite_difference.explicit import price_explicit_fdm
-from src.methods.finite_difference.implicit import price_implicit_fdm
-from src.methods.monte_carlo.antithetic import price_antithetic_mc
-from src.methods.monte_carlo.control_variates import price_control_variate_mc
-from src.methods.monte_carlo.quasi_mc import price_quasi_mc
-from src.methods.monte_carlo.standard import price_standard_mc
-from src.methods.tree_methods.binomial_crr import price_binomial_crr
+from src.methods.finite_difference.crank_nicolson import CrankNicolsonFDM
+from src.methods.finite_difference.explicit import ExplicitFDM
+from src.methods.finite_difference.implicit import ImplicitFDM
+from src.methods.monte_carlo.antithetic import AntitheticMC
+from src.methods.monte_carlo.control_variates import ControlVariateMC
+from src.methods.monte_carlo.quasi_mc import QuasiMC
+from src.methods.monte_carlo.standard import StandardMC
+from src.methods.tree_methods.binomial_crr import BinomialCRR
 from src.methods.tree_methods.richardson import (
-    price_binomial_crr_richardson,
-    price_trinomial_richardson,
+    BinomialCRRRickardson,
+    TrinomialRichardson,
 )
-from src.methods.tree_methods.trinomial import price_trinomial
+from src.methods.tree_methods.trinomial import TrinomialTree
 from src.metrics import (
     PRICE_COMPUTATION_DURATION_SECONDS,
     PRICE_COMPUTATIONS_TOTAL,
@@ -45,22 +45,33 @@ class PriceResponse(BaseModel):
     exec_ms: float
 
 
-# Registry of pricer functions
+# Registry of pricer instances
 analytical_engine = BlackScholesAnalytical()
+explicit_fdm_engine = ExplicitFDM()
+implicit_fdm_engine = ImplicitFDM()
+crank_nicolson_engine = CrankNicolsonFDM()
+standard_mc_engine = StandardMC()
+antithetic_mc_engine = AntitheticMC()
+control_variate_mc_engine = ControlVariateMC()
+quasi_mc_engine = QuasiMC()
+binomial_crr_engine = BinomialCRR()
+trinomial_engine = TrinomialTree()
+binomial_richardson_engine = BinomialCRRRickardson()
+trinomial_richardson_engine = TrinomialRichardson()
 
 METHOD_MAP = {
     "analytical": analytical_engine.price,
-    "explicit_fdm": price_explicit_fdm,
-    "implicit_fdm": price_implicit_fdm,
-    "crank_nicolson": price_crank_nicolson,
-    "standard_mc": price_standard_mc,
-    "antithetic_mc": price_antithetic_mc,
-    "control_variate_mc": price_control_variate_mc,
-    "quasi_mc": price_quasi_mc,
-    "binomial_crr": price_binomial_crr,
-    "trinomial": price_trinomial,
-    "binomial_crr_richardson": price_binomial_crr_richardson,
-    "trinomial_richardson": price_trinomial_richardson,
+    "explicit_fdm": explicit_fdm_engine.price,
+    "implicit_fdm": implicit_fdm_engine.price,
+    "crank_nicolson": crank_nicolson_engine.price,
+    "standard_mc": standard_mc_engine.price,
+    "antithetic_mc": antithetic_mc_engine.price,
+    "control_variate_mc": control_variate_mc_engine.price,
+    "quasi_mc": quasi_mc_engine.price,
+    "binomial_crr": binomial_crr_engine.price,
+    "trinomial": trinomial_engine.price,
+    "binomial_crr_richardson": binomial_richardson_engine.price,
+    "trinomial_richardson": trinomial_richardson_engine.price,
 }
 
 

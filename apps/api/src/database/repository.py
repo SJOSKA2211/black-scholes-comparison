@@ -336,8 +336,6 @@ async def get_scrape_runs(limit: int = 20) -> list[dict[str, Any]]:
         raise RepositoryError(f"Database operation failed: {e!s}") from e
 
 
-
-
 async def get_notifications(
     user_id: str, unread_only: bool = True, limit: int = 50
 ) -> list[dict[str, Any]]:

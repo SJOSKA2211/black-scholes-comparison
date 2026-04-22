@@ -2,16 +2,16 @@ import pytest
 import numpy as np
 from src.methods.base import OptionParams
 from src.methods.analytical import BlackScholesAnalytical
-from src.methods.finite_difference.explicit import price_explicit_fdm
-from src.methods.finite_difference.implicit import price_implicit_fdm
-from src.methods.finite_difference.crank_nicolson import price_crank_nicolson
-from src.methods.monte_carlo.standard import price_standard_mc
-from src.methods.monte_carlo.antithetic import price_antithetic_mc
-from src.methods.monte_carlo.control_variates import price_control_variate_mc
-from src.methods.monte_carlo.quasi_mc import price_quasi_mc
-from src.methods.tree_methods.binomial_crr import price_binomial_crr
-from src.methods.tree_methods.trinomial import price_trinomial
-from src.methods.tree_methods.richardson import price_binomial_crr_richardson, price_trinomial_richardson
+from src.methods.finite_difference.explicit import ExplicitFDM
+from src.methods.finite_difference.implicit import ImplicitFDM
+from src.methods.finite_difference.crank_nicolson import CrankNicolsonFDM
+from src.methods.monte_carlo.standard import StandardMC
+from src.methods.monte_carlo.antithetic import AntitheticMC
+from src.methods.monte_carlo.control_variates import ControlVariateMC
+from src.methods.monte_carlo.quasi_mc import QuasiMC
+from src.methods.tree_methods.binomial_crr import BinomialCRR
+from src.methods.tree_methods.trinomial import TrinomialTree
+from src.methods.tree_methods.richardson import BinomialCRRRickardson, TrinomialRichardson
 from src.exceptions import CFLViolationError
 
 @pytest.fixture
@@ -28,24 +28,24 @@ def standard_params():
 
 ALL_METHODS = [
     BlackScholesAnalytical().price,
-    price_explicit_fdm,
-    price_implicit_fdm,
-    price_crank_nicolson,
-    price_standard_mc,
-    price_antithetic_mc,
-    price_control_variate_mc,
-    price_quasi_mc,
-    price_binomial_crr,
-    price_trinomial,
-    price_binomial_crr_richardson,
-    price_trinomial_richardson
+    ExplicitFDM().price,
+    ImplicitFDM().price,
+    CrankNicolsonFDM().price,
+    StandardMC().price,
+    AntitheticMC().price,
+    ControlVariateMC().price,
+    QuasiMC().price,
+    BinomialCRR().price,
+    TrinomialTree().price,
+    BinomialCRRRickardson().price,
+    TrinomialRichardson().price
 ]
 
 AMERICAN_SUPPORTED = [
-    price_binomial_crr,
-    price_trinomial,
-    price_binomial_crr_richardson,
-    price_trinomial_richardson
+    BinomialCRR().price,
+    TrinomialTree().price,
+    BinomialCRRRickardson().price,
+    TrinomialRichardson().price
 ]
 
 @pytest.mark.unit
@@ -107,4 +107,4 @@ def test_implied_volatility_logic(standard_params):
 def test_explicit_fdm_cfl_violation(standard_params):
     # Trigger CFL violation
     with pytest.raises(CFLViolationError):
-        price_explicit_fdm(standard_params, num_spatial=200, num_time=10)
+        ExplicitFDM().price(standard_params, num_spatial=200, num_time=10)

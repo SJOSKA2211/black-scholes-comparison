@@ -9,6 +9,7 @@ import structlog
 
 from src.data.pipeline import DataPipeline
 from src.queue.rabbitmq_client import get_rabbitmq_connection
+from scripts.run_experiments import run_experiments
 
 logger = structlog.get_logger(__name__)
 
@@ -37,7 +38,7 @@ async def handle_experiment_task(message: aio_pika.abc.AbstractIncomingMessage) 
     async with message.process():
         payload = json.loads(message.body)
         logger.info("experiment_task_received", payload=payload, step="queue")
-        # TODO: Implement experiment runner integration: await run_experiments(payload)
+        await run_experiments(payload)
 
 
 async def start_consumers() -> None:

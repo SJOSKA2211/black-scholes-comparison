@@ -29,6 +29,7 @@ logger = structlog.get_logger(__name__)
 # Global set to store references to long-running tasks to prevent garbage collection
 background_tasks: set[asyncio.Task[Any]] = set()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initializes infrastructure and background workers."""
@@ -37,13 +38,14 @@ async def lifespan(app: FastAPI):
         get_minio()
     except Exception as e:
         logger.error("minio_init_failed_in_lifespan", error=str(e))
-    
+
     task = asyncio.create_task(start_consumers())
     background_tasks.add(task)
     task.add_done_callback(background_tasks.discard)
     logger.info("api_startup_completed")
     yield
     logger.info("api_shutting_down")
+
 
 app = FastAPI(
     title="Black-Scholes Research API v4",
@@ -75,6 +77,7 @@ app.include_router(downloads.router, prefix="/api/v1/download", tags=["Downloads
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
 app.include_router(websocket.router, tags=["WebSocket"])
 app.include_router(health.router, tags=["Health"])
+
 
 @app.get("/")
 async def root() -> dict[str, str]:
