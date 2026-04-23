@@ -48,19 +48,22 @@ class NSEScraper(BaseScraper):
 
                 # 3. Underlying Price
                 underlying_element = await page.query_selector("#equity_underlyingVal")
-                underlying_text = await underlying_element.inner_text() if underlying_element else "22000"
+                underlying_text = (
+                    await underlying_element.inner_text() if underlying_element else "22000"
+                )
                 # Text is usually "UNDERLYING VALUE 22,000.00"
                 underlying_price = float(underlying_text.split()[-1].replace(",", ""))
 
                 # 4. Maturity calculation
                 # NSE has an expiry date dropdown
                 expiry_el = await page.query_selector("#expirySelect")
-                maturity_years = 7 / 365.0 # default 1 week
+                maturity_years = 7 / 365.0  # default 1 week
                 if expiry_el:
                     selected_val = await expiry_el.get_attribute("value")
                     if selected_val:
                         # Format is usually DD-MMM-YYYY (e.g., 25-Apr-2024)
                         from datetime import datetime
+
                         try:
                             expiry_dt = datetime.strptime(selected_val, "%d-%b-%Y").date()
                             days_to_expiry = (expiry_dt - trade_date).days
@@ -78,51 +81,74 @@ class NSEScraper(BaseScraper):
                     try:
                         # Strike is in Col 11
                         strike = float((await cols[11].inner_text()).replace(",", ""))
-                        
+
                         # CALLS (Left side): Bid in 8, Ask in 9, IV in 7
-                        c_bid = float((await cols[8].inner_text()).replace("-", "0").replace(",", ""))
-                        c_ask = float((await cols[9].inner_text()).replace("-", "0").replace(",", ""))
-                        c_iv = float((await cols[7].inner_text()).replace("-", "20").replace(",", "")) / 100.0
+                        c_bid = float(
+                            (await cols[8].inner_text()).replace("-", "0").replace(",", "")
+                        )
+                        c_ask = float(
+                            (await cols[9].inner_text()).replace("-", "0").replace(",", "")
+                        )
+                        c_iv = (
+                            float((await cols[7].inner_text()).replace("-", "20").replace(",", ""))
+                            / 100.0
+                        )
 
                         # PUTS (Right side): Bid in 12, Ask in 13, IV in 14
-                        p_bid = float((await cols[12].inner_text()).replace("-", "0").replace(",", ""))
-                        p_ask = float((await cols[13].inner_text()).replace("-", "0").replace(",", ""))
-                        p_iv = float((await cols[14].inner_text()).replace("-", "20").replace(",", "")) / 100.0
+                        p_bid = float(
+                            (await cols[12].inner_text()).replace("-", "0").replace(",", "")
+                        )
+                        p_ask = float(
+                            (await cols[13].inner_text()).replace("-", "0").replace(",", "")
+                        )
+                        p_iv = (
+                            float((await cols[14].inner_text()).replace("-", "20").replace(",", ""))
+                            / 100.0
+                        )
 
                         if c_ask > 0:
-                            scraped_data.append({
-                                "underlying_price": underlying_price,
-                                "strike_price": strike,
-                                "maturity_years": maturity_years,
-                                "volatility": c_iv,
-                                "risk_free_rate": 0.07, # RBI rate approx
-                                "option_type": "call",
-                                "is_american": False, # NIFTY options are European
-                                "market_source": "nse",
-                                "trade_date": trade_date,
-                                "bid_price": c_bid,
-                                "ask_price": c_ask,
-                            })
-                        
+                            scraped_data.append(
+                                {
+                                    "underlying_price": underlying_price,
+                                    "strike_price": strike,
+                                    "maturity_years": maturity_years,
+                                    "volatility": c_iv,
+                                    "risk_free_rate": 0.07,  # RBI rate approx
+                                    "option_type": "call",
+                                    "is_american": False,  # NIFTY options are European
+                                    "market_source": "nse",
+                                    "trade_date": trade_date,
+                                    "bid_price": c_bid,
+                                    "ask_price": c_ask,
+                                }
+                            )
+
                         if p_ask > 0:
-                             scraped_data.append({
-                                "underlying_price": underlying_price,
-                                "strike_price": strike,
-                                "maturity_years": maturity_years,
-                                "volatility": p_iv,
-                                "risk_free_rate": 0.07,
-                                "option_type": "put",
-                                "is_american": False,
-                                "market_source": "nse",
-                                "trade_date": trade_date,
-                                "bid_price": p_bid,
-                                "ask_price": p_ask,
-                            })
+                            scraped_data.append(
+                                {
+                                    "underlying_price": underlying_price,
+                                    "strike_price": strike,
+                                    "maturity_years": maturity_years,
+                                    "volatility": p_iv,
+                                    "risk_free_rate": 0.07,
+                                    "option_type": "put",
+                                    "is_american": False,
+                                    "market_source": "nse",
+                                    "trade_date": trade_date,
+                                    "bid_price": p_bid,
+                                    "ask_price": p_ask,
+                                }
+                            )
 
                     except (ValueError, TypeError, IndexError):
                         continue
 
-                logger.info("scraper_scrape_finished", market="nse", rows=len(scraped_data), price=underlying_price)
+                logger.info(
+                    "scraper_scrape_finished",
+                    market="nse",
+                    rows=len(scraped_data),
+                    price=underlying_price,
+                )
                 await browser.close()
 
             except Exception as error:

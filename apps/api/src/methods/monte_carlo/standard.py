@@ -23,7 +23,7 @@ class StandardMC:
     def price(self, params: OptionParams) -> PriceResult:
         """Compute the option price and Greeks using Standard Monte Carlo with CRN."""
         start_time = time.time()
-        
+
         # Pre-generate Gaussian samples for Common Random Numbers (CRN)
         z = np.random.standard_normal(self.num_simulations)
         discount_factor = np.exp(-params.risk_free_rate * params.maturity_years)

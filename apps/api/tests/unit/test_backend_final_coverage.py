@@ -214,23 +214,27 @@ class TestBackendFinalCoverage:
         mock_browser.new_context.return_value = mock_context
         mock_page = AsyncMock()
         mock_context.new_page.return_value = mock_page
+        
         mock_val_elem = AsyncMock()
         mock_val_elem.inner_text.return_value = "Underlying: 22000"
-        mock_page.query_selector.return_value = mock_val_elem
+        
+        mock_expiry_elem = AsyncMock()
+        mock_expiry_elem.get_attribute.return_value = "25-Apr-2024"
+        
+        # Side effect for query_selector
+        async def mock_qs(sel):
+            if sel == "#equity_underlyingVal": return mock_val_elem
+            if sel == "#expirySelect": return mock_expiry_elem
+            return None
+        mock_page.query_selector.side_effect = mock_qs
         
         mock_row = AsyncMock()
         mock_cols = [AsyncMock() for _ in range(21)]
         for i, col in enumerate(mock_cols):
-            col.inner_text.return_value = "100" if i == 11 else "10"
+            col.inner_text.return_value = "100" if i in [11, 8, 9, 12, 13] else "10"
         mock_row.query_selector_all.return_value = mock_cols
         
-        mock_row_fail = AsyncMock()
-        mock_cols_fail = [AsyncMock() for _ in range(21)]
-        for i, col in enumerate(mock_cols_fail):
-            col.inner_text.return_value = "100" if i == 11 else "0"
-        mock_row_fail.query_selector_all.return_value = mock_cols_fail
-        
-        mock_page.query_selector_all.return_value = [mock_row, mock_row_fail]
+        mock_page.query_selector_all.return_value = [mock_row]
         
         await scraper.scrape(datetime.date(2024, 1, 1))
         mock_page.goto.side_effect = Exception("Fail")

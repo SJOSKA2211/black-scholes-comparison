@@ -33,12 +33,12 @@ class QuasiMC:
             drift = (p.risk_free_rate - 0.5 * p.volatility**2) * p.maturity_years
             diffusion = p.volatility * np.sqrt(p.maturity_years)
             terminal_prices = p.underlying_price * np.exp(drift + diffusion * samples)
-            
+
             if p.option_type == "call":
                 payoffs = np.maximum(terminal_prices - p.strike_price, 0)
             else:
                 payoffs = np.maximum(p.strike_price - terminal_prices, 0)
-            
+
             df = np.exp(-p.risk_free_rate * p.maturity_years)
             return float(np.mean(df * payoffs))
 
@@ -50,7 +50,9 @@ class QuasiMC:
         # Delta & Gamma
         p_up = params.model_copy(update={"underlying_price": params.underlying_price + h_s})
         p_dn = params.model_copy(update={"underlying_price": params.underlying_price - h_s})
-        price_up, price_dn = _solve_with_samples(p_up, gaussian_samples), _solve_with_samples(p_dn, gaussian_samples)
+        price_up, price_dn = _solve_with_samples(p_up, gaussian_samples), _solve_with_samples(
+            p_dn, gaussian_samples
+        )
         delta = (price_up - price_dn) / (2 * h_s)
         gamma = (price_up - 2 * computed_price + price_dn) / (h_s**2)
 

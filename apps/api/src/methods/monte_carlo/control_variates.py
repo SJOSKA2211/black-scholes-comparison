@@ -141,16 +141,26 @@ class ControlVariateMC:
             log_s = np.column_stack([np.zeros(self.num_simulations), log_s])
             paths = p.underlying_price * np.exp(log_s)
             terminal_prices = paths[:, -1]
-            payoffs = np.maximum(terminal_prices - p.strike_price, 0) if p.option_type == "call" else np.maximum(p.strike_price - terminal_prices, 0)
+            payoffs = (
+                np.maximum(terminal_prices - p.strike_price, 0)
+                if p.option_type == "call"
+                else np.maximum(p.strike_price - terminal_prices, 0)
+            )
             geometric_means = np.exp(np.mean(np.log(paths[:, 1:]), axis=1))
-            cv_payoffs = np.maximum(geometric_means - p.strike_price, 0) if p.option_type == "call" else np.maximum(p.strike_price - geometric_means, 0)
+            cv_payoffs = (
+                np.maximum(geometric_means - p.strike_price, 0)
+                if p.option_type == "call"
+                else np.maximum(p.strike_price - geometric_means, 0)
+            )
             df = np.exp(-p.risk_free_rate * p.maturity_years)
             y, x = df * payoffs, df * cv_payoffs
             expected_cv = self._get_geometric_asian_analytical(p)
             cov_matrix = np.cov(y, x)
             beta = cov_matrix[0, 1] / cov_matrix[1, 1] if cov_matrix[1, 1] > 0 else 0.0
             controlled = y - beta * (x - expected_cv)
-            return float(np.mean(controlled)), float(np.std(controlled) / np.sqrt(self.num_simulations))
+            return float(np.mean(controlled)), float(
+                np.std(controlled) / np.sqrt(self.num_simulations)
+            )
 
         _, std_err = _get_std_err(params, z)
 

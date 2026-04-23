@@ -40,10 +40,10 @@ class SPYScraper(BaseScraper):
                 # Try multiple selectors for price (Yahoo UI changes)
                 price_selectors = [
                     'fin-streamer[data-field="regularMarketPrice"][data-symbol="SPY"]',
-                    '.livePrice',
-                    '#quote-header-info fin-streamer'
+                    ".livePrice",
+                    "#quote-header-info fin-streamer",
                 ]
-                underlying_price = 500.0 # fallback
+                underlying_price = 500.0  # fallback
                 for sel in price_selectors:
                     el = await page.query_selector(sel)
                     if el:
@@ -56,8 +56,10 @@ class SPYScraper(BaseScraper):
 
                 # 2. Maturity calculation
                 # Yahoo Finance has a select box for expiries
-                expiry_el = await page.query_selector('div[data-test="overlay-container"] + div select, .controls select')
-                maturity_years = 0.1 # fallback
+                expiry_el = await page.query_selector(
+                    'div[data-test="overlay-container"] + div select, .controls select'
+                )
+                maturity_years = 0.1  # fallback
                 if expiry_el:
                     # Current date vs selected expiry date
                     # For simplicity, we extract the timestamp if available in value
@@ -65,6 +67,7 @@ class SPYScraper(BaseScraper):
                     if val and val.isdigit():
                         expiry_ts = int(val)
                         from datetime import datetime, timezone
+
                         expiry_dt = datetime.fromtimestamp(expiry_ts, tz=timezone.utc).date()
                         days_to_expiry = (expiry_dt - trade_date).days
                         maturity_years = max(0.001, days_to_expiry / 365.0)
@@ -81,9 +84,14 @@ class SPYScraper(BaseScraper):
                         strike = float((await cols[2].inner_text()).replace(",", ""))
                         bid = float((await cols[4].inner_text()).replace(",", "").replace("-", "0"))
                         ask = float((await cols[5].inner_text()).replace(",", "").replace("-", "0"))
-                        
+
                         # IV from Col 10 (if available)
-                        iv_text = (await cols[10].inner_text()).replace("%", "").replace(",", "").replace("-", "20")
+                        iv_text = (
+                            (await cols[10].inner_text())
+                            .replace("%", "")
+                            .replace(",", "")
+                            .replace("-", "20")
+                        )
                         volatility = float(iv_text) / 100.0 if iv_text else 0.2
 
                         if ask > 0:
@@ -93,9 +101,18 @@ class SPYScraper(BaseScraper):
                                     "strike_price": strike,
                                     "maturity_years": maturity_years,
                                     "volatility": volatility,
-                                    "risk_free_rate": 0.05, # Treasury rate approx
-                                    "option_type": "call" if "calls" in (await row.evaluate("el => el.closest('table').className")) else "put",
-                                    "is_american": True, # SPY options are American
+                                    "risk_free_rate": 0.05,  # Treasury rate approx
+                                    "option_type": (
+                                        "call"
+                                        if "calls"
+                                        in (
+                                            await row.evaluate(
+                                                "el => el.closest('table').className"
+                                            )
+                                        )
+                                        else "put"
+                                    ),
+                                    "is_american": True,  # SPY options are American
                                     "market_source": "spy",
                                     "trade_date": trade_date,
                                     "bid_price": bid,
@@ -105,7 +122,12 @@ class SPYScraper(BaseScraper):
                     except (ValueError, TypeError, IndexError):
                         continue
 
-                logger.info("scraper_scrape_finished", market="spy", rows=len(scraped_data), price=underlying_price)
+                logger.info(
+                    "scraper_scrape_finished",
+                    market="spy",
+                    rows=len(scraped_data),
+                    price=underlying_price,
+                )
                 await browser.close()
 
             except Exception as error:

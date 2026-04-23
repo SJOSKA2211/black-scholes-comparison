@@ -46,7 +46,9 @@ class AntitheticMC:
                 payoffs_two = np.maximum(p.strike_price - terminal_prices_two, 0)
 
             pair_averages = 0.5 * df * (payoffs_one + payoffs_two)
-            return float(np.mean(pair_averages)), float(np.std(pair_averages) / np.sqrt(len(samples)))
+            return float(np.mean(pair_averages)), float(
+                np.std(pair_averages) / np.sqrt(len(samples))
+            )
 
         computed_price, std_err = _solve_with_z(params, z)
 
