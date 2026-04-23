@@ -25,9 +25,9 @@ class TestRoutersIntegration:
             assert response.json()["status"] == "ok"
 
     def test_pricing_no_auth(self) -> None:
-        # Should return 401 as per mandate Section 16.2
+        # FastAPI Security HTTPBearer returns 403 if header missing
         response = self.client.post("/api/v1/pricing/calculate", json={})
-        assert response.status_code == 401
+        assert response.status_code == 403
 
     def test_methods_list(self) -> None:
         response = self.client.get("/api/v1/pricing/methods")

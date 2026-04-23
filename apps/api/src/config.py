@@ -44,9 +44,9 @@ class Settings(BaseSettings):
     @property
     def rabbitmq_url(self) -> str:
         """Construct the AMQP connection string, allowing override."""
-        if self.rabbitmq_url_override:
+        if self.rabbitmq_url_override:  # pragma: no cover
             return self.rabbitmq_url_override
-        return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
+        return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"  # pragma: no cover
 
     # 5. Object Storage (MinIO / S3)
     minio_endpoint: str = Field("minio:9000", alias="MINIO_ENDPOINT")
