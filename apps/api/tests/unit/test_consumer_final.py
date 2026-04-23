@@ -8,7 +8,7 @@ from src.task_queues.consumer import handle_experiment_task, handle_scrape_task,
 
 @pytest.mark.unit
 class TestConsumerFinal:
-    async def test_handle_scrape_task_empty(self):
+    async def test_handle_scrape_task_empty(self) -> None:
         message = AsyncMock()
         # Mocking the async context manager 'process'
         process_mock = MagicMock()
@@ -23,7 +23,7 @@ class TestConsumerFinal:
             assert not mock_pipeline.return_value.process_rows.called
 
     @patch("scripts.run_experiments.run_experiments", new_callable=AsyncMock)
-    async def test_handle_experiment_task(self, mock_run):
+    async def test_handle_experiment_task(self, mock_run) -> None:
         message = AsyncMock()
         process_mock = MagicMock()
         process_mock.__aenter__ = AsyncMock()
@@ -37,7 +37,7 @@ class TestConsumerFinal:
         assert mock_run.called
 
     @patch("src.task_queues.consumer.get_rabbitmq_connection")
-    async def test_start_consumers_success(self, mock_get_conn):
+    async def test_start_consumers_success(self, mock_get_conn) -> None:
         mock_conn = AsyncMock()
         mock_get_conn.return_value = mock_conn
         mock_channel = AsyncMock()
@@ -48,7 +48,7 @@ class TestConsumerFinal:
         assert mock_channel.declare_queue.called
 
     @patch("src.task_queues.consumer.get_rabbitmq_connection")
-    async def test_start_consumers_failure(self, mock_get_conn):
+    async def test_start_consumers_failure(self, mock_get_conn) -> None:
         mock_get_conn.side_effect = Exception("RMQ Fail")
         await start_consumers()
         # Should log error and not crash

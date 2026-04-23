@@ -1,6 +1,6 @@
 """Unit tests for additional rabbitmq_client coverage."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

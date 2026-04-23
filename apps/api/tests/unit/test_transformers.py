@@ -7,7 +7,7 @@ from src.methods.base import OptionParams
 
 @pytest.mark.unit
 class TestTransformers:
-    def test_transform_market_row_success(self):
+    def test_transform_market_row_success(self) -> None:
         row = {
             "underlying_price": "100.0",
             "strike_price": 100,
@@ -23,7 +23,7 @@ class TestTransformers:
         assert params.is_american is True
         assert params.market_source == "spy"
 
-    def test_transform_market_row_failure(self):
+    def test_transform_market_row_failure(self) -> None:
         # Missing key
         with pytest.raises(KeyError):
             transform_market_row({"underlying_price": 100})
@@ -40,7 +40,7 @@ class TestTransformers:
                 }
             )
 
-    def test_transform_batch_df_success(self):
+    def test_transform_batch_df_success(self) -> None:
         data = [
             {
                 "underlying_price": 100,
@@ -65,7 +65,7 @@ class TestTransformers:
         assert results[0].underlying_price == 100.0
         assert results[1].option_type == "put"
 
-    def test_transform_batch_df_partial_failure(self):
+    def test_transform_batch_df_partial_failure(self) -> None:
         data = [
             {
                 "underlying_price": 100,

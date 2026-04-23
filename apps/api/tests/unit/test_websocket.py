@@ -1,5 +1,4 @@
 import asyncio
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,7 +10,7 @@ from src.websocket.manager import WebSocketManager
 @pytest.mark.unit
 class TestWebSocketManager:
     @pytest.mark.asyncio
-    async def test_connect_disconnect(self):
+    async def test_connect_disconnect(self) -> None:
         manager = WebSocketManager()
         mock_ws = AsyncMock()
         mock_ws2 = AsyncMock()
@@ -39,7 +38,7 @@ class TestWebSocketManager:
             await manager.disconnect(mock_ws, "unknown")
 
     @pytest.mark.asyncio
-    async def test_broadcast(self):
+    async def test_broadcast(self) -> None:
         manager = WebSocketManager()
         await manager.broadcast("empty", {"msg": "hi"})
 
@@ -54,7 +53,7 @@ class TestWebSocketManager:
 
     @pytest.mark.asyncio
     @patch("src.websocket.manager.get_redis")
-    async def test_redis_listener_flow(self, mock_get_redis):
+    async def test_redis_listener_flow(self, mock_get_redis) -> None:
         manager = WebSocketManager()
         mock_redis = MagicMock()
 
@@ -78,10 +77,10 @@ class TestWebSocketManager:
 
     @pytest.mark.asyncio
     @patch("src.websocket.manager.get_redis")
-    async def test_redis_listener_error(self, mock_get_redis):
+    async def test_redis_listener_error(self, mock_get_redis) -> None:
         manager = WebSocketManager()
         mock_get_redis.side_effect = Exception("Redis connection fail")
         await manager.start_redis_listener("test")
 
-    def test_channels_import(self):
+    def test_channels_import(self) -> None:
         assert "experiments" in ALLOWED_CHANNELS

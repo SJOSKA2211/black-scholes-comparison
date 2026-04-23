@@ -13,14 +13,14 @@ from src.data.validators import (
 
 @pytest.mark.unit
 class TestValidators:
-    def test_numeric_validators_success(self):
+    def test_numeric_validators_success(self) -> None:
         assert validate_underlying_price(100.0) == 100.0
         assert validate_strike_price(100.0) == 100.0
         assert validate_maturity(1.0) == 1.0
         assert validate_volatility(0.2) == 0.2
         assert validate_risk_free_rate(0.05) == 0.05
 
-    def test_numeric_validators_failure(self):
+    def test_numeric_validators_failure(self) -> None:
         with pytest.raises(ValidationError):
             validate_underlying_price(0)
         with pytest.raises(ValidationError):
@@ -32,15 +32,15 @@ class TestValidators:
         with pytest.raises(ValidationError):
             validate_risk_free_rate(-0.01)
 
-    def test_validate_quote_success(self):
+    def test_validate_quote_success(self) -> None:
         quote = {"bid": 10.0, "ask": 11.0, "underlying": 100.0}
         assert validate_quote(quote) == quote
 
-    def test_validate_quote_missing_keys(self):
+    def test_validate_quote_missing_keys(self) -> None:
         with pytest.raises(ValidationError, match="Missing required key"):
             validate_quote({"bid": 10.0})
 
-    def test_validate_quote_invalid_values(self):
+    def test_validate_quote_invalid_values(self) -> None:
         # Bid negative
         with pytest.raises(ValidationError, match="Bid price cannot be negative"):
             validate_quote({"bid": -1.0, "ask": 10.0, "underlying": 100.0})

@@ -8,7 +8,7 @@ from src.logging_config import configure_logging
 
 
 @pytest.mark.unit
-def test_configure_logging(monkeypatch):
+def test_configure_logging(monkeypatch) -> None:
     """Test that logging configuration runs without error."""
     # Mock basicConfig to avoid issues with already initialized logging
     mock_basic_config = MagicMock()

@@ -10,8 +10,8 @@ from fastapi import APIRouter
 
 from src.cache.redis_client import get_redis
 from src.database.supabase_client import get_supabase_client
-from src.task_queues.rabbitmq_client import get_rabbitmq_connection
 from src.storage.minio_client import get_minio
+from src.task_queues.rabbitmq_client import get_rabbitmq_connection
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)

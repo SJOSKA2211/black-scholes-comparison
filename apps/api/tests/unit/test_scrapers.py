@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -39,7 +39,7 @@ class TestScrapers:
         # Mock rows
         mock_row = AsyncMock()
         mock_cols = [AsyncMock() for _ in range(11)]
-        for i, c in enumerate(mock_cols):
+        for _i, c in enumerate(mock_cols):
             c.inner_text.return_value = "100"
         mock_row.query_selector_all.return_value = mock_cols
         # evaluate for calls/puts

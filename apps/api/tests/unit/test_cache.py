@@ -10,7 +10,7 @@ from src.cache.redis_client import get_redis
 class TestCache:
     @patch("src.cache.redis_client.aioredis.from_url")
     @patch("src.cache.redis_client.get_settings")
-    def test_get_redis_init(self, mock_settings, mock_from_url):
+    def test_get_redis_init(self, mock_settings, mock_from_url) -> None:
         get_redis.cache_clear()
         mock_settings.return_value.redis_url = "redis://localhost"
         mock_settings.return_value.redis_password = "pass"
@@ -24,7 +24,7 @@ class TestCache:
 
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
-    async def test_cache_decorator_hit(self, mock_get_redis):
+    async def test_cache_decorator_hit(self, mock_get_redis) -> None:
         mock_r = MagicMock()
         mock_r.get = AsyncMock(return_value='{"res": "cached"}')
         mock_get_redis.return_value = mock_r
@@ -43,7 +43,7 @@ class TestCache:
 
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
-    async def test_cache_decorator_miss(self, mock_get_redis):
+    async def test_cache_decorator_miss(self, mock_get_redis) -> None:
         mock_r = MagicMock()
         mock_r.get = AsyncMock(return_value=None)
         mock_r.setex = AsyncMock()
@@ -64,14 +64,14 @@ class TestCache:
 
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
-    async def test_cache_decorator_error(self, mock_get_redis):
+    async def test_cache_decorator_error(self, mock_get_redis) -> None:
         # Redis error should not break the function - wait, my implementation
         # doesn't catch errors in the decorator yet.
         # I should probably add try/except to the decorator.
         mock_get_redis.side_effect = Exception("Redis Down")
 
         @cache_response(key_prefix="test", ttl_seconds=60)
-        async def fast_func(x):
+        async def fast_func(x) -> str:
             return "ok"
 
         with pytest.raises(Exception):

@@ -1,12 +1,12 @@
 """Unit tests for additional pricing router coverage."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src.main import app
-from src.methods.base import MethodType, PriceResult
+from src.methods.base import PriceResult
 
 client = TestClient(app)
 

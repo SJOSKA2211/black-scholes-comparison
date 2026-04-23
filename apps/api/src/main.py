@@ -12,7 +12,6 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import get_settings
 from src.logging_config import configure_logging
-from src.task_queues.consumer import start_consumers
 from src.routers import (
     downloads,
     experiments,
@@ -23,6 +22,7 @@ from src.routers import (
     scrapers,
     websocket,
 )
+from src.task_queues.consumer import start_consumers
 
 logger = structlog.get_logger(__name__)
 
@@ -48,10 +48,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Background workers consume tasks from bs.scrape and bs.experiment
     try:
         import asyncio
+
         # Wait at most 5 seconds for consumers to start
         await asyncio.wait_for(start_consumers(), timeout=5.0)
         logger.info("consumers_started", step="init")
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning("consumers_start_timeout", step="init")
     except Exception as error:
         logger.error("consumers_start_failed", error=str(error), step="init")

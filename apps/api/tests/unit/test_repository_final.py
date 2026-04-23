@@ -30,7 +30,7 @@ from src.exceptions import RepositoryError
 @pytest.mark.unit
 class TestRepository:
     @patch("src.database.repository.get_supabase_client")
-    async def test_upsert_option_parameters_existing(self, mock_get_supabase):
+    async def test_upsert_option_parameters_existing(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
@@ -41,7 +41,7 @@ class TestRepository:
         assert res == "123"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_upsert_option_parameters_new(self, mock_get_supabase):
+    async def test_upsert_option_parameters_new(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = (
@@ -56,7 +56,7 @@ class TestRepository:
 
     @patch("src.database.repository.get_supabase_client")
     @patch("src.cache.redis_client.get_redis")
-    async def test_insert_method_result(self, mock_get_redis, mock_get_supabase):
+    async def test_insert_method_result(self, mock_get_redis, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.insert.return_value.execute.return_value.data = [
@@ -71,7 +71,7 @@ class TestRepository:
         assert mock_redis.publish.called
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiments(self, mock_get_supabase):
+    async def test_get_experiments(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_exec = (
@@ -85,7 +85,7 @@ class TestRepository:
         assert res["total"] == 1
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_insert_notification(self, mock_get_supabase):
+    async def test_insert_notification(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.insert.return_value.execute.return_value.data = [
@@ -96,7 +96,7 @@ class TestRepository:
         assert res[0]["id"] == "notif1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_user_profile(self, mock_get_supabase):
+    async def test_get_user_profile(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {
@@ -107,7 +107,7 @@ class TestRepository:
         assert res["id"] == "u1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_upsert_user_profile(self, mock_get_supabase):
+    async def test_upsert_user_profile(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.upsert.return_value.execute.return_value.data = [
@@ -118,7 +118,7 @@ class TestRepository:
         assert res["id"] == "u1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_market_data(self, mock_get_supabase):
+    async def test_get_market_data(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.gte.return_value.lte.return_value.order.return_value.limit.return_value.execute.return_value.data = [
@@ -136,7 +136,7 @@ class TestRepository:
         assert res[0]["id"] == "m1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_insert_market_data(self, mock_get_supabase):
+    async def test_insert_market_data(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.upsert.return_value.execute.return_value.data = [
@@ -147,7 +147,7 @@ class TestRepository:
         assert res[0]["id"] == "m1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_validation_summary(self, mock_get_supabase):
+    async def test_get_validation_summary(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.execute.return_value.data = [
@@ -158,7 +158,7 @@ class TestRepository:
         assert res[0]["mape"] == 0.1
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_create_scrape_run(self, mock_get_supabase):
+    async def test_create_scrape_run(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.insert.return_value.execute.return_value.data = [
@@ -169,7 +169,7 @@ class TestRepository:
         assert res == "run1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_update_scrape_run(self, mock_get_supabase):
+    async def test_update_scrape_run(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.update.return_value.eq.return_value.execute.return_value.data = [
@@ -180,7 +180,7 @@ class TestRepository:
         assert res["id"] == "run1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_scrape_runs(self, mock_get_supabase):
+    async def test_get_scrape_runs(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.order.return_value.limit.return_value.execute.return_value.data = [
@@ -191,21 +191,21 @@ class TestRepository:
         assert res[0]["id"] == "run1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_mark_notification_read(self, mock_get_supabase):
+    async def test_mark_notification_read(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         await mark_notification_read("n1")
         assert mock_client.table.called
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_mark_all_notifications_read(self, mock_get_supabase):
+    async def test_mark_all_notifications_read(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         await mark_all_notifications_read("u1")
         assert mock_client.table.called
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiment_by_id(self, mock_get_supabase):
+    async def test_get_experiment_by_id(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.single.return_value.execute.return_value.data = {
@@ -216,7 +216,7 @@ class TestRepository:
         assert res["id"] == "e1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_push_subscriptions(self, mock_get_supabase):
+    async def test_get_push_subscriptions(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
@@ -227,14 +227,14 @@ class TestRepository:
         assert res[0]["id"] == "s1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_delete_push_subscription(self, mock_get_supabase):
+    async def test_delete_push_subscription(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         await delete_push_subscription("s1")
         assert mock_client.table.called
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiments_by_method(self, mock_get_supabase):
+    async def test_get_experiments_by_method(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.execute.return_value.data = [
@@ -245,7 +245,7 @@ class TestRepository:
         assert res[0]["id"] == "e1"
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_notifications(self, mock_get_supabase):
+    async def test_get_notifications(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = [
@@ -261,7 +261,7 @@ class TestRepository:
             await get_notifications("u1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_create_audit_log(self, mock_get_supabase):
+    async def test_create_audit_log(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         await create_audit_log("p1", "step", "ok")
@@ -272,7 +272,7 @@ class TestRepository:
         await create_audit_log("p1", "step", "ok")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_push_subscriptions_error(self, mock_get_supabase):
+    async def test_get_push_subscriptions_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -280,7 +280,7 @@ class TestRepository:
             await get_push_subscriptions("u1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_delete_push_subscription_error(self, mock_get_supabase):
+    async def test_delete_push_subscription_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -288,7 +288,7 @@ class TestRepository:
             await delete_push_subscription("s1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_mark_notification_read_error(self, mock_get_supabase):
+    async def test_mark_notification_read_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -296,7 +296,7 @@ class TestRepository:
             await mark_notification_read("n1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_mark_all_notifications_read_error(self, mock_get_supabase):
+    async def test_mark_all_notifications_read_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -304,7 +304,7 @@ class TestRepository:
             await mark_all_notifications_read("u1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiment_by_id_error(self, mock_get_supabase):
+    async def test_get_experiment_by_id_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -312,7 +312,7 @@ class TestRepository:
             await get_experiment_by_id("e1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiments_by_method_error(self, mock_get_supabase):
+    async def test_get_experiments_by_method_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -320,7 +320,7 @@ class TestRepository:
             await get_experiments_by_method("analytical")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_scrape_runs_error(self, mock_get_supabase):
+    async def test_get_scrape_runs_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -328,7 +328,7 @@ class TestRepository:
             await get_scrape_runs()
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_update_scrape_run_error(self, mock_get_supabase):
+    async def test_update_scrape_run_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -336,7 +336,7 @@ class TestRepository:
             await update_scrape_run("r1", {})
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_create_scrape_run_error(self, mock_get_supabase):
+    async def test_create_scrape_run_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -344,7 +344,7 @@ class TestRepository:
             await create_scrape_run("spy")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_validation_summary_error(self, mock_get_supabase):
+    async def test_get_validation_summary_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -352,7 +352,7 @@ class TestRepository:
             await get_validation_summary()
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_insert_market_data_error(self, mock_get_supabase):
+    async def test_insert_market_data_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -360,7 +360,7 @@ class TestRepository:
             await insert_market_data([])
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_market_data_error(self, mock_get_supabase):
+    async def test_get_market_data_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -368,7 +368,7 @@ class TestRepository:
             await get_market_data("spy")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_upsert_user_profile_error(self, mock_get_supabase):
+    async def test_upsert_user_profile_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -376,7 +376,7 @@ class TestRepository:
             await upsert_user_profile({})
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_user_profile_error(self, mock_get_supabase):
+    async def test_get_user_profile_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -384,7 +384,7 @@ class TestRepository:
             await get_user_profile("u1")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_insert_notification_error(self, mock_get_supabase):
+    async def test_insert_notification_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -392,7 +392,7 @@ class TestRepository:
             await insert_notification("u1", "t", "b", "info", "web")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiments_error(self, mock_get_supabase):
+    async def test_get_experiments_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")
@@ -400,7 +400,7 @@ class TestRepository:
             await get_experiments("analytical", "spy")
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_insert_method_result_error(self, mock_get_supabase):
+    async def test_insert_method_result_error(self, mock_get_supabase) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("Fail")

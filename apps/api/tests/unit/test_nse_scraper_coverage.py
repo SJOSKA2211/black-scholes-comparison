@@ -1,7 +1,7 @@
 """Unit tests for additional NSE scraper coverage."""
 
 from datetime import date
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 

@@ -1,6 +1,5 @@
-from typing import Any, Callable
+from collections.abc import Callable
 
-import numpy as np
 import pytest
 
 from src.exceptions import CFLViolationError

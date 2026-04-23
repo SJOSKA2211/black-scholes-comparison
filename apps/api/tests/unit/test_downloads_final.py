@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -9,7 +9,7 @@ from src.routers.downloads import _serialize, download_resource
 
 @pytest.mark.unit
 class TestDownloadsFinal:
-    def test_serialize_formats(self):
+    def test_serialize_formats(self) -> None:
         df = pd.DataFrame([{"a": 1}])
 
         # CSV
@@ -30,7 +30,7 @@ class TestDownloadsFinal:
 
     @patch("src.routers.downloads._fetch_data")
     @patch("src.routers.downloads.upload_export")
-    async def test_download_resource_success(self, mock_upload, mock_fetch):
+    async def test_download_resource_success(self, mock_upload, mock_fetch) -> None:
         mock_fetch.return_value = pd.DataFrame([{"a": 1}])
         mock_upload.return_value = "http://presigned"
 
@@ -39,7 +39,7 @@ class TestDownloadsFinal:
 
     @patch("src.routers.downloads.get_experiments")
     @patch("src.routers.downloads.get_market_data")
-    async def test_fetch_data_logic(self, mock_get_market, mock_get_exp):
+    async def test_fetch_data_logic(self, mock_get_market, mock_get_exp) -> None:
         from src.routers.downloads import _fetch_data
 
         # Experiments
@@ -64,14 +64,14 @@ class TestDownloadsFinal:
             await _fetch_data("unknown")
 
     @patch("src.routers.downloads._fetch_data")
-    async def test_download_resource_empty(self, mock_fetch):
+    async def test_download_resource_empty(self, mock_fetch) -> None:
         mock_fetch.return_value = pd.DataFrame()
         with pytest.raises(HTTPException) as exc:
             await download_resource("experiments", "csv", {"id": "u1"})
         assert exc.value.status_code == 404
 
     @patch("src.routers.downloads._fetch_data")
-    async def test_download_resource_failure(self, mock_fetch):
+    async def test_download_resource_failure(self, mock_fetch) -> None:
         mock_fetch.side_effect = Exception("Generic fail")
         with pytest.raises(HTTPException) as exc:
             await download_resource("experiments", "csv", {"id": "u1"})

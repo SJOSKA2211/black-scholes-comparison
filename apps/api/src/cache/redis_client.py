@@ -14,7 +14,7 @@ logger = structlog.get_logger(__name__)
 
 
 @lru_cache(maxsize=1)
-def get_redis() -> Any:  # noqa: ANN401
+def get_redis() -> Any:
     """Return a cached async Redis client."""
     settings = get_settings()
     client = aioredis.from_url(

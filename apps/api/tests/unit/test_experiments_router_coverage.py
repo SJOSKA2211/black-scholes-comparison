@@ -1,6 +1,6 @@
 """Unit tests for additional experiments router coverage."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient

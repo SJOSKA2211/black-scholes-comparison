@@ -95,12 +95,14 @@ class TestRepositoryCoverage:
         mock_supabase = MagicMock()
         mock_get_supabase.return_value = mock_supabase
         # Trigger exception on execute()
-        mock_supabase.table.return_value.insert.return_value.execute.side_effect = Exception("Insert error")
+        mock_supabase.table.return_value.insert.return_value.execute.side_effect = Exception(
+            "Insert error"
+        )
 
-        from src.database.repository import insert_method_result, RepositoryError
+        from src.database.repository import RepositoryError, insert_method_result
+
         with pytest.raises(RepositoryError):
             await insert_method_result({"data": "test"})
-
 
     @patch("src.database.repository.insert_method_result")
     async def test_upsert_price_result_none_greeks(self, mock_insert) -> None:
@@ -119,6 +121,7 @@ class TestRepositoryCoverage:
         )
 
         from src.database.repository import upsert_price_result
+
         await upsert_price_result("opt-1", res)
         args, _ = mock_insert.call_args
         assert "delta" not in args[0]["parameter_set"]
@@ -128,11 +131,13 @@ class TestRepositoryCoverage:
         """Test create_scrape_run with triggered_by parameter."""
         mock_supabase = MagicMock()
         mock_get_supabase.return_value = mock_supabase
-        mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [{"id": "run-1"}]
+        mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [
+            {"id": "run-1"}
+        ]
 
         from src.database.repository import create_scrape_run
+
         res = await create_scrape_run("SPY", triggered_by="user-1")
         assert res == "run-1"
         args, _ = mock_supabase.table.return_value.insert.call_args
         assert args[0]["triggered_by"] == "user-1"
-

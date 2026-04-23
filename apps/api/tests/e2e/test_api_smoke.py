@@ -1,8 +1,9 @@
 import httpx
 import pytest
 
+
 @pytest.mark.asyncio
-async def test_health_endpoint():
+async def test_health_endpoint() -> None:
     # Test through Nginx proxy (HTTPS)
     async with httpx.AsyncClient(verify=False) as client:
         response = await client.get("https://localhost/health")
@@ -13,8 +14,9 @@ async def test_health_endpoint():
         else:
             pytest.fail(f"Health check failed with status {response.status_code}")
 
+
 @pytest.mark.asyncio
-async def test_metrics_endpoint():
+async def test_metrics_endpoint() -> None:
     # Metrics might be blocked by Nginx (deny all except internal)
     # But let's check if we can reach it or if it gives 403
     async with httpx.AsyncClient(verify=False) as client:

@@ -1,11 +1,10 @@
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
 
-import src.routers.pricing
 from src.auth.dependencies import get_current_user
 from src.main import app
 from src.methods.base import PriceResult
@@ -195,7 +194,7 @@ class TestAPI:
 
     def test_websocket_invalid_channel(self) -> None:
         from fastapi import WebSocketDisconnect
-        with pytest.raises(WebSocketDisconnect):
-            with client.websocket_connect("/api/v1/ws/invalid_channel") as websocket:
-                pass
 
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect("/api/v1/ws/invalid_channel"):
+                pass

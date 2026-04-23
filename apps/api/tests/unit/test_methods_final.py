@@ -19,7 +19,7 @@ def base_params():
 
 
 @pytest.mark.unit
-def test_binomial_american_put_coverage(base_params):
+def test_binomial_american_put_coverage(base_params) -> None:
     base_params.is_american = True
     base_params.option_type = "put"
     res = BinomialCRR(num_steps=10).price(base_params)
@@ -27,7 +27,7 @@ def test_binomial_american_put_coverage(base_params):
 
 
 @pytest.mark.unit
-def test_trinomial_american_call_coverage(base_params):
+def test_trinomial_american_call_coverage(base_params) -> None:
     base_params.is_american = True
     base_params.option_type = "call"
     res = TrinomialTree(num_steps=10).price(base_params)
