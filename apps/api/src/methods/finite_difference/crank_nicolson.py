@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import numpy as np
 
@@ -27,7 +28,7 @@ class CrankNicolsonFDM:
         """Compute the option price and Greeks using Crank-Nicolson FDM."""
         start_time = time.time()
 
-        def _solve(p: OptionParams) -> tuple[np.ndarray, np.ndarray, float]:
+        def _solve(p: OptionParams) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any], float]:
             max_p = p.strike_price * 3.0
             dt = p.maturity_years / self.num_time_steps
             ds = max_p / self.num_price_steps

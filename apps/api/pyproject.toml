@@ -63,7 +63,7 @@ select = [
   "TCH", # flake8-type-checking
   "RUF", # ruff-specific rules
 ]
-ignore = ["S101","B008","TC003","TC002","TC001"]  # allow assert in tests, Depends in routes, datetime in runtime
+ignore = ["S101","B008","TCH003","TCH002","TCH001","ANN101","ANN102"]  # allow assert in tests, Depends in routes, datetime in runtime
 
 [tool.mypy]
 python_version   = "3.11"

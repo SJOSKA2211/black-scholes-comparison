@@ -31,12 +31,12 @@ export function DownloadButton({
     setIsDownloading(true);
     try {
       const response = await get<{ url: string; filename: string }>(
-        `/download/${resource}?format=${format}`
+        `/download/${resource}?format=${format}`,
       );
-      
+
       // Redirect to the presigned URL for direct browser download
       window.location.href = response.url;
-      
+
       toast.success(`Download started: ${response.filename}`);
     } catch (error) {
       console.error("Download failed:", error);

@@ -26,8 +26,8 @@ class BinomialCRR:
 
     def _tree_solve(self, params: OptionParams, steps: int) -> tuple[float, float, float]:
         """Internal CRR tree pricing engine. Returns (Price, Delta, Gamma)."""
-        if steps < 2:
-            return self._tree_price(params, steps), 0.0, 0.0
+        if steps < 1:
+            return 0.0, 0.0, 0.0
 
         delta_t = params.maturity_years / steps
         up = np.exp(params.volatility * np.sqrt(delta_t))
@@ -74,7 +74,8 @@ class BinomialCRR:
         s_d = params.underlying_price * dn
         delta = (v1[1] - v1[0]) / (s_u - s_d)
 
-        # Gamma = [(V_uu - V_ud) / (S_uu - S_ud) - (V_ud - V_dd) / (S_ud - S_dd)] / [0.5 * (S_uu - S_dd)]
+        # Gamma = [(V_uu - V_ud) / (S_uu - S_ud) - (V_ud - V_dd) / (S_ud - S_dd)]
+        #         / [0.5 * (S_uu - S_dd)]
         s_uu = params.underlying_price * up**2
         s_ud = params.underlying_price
         s_dd = params.underlying_price * dn**2
@@ -96,7 +97,7 @@ class BinomialCRR:
 
         # Richardson Extrapolation refinement
         if self.use_richardson:
-            p_full, d_full, g_full = self._tree_solve(params, self.num_steps)
+            p_full, _d_full, _g_full = self._tree_solve(params, self.num_steps)
             p_half, _, _ = self._tree_solve(params, self.num_steps // 2)
             computed_price = 2 * p_full - p_half
             # Delta/Gamma from full tree are usually fine

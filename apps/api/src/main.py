@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import get_settings
+from src.logging_config import configure_logging
 from src.queue.consumer import start_consumers
 from src.routers import (
     downloads,
@@ -62,6 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     """Initialize and configure the FastAPI application."""
+    configure_logging()
     settings = get_settings()
 
     app = FastAPI(

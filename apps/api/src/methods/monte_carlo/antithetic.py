@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import numpy as np
 
@@ -29,7 +30,7 @@ class AntitheticMC:
         # Pre-generate Gaussian samples for Common Random Numbers (CRN)
         z = np.random.standard_normal(self.num_simulations)
 
-        def _solve_with_z(p: OptionParams, samples: np.ndarray) -> tuple[float, float]:
+        def _solve_with_z(p: OptionParams, samples: np.ndarray[Any, Any]) -> tuple[float, float]:
             drift = (p.risk_free_rate - 0.5 * p.volatility**2) * p.maturity_years
             diffusion = p.volatility * np.sqrt(p.maturity_years)
             df = np.exp(-p.risk_free_rate * p.maturity_years)

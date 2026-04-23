@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import numpy as np
 from scipy.stats import norm, qmc
@@ -29,7 +30,7 @@ class QuasiMC:
         # Inverse transform to standard normal
         gaussian_samples = norm.ppf(uniform_samples).flatten()
 
-        def _solve_with_samples(p: OptionParams, samples: np.ndarray) -> float:
+        def _solve_with_samples(p: OptionParams, samples: np.ndarray[Any, Any]) -> float:
             drift = (p.risk_free_rate - 0.5 * p.volatility**2) * p.maturity_years
             diffusion = p.volatility * np.sqrt(p.maturity_years)
             terminal_prices = p.underlying_price * np.exp(drift + diffusion * samples)

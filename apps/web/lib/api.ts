@@ -15,14 +15,14 @@ export interface ApiError {
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
-  token?: string | null
+  token?: string | null,
 ): Promise<T> {
-  const url = `${API_BASE}${path.startsWith('/') ? path : '/' + path}`;
-  
+  const url = `${API_BASE}${path.startsWith("/") ? path : "/" + path}`;
+
   const headers = new Headers(init?.headers);
-  headers.set('Content-Type', 'application/json');
+  headers.set("Content-Type", "application/json");
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(url, {
@@ -31,8 +31,12 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
-    const errorData: ApiError = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(errorData.detail || `API request failed with status ${response.status}`);
+    const errorData: ApiError = await response
+      .json()
+      .catch(() => ({ detail: response.statusText }));
+    throw new Error(
+      errorData.detail || `API request failed with status ${response.status}`,
+    );
   }
 
   return response.json() as Promise<T>;
@@ -42,15 +46,15 @@ export async function apiFetch<T>(
  * Type-safe API methods.
  */
 export const api = {
-  get: <T>(path: string, token?: string | null) => 
-    apiFetch<T>(path, { method: 'GET' }, token),
-    
-  post: <T>(path: string, body: unknown, token?: string | null) => 
-    apiFetch<T>(path, { method: 'POST', body: JSON.stringify(body) }, token),
-    
-  patch: <T>(path: string, body: unknown, token?: string | null) => 
-    apiFetch<T>(path, { method: 'PATCH', body: JSON.stringify(body) }, token),
-    
-  delete: <T>(path: string, token?: string | null) => 
-    apiFetch<T>(path, { method: 'DELETE' }, token),
+  get: <T>(path: string, token?: string | null) =>
+    apiFetch<T>(path, { method: "GET" }, token),
+
+  post: <T>(path: string, body: unknown, token?: string | null) =>
+    apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }, token),
+
+  patch: <T>(path: string, body: unknown, token?: string | null) =>
+    apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }, token),
+
+  delete: <T>(path: string, token?: string | null) =>
+    apiFetch<T>(path, { method: "DELETE" }, token),
 };

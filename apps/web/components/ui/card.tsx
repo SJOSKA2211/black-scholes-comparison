@@ -17,7 +17,7 @@ export function Card({ children, className, delay = 0 }: CardProps) {
       transition={{ duration: 0.4, delay, ease: "easeOut" }}
       className={cn(
         "bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl overflow-hidden shadow-2xl",
-        className
+        className,
       )}
     >
       {children}
@@ -25,7 +25,13 @@ export function Card({ children, className, delay = 0 }: CardProps) {
   );
 }
 
-export function CardHeader({ children, className }: { children: React.ReactNode, className?: string }) {
+export function CardHeader({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className={cn("px-6 py-4 border-b border-slate-800", className)}>
       {children}
@@ -33,12 +39,14 @@ export function CardHeader({ children, className }: { children: React.ReactNode,
   );
 }
 
-export function CardContent({ children, className }: { children: React.ReactNode, className?: string }) {
-  return (
-    <div className={cn("p-6", className)}>
-      {children}
-    </div>
-  );
+export function CardContent({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <div className={cn("p-6", className)}>{children}</div>;
 }
 
 export default Card;

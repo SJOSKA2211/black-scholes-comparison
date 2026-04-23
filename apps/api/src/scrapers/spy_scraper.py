@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date
 from typing import Any
 
 import structlog
@@ -28,9 +28,11 @@ class SPYScraper(BaseScraper):
         async with async_playwright() as p:
             try:
                 browser = await p.chromium.launch(headless=True)
-                context = await browser.new_context(
-                    user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ua = (
+                    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 )
+                context = await browser.new_context(user_agent=ua)
                 page = await context.new_page()
 
                 await page.goto(self.target_url, wait_until="domcontentloaded")
@@ -66,9 +68,9 @@ class SPYScraper(BaseScraper):
                     val = await expiry_el.get_attribute("value")
                     if val and val.isdigit():
                         expiry_ts = int(val)
-                        from datetime import datetime, timezone
+                        from datetime import datetime
 
-                        expiry_dt = datetime.fromtimestamp(expiry_ts, tz=timezone.utc).date()
+                        expiry_dt = datetime.fromtimestamp(expiry_ts, tz=UTC).date()
                         days_to_expiry = (expiry_dt - trade_date).days
                         maturity_years = max(0.001, days_to_expiry / 365.0)
 

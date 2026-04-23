@@ -34,12 +34,11 @@ class Settings(BaseSettings):
 
     # 3. Cache / Pub-Sub (Redis)
     redis_url: str = Field("redis://redis:6379/0", alias="REDIS_URL")
-    redis_password: str = Field("redis_pass", alias="REDIS_PASSWORD")
+    redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
 
     # 4. Message Queue (RabbitMQ)
     rabbitmq_user: str = Field("rabbitmq_user", alias="RABBITMQ_USER")
-    rabbitmq_password: str = Field("rabbit_pass", alias="RABBITMQ_PASSWORD")
-    rabbitmq_management_port: int = Field(15672, alias="RABBITMQ_MANAGEMENT_PORT")
+    rabbitmq_password: str = Field("JKmaish2025", alias="RABBITMQ_PASSWORD")
     rabbitmq_url_override: str | None = Field(None, alias="RABBITMQ_URL")
 
     @property
@@ -49,13 +48,13 @@ class Settings(BaseSettings):
             return self.rabbitmq_url_override
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
 
-    # 5. Object Storage (MinIO)
+    # 5. Object Storage (MinIO / S3)
     minio_endpoint: str = Field("minio:9000", alias="MINIO_ENDPOINT")
     minio_access_key: str = Field("minio_admin", alias="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field("minio_secret", alias="MINIO_SECRET_KEY")
     minio_bucket_exports: str = Field("bs-exports", alias="MINIO_BUCKET_EXPORTS")
     minio_bucket_scraper: str = Field("bs-scraper", alias="MINIO_BUCKET_SCRAPER")
-    minio_secure: bool = False
+    minio_secure: bool = Field(False, alias="MINIO_SECURE")
 
     # 6. Observability
     prometheus_port: int = Field(9090, alias="PROMETHEUS_PORT")

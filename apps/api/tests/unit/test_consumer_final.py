@@ -1,7 +1,10 @@
-import pytest
 import json
-from unittest.mock import MagicMock, AsyncMock, patch
-from src.queue.consumer import handle_scrape_task, handle_experiment_task, start_consumers
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from src.queue.consumer import handle_experiment_task, handle_scrape_task, start_consumers
+
 
 @pytest.mark.unit
 class TestConsumerFinal:
@@ -12,9 +15,9 @@ class TestConsumerFinal:
         process_mock.__aenter__ = AsyncMock()
         process_mock.__aexit__ = AsyncMock()
         message.process = MagicMock(return_value=process_mock)
-        
+
         message.body = json.dumps({"run_id": "1", "market": "spy"}).encode()
-        
+
         with patch("src.queue.consumer.DataPipeline") as mock_pipeline:
             await handle_scrape_task(message)
             assert not mock_pipeline.return_value.process_rows.called
@@ -26,7 +29,7 @@ class TestConsumerFinal:
         process_mock.__aenter__ = AsyncMock()
         process_mock.__aexit__ = AsyncMock()
         message.process = MagicMock(return_value=process_mock)
-        
+
         message.body = json.dumps({"exp_id": "1"}).encode()
         await handle_experiment_task(message)
         # Verify it processes
@@ -39,7 +42,7 @@ class TestConsumerFinal:
         mock_get_conn.return_value = mock_conn
         mock_channel = AsyncMock()
         mock_conn.channel.return_value = mock_channel
-        
+
         await start_consumers()
         assert mock_channel.set_qos.called
         assert mock_channel.declare_queue.called

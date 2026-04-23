@@ -39,6 +39,7 @@ class ExplicitFDM:
             # CFL Stability Check
             stability_limit = 0.5 * ds**2 / ((p.volatility**2) * (max_s**2))
             if dt > stability_limit:
+                # suggested_nt = p.maturity_years / stability_limit
                 raise CFLViolationError(cfl_actual=float(dt), cfl_bound=float(stability_limit))
 
             s_vals = np.linspace(0, max_s, local_nx + 1)
@@ -48,20 +49,35 @@ class ExplicitFDM:
                 else np.maximum(p.strike_price - s_vals, 0)
             )
 
+            # Pre-calculate constants for vectorization
+            indices = np.arange(1, local_nx)
+            s_j = s_vals[indices]
+            vol_sq = p.volatility**2
+            r = p.risk_free_rate
+
             for _ in range(local_nt):
-                v_new = np.copy(v)
-                for j in range(1, local_nx):
-                    delta_fd = (v[j + 1] - v[j - 1]) / (2 * ds)
-                    gamma_fd = (v[j + 1] - 2 * v[j] + v[j - 1]) / (ds**2)
-                    drift = p.risk_free_rate * s_vals[j] * delta_fd
-                    diffusion = 0.5 * (p.volatility**2) * (s_vals[j] ** 2) * gamma_fd
-                    v_new[j] = v[j] + dt * (diffusion + drift - p.risk_free_rate * v[j])
-                v = v_new
+                # Central difference for delta and gamma (vectorized)
+                delta_fd = (v[indices + 1] - v[indices - 1]) / (2 * ds)
+                gamma_fd = (v[indices + 1] - 2 * v[indices] + v[indices - 1]) / (ds**2)
+
+                drift = r * s_j * delta_fd
+                diffusion = 0.5 * vol_sq * (s_j**2) * gamma_fd
+
+                # Update inner grid points
+                v[1:local_nx] = v[1:local_nx] + dt * (diffusion + drift - r * v[1:local_nx])
+
+                # Boundary conditions
+                if p.option_type == "call":
+                    v[0] = 0
+                    v[local_nx] = max_s - p.strike_price * np.exp(-r * dt * (_ + 1))
+                else:
+                    v[0] = p.strike_price * np.exp(-r * dt * (_ + 1))
+                    v[local_nx] = 0
 
             idx = np.searchsorted(s_vals, p.underlying_price)
             price = float(np.interp(p.underlying_price, s_vals, v))
-            delta = (v[idx] - v[idx - 1]) / ds
-            gamma = (v[idx + 1] - 2 * v[idx] + v[idx - 1]) / (ds**2)
+            delta = float((v[idx] - v[idx - 1]) / ds)
+            gamma = float((v[idx + 1] - 2 * v[idx] + v[idx - 1]) / (ds**2))
             return price, delta, gamma
 
         price_main, delta, gamma = _solve(params, nx, nt)

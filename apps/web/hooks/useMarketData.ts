@@ -10,7 +10,11 @@ interface UseMarketDataOptions {
   toDate?: string;
 }
 
-export function useMarketData({ source, fromDate, toDate }: UseMarketDataOptions) {
+export function useMarketData({
+  source,
+  fromDate,
+  toDate,
+}: UseMarketDataOptions) {
   const { get } = useApi();
   const qc = useQueryClient();
 
@@ -20,10 +24,12 @@ export function useMarketData({ source, fromDate, toDate }: UseMarketDataOptions
     queryKey,
     queryFn: () => {
       const params = new URLSearchParams();
-      if (fromDate) params.append("from", fromDate); // Aligned with router.py ?from=
+      if (fromDate) params.append("from", fromDate);
       if (toDate) params.append("to", toDate);
-      
-      return get<{ items: MarketData[]; total: number }>(`/api/v1/market-data/${source}?${params.toString()}`);
+
+      return get<{ items: MarketData[]; total: number }>(
+        `/api/v1/market-data/${source}?${params.toString()}`,
+      );
     },
   });
 
@@ -33,20 +39,23 @@ export function useMarketData({ source, fromDate, toDate }: UseMarketDataOptions
     event: "INSERT",
     onData: (newData) => {
       if (newData.data_source === source) {
-        qc.setQueryData<{ items: MarketData[]; total: number }>(queryKey, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            items: [newData, ...old.items],
-            total: old.total + 1
-          };
-        });
+        qc.setQueryData<{ items: MarketData[]; total: number }>(
+          queryKey,
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              items: [newData, ...old.items],
+              total: old.total + 1,
+            };
+          },
+        );
       }
     },
   });
 
   return {
     ...query,
-    data: query.data?.items ?? []
+    data: query.data?.items ?? [],
   };
 }

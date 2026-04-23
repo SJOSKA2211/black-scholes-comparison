@@ -27,13 +27,21 @@
 @layer utilities {
   .glass {
     background-color: var(--color-slate-900);
-    background-color: color-mix(in srgb, var(--color-slate-900) 50%, transparent);
+    background-color: color-mix(
+      in srgb,
+      var(--color-slate-900) 50%,
+      transparent
+    );
     backdrop-filter: blur(24px);
     border: 1px solid color-mix(in srgb, white 10%, transparent);
   }
-  
+
   .glass-card {
-    background: linear-gradient(to bottom right, color-mix(in srgb, var(--color-slate-900) 80%, transparent), color-mix(in srgb, var(--color-slate-950) 80%, transparent));
+    background: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--color-slate-900) 80%, transparent),
+      color-mix(in srgb, var(--color-slate-950) 80%, transparent)
+    );
     backdrop-filter: blur(12px);
     border: 1px solid color-mix(in srgb, white 5%, transparent);
     box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
@@ -43,23 +51,28 @@
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    background-image: linear-gradient(to right, var(--color-indigo-400), var(--color-cyan-400), var(--color-emerald-400));
+    background-image: linear-gradient(
+      to right,
+      var(--color-indigo-400),
+      var(--color-cyan-400),
+      var(--color-emerald-400)
+    );
   }
 
   .glow-blue {
     box-shadow: 0 0 20px -5px rgba(56, 189, 248, 0.5);
   }
-  
+
   .glow-purple {
     box-shadow: 0 0 20px -5px rgba(168, 85, 247, 0.5);
   }
 }
 
 body {
-  background-image: 
-    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-    radial-gradient(at 50% 0%, hsla(225,39%,30%,0.1) 0, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(339,49%,30%,0.05) 0, transparent 50%);
+  background-image:
+    radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 0.1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 0.05) 0, transparent 50%);
   background-attachment: fixed;
 }
 

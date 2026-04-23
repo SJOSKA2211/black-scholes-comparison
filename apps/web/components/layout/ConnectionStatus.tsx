@@ -10,11 +10,13 @@ export default function ConnectionStatus() {
   });
 
   return (
-    <div className={`flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest transition-all ${
-      connected 
-        ? "bg-green-500/10 text-green-500 border border-green-500/20" 
-        : "bg-red-500/10 text-red-500 border border-red-500/20"
-    }`}>
+    <div
+      className={`flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest transition-all ${
+        connected
+          ? "bg-green-500/10 text-green-500 border border-green-500/20"
+          : "bg-red-500/10 text-red-500 border border-red-500/20"
+      }`}
+    >
       {connected ? (
         <>
           <Wifi className="h-3 w-3" />

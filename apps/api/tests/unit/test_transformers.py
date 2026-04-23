@@ -1,7 +1,9 @@
-import pytest
 import pandas as pd
-from src.data.transformers import transform_market_row, transform_batch_df
+import pytest
+
+from src.data.transformers import transform_batch_df, transform_market_row
 from src.methods.base import OptionParams
+
 
 @pytest.mark.unit
 class TestTransformers:
@@ -13,7 +15,7 @@ class TestTransformers:
             "volatility": 0.2,
             "risk_free_rate": 0.05,
             "option_type": "call",
-            "is_american": True
+            "is_american": True,
         }
         params = transform_market_row(row, market_source="spy")
         assert isinstance(params, OptionParams)
@@ -27,25 +29,35 @@ class TestTransformers:
             transform_market_row({"underlying_price": 100})
         # Invalid value type
         with pytest.raises(ValueError):
-            transform_market_row({
-                "underlying_price": "invalid",
-                "strike_price": 100,
-                "maturity_years": 1,
-                "volatility": 0.2,
-                "risk_free_rate": 0.05,
-                "option_type": "call"
-            })
+            transform_market_row(
+                {
+                    "underlying_price": "invalid",
+                    "strike_price": 100,
+                    "maturity_years": 1,
+                    "volatility": 0.2,
+                    "risk_free_rate": 0.05,
+                    "option_type": "call",
+                }
+            )
 
     def test_transform_batch_df_success(self):
         data = [
             {
-                "underlying_price": 100, "strike_price": 100, "maturity_years": 1,
-                "volatility": 0.2, "risk_free_rate": 0.05, "option_type": "call"
+                "underlying_price": 100,
+                "strike_price": 100,
+                "maturity_years": 1,
+                "volatility": 0.2,
+                "risk_free_rate": 0.05,
+                "option_type": "call",
             },
             {
-                "underlying_price": 110, "strike_price": 100, "maturity_years": 1,
-                "volatility": 0.2, "risk_free_rate": 0.05, "option_type": "put"
-            }
+                "underlying_price": 110,
+                "strike_price": 100,
+                "maturity_years": 1,
+                "volatility": 0.2,
+                "risk_free_rate": 0.05,
+                "option_type": "put",
+            },
         ]
         df = pd.DataFrame(data)
         results = transform_batch_df(df)
@@ -56,10 +68,14 @@ class TestTransformers:
     def test_transform_batch_df_partial_failure(self):
         data = [
             {
-                "underlying_price": 100, "strike_price": 100, "maturity_years": 1,
-                "volatility": 0.2, "risk_free_rate": 0.05, "option_type": "call"
+                "underlying_price": 100,
+                "strike_price": 100,
+                "maturity_years": 1,
+                "volatility": 0.2,
+                "risk_free_rate": 0.05,
+                "option_type": "call",
             },
-            {"invalid": "row"}
+            {"invalid": "row"},
         ]
         df = pd.DataFrame(data)
         results = transform_batch_df(df)

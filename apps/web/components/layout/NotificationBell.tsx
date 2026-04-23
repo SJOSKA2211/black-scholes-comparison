@@ -10,7 +10,7 @@ export default function NotificationBell() {
 
   return (
     <div className="relative">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-slate-400 hover:text-white transition-colors"
       >
@@ -32,7 +32,10 @@ export default function NotificationBell() {
       <AnimatePresence>
         {isOpen && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsOpen(false)}
+            />
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -52,19 +55,29 @@ export default function NotificationBell() {
                   </div>
                 ) : (
                   notifications.map((n) => (
-                    <div 
+                    <div
                       key={n.id}
                       onClick={() => markRead.mutate(n.id)}
                       className="group flex cursor-pointer gap-3 rounded-xl p-3 hover:bg-slate-800/50 transition-colors"
                     >
-                      <div className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                        n.severity === 'critical' ? 'bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 
-                        n.severity === 'error' ? 'bg-orange-500' : 
-                        n.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
-                      }`} />
+                      <div
+                        className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                          n.severity === "critical"
+                            ? "bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"
+                            : n.severity === "error"
+                              ? "bg-orange-500"
+                              : n.severity === "warning"
+                                ? "bg-amber-500"
+                                : "bg-blue-500"
+                        }`}
+                      />
                       <div>
-                        <p className="text-sm font-medium text-slate-200">{n.title}</p>
-                        <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">{n.body}</p>
+                        <p className="text-sm font-medium text-slate-200">
+                          {n.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">
+                          {n.body}
+                        </p>
                       </div>
                     </div>
                   ))

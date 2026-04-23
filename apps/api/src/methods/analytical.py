@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 
 import numpy as np
+from scipy.optimize import brentq
 from scipy.stats import norm
 
 from src.methods.base import MethodType, OptionParams, PriceResult
@@ -25,62 +26,48 @@ class BlackScholesAnalytical:
     def delta(self, params: OptionParams) -> float:
         """Analytical Delta."""
         res = self.price(params)
-        return res.delta
+        return float(res.delta) if res.delta is not None else 0.0
 
     def gamma(self, params: OptionParams) -> float:
         """Analytical Gamma."""
         res = self.price(params)
-        return res.gamma
+        return float(res.gamma) if res.gamma is not None else 0.0
 
     def vega(self, params: OptionParams) -> float:
         """Analytical Vega."""
         res = self.price(params)
-        return res.vega
+        return float(res.vega) if res.vega is not None else 0.0
 
-    def geometric_asian_price(self, params: OptionParams) -> PriceResult:
+    def geometric_asian_price(self, params: OptionParams, num_steps: int = 100) -> PriceResult:
         """
-        Analytical solution for Geometric Asian Option.
+        Analytical solution for Geometric Asian Option (Discrete Monitoring).
         Used as control variate in MC methods.
+        Ref: Vorst (1992).
         """
         start_time = time.time()
-        # Adjusted volatility and interest rate for geometric Asian
-        sig_sq = params.volatility**2
-        v_adj = params.volatility / np.sqrt(3.0)
-        r_adj = 0.5 * (
-            params.risk_free_rate
-            - 0.5 * sig_sq
-            + (1.0 / 3.0) * (params.risk_free_rate - 0.5 * sig_sq + 0.5 * v_adj**2)
-        )
-        # Simplification for T=maturity
-        r_adj = 0.5 * (params.risk_free_rate - 0.5 * sig_sq + sig_sq / 6.0)
 
-        # More precise Kemna-Vorst adjustment
-        b = params.risk_free_rate - 0.5 * params.volatility**2
-        sigma_a = params.volatility / np.sqrt(3.0)
-        mu_a = 0.5 * (b + 0.5 * sigma_a**2)
+        sig = params.volatility
+        r = params.risk_free_rate
+        t = params.maturity_years
+        s = params.underlying_price
+        k = params.strike_price
+        n = num_steps
 
-        adj_params = params.model_copy(
-            update={
-                "volatility": sigma_a,
-                "risk_free_rate": params.risk_free_rate,  # We use the effective discount rate r, but adjusted drift
-            }
-        )
-        # Standard BS with adjusted mu
-        d1 = (
-            np.log(params.underlying_price / params.strike_price)
-            + (mu_a + 0.5 * sigma_a**2) * params.maturity_years
-        ) / (sigma_a * np.sqrt(params.maturity_years))
-        d2 = d1 - sigma_a * np.sqrt(params.maturity_years)
+        # Vorst (1992) discrete adjustment
+        # sig_a^2 = sig^2 * (n+1)(2n+1) / (6n^2)
+        sig_a = sig * np.sqrt((n + 1) * (2 * n + 1) / (6.0 * n**2))
 
-        exp_rt = np.exp(-params.risk_free_rate * params.maturity_years)
+        # mu_a = (r - 0.5*sig^2) * (n+1)/(2n) + 0.5*sig_a^2
+        mu_a = (r - 0.5 * sig**2) * (n + 1) / (2.0 * n) + 0.5 * sig_a**2
+
+        d1 = (np.log(s / k) + (mu_a + 0.5 * sig_a**2) * t) / (sig_a * np.sqrt(t))
+        d2 = d1 - sig_a * np.sqrt(t)
+
+        exp_rt = np.exp(-r * t)
         if params.option_type == "call":
-            price = params.underlying_price * np.exp(
-                (mu_a - params.risk_free_rate) * params.maturity_years
-            ) * norm.cdf(d1) - params.strike_price * exp_rt * norm.cdf(d2)
+            price = s * np.exp((mu_a - r) * t) * norm.cdf(d1) - k * exp_rt * norm.cdf(d2)
         else:
-            price = params.strike_price * exp_rt * norm.cdf(-d2) - params.underlying_price * np.exp(
-                (mu_a - params.risk_free_rate) * params.maturity_years
-            ) * norm.cdf(-d1)
+            price = k * exp_rt * norm.cdf(-d2) - s * np.exp((mu_a - r) * t) * norm.cdf(-d1)
 
         return PriceResult(
             method_type="analytical_asian",
@@ -91,26 +78,25 @@ class BlackScholesAnalytical:
     def implied_volatility(
         self, target_price: float, params: OptionParams, max_iter: int = 100, tol: float = 1e-6
     ) -> float:
-        """Newton-Raphson for Implied Volatility."""
-        if target_price <= 0:
+        """Brent's method for Implied Volatility inversion."""
+
+        def objective(sigma: float) -> float:
+            p = params.model_copy(update={"volatility": max(0.0001, sigma)})
+            return self.price(p).computed_price - target_price
+
+        # Check intrinsic value
+        intrinsic = (
+            max(params.underlying_price - params.strike_price, 0)
+            if params.option_type == "call"
+            else max(params.strike_price - params.underlying_price, 0)
+        )
+        if target_price <= intrinsic * np.exp(-params.risk_free_rate * params.maturity_years):
             return 0.0
 
-        # Initial guess (Brenner-Subrahmanyam)
-        sigma = np.sqrt(2 * np.pi / params.maturity_years) * (
-            target_price / params.underlying_price
-        )
-
-        for _ in range(max_iter):
-            curr_params = params.model_copy(update={"volatility": max(0.0001, sigma)})
-            res = self.price(curr_params)
-            diff = res.computed_price - target_price
-            if abs(diff) < tol:
-                return sigma
-            if abs(res.vega) < 1e-8:
-                break
-            sigma -= diff / res.vega
-
-        return sigma if sigma > 0 else 0.0
+        try:
+            return float(brentq(objective, 1e-6, 5.0, xtol=tol, maxiter=max_iter))
+        except (ValueError, RuntimeError):
+            return 0.0
 
     def price(self, params: OptionParams) -> PriceResult:
         """Compute the option price and Greeks analytically."""

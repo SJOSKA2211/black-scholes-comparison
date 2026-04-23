@@ -1,31 +1,34 @@
-from typing import Any, Generator
-import pytest
 import asyncio
 import datetime
-from unittest.mock import MagicMock, AsyncMock, patch
-from fastapi.testclient import TestClient
+from typing import Any, Generator
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import WebSocketDisconnect
-from src.main import app
-from src.database.repository import (
-    upsert_option_parameters, 
-    get_experiments, 
-    get_notifications,
-    get_market_data,
-    upsert_user_profile
-)
-from src.exceptions import RepositoryError, AuthenticationError
-from src.database.supabase_client import get_supabase_client
-from src.queue.rabbitmq_client import get_rabbitmq_connection
+from fastapi.testclient import TestClient
+
 from src.auth.dependencies import get_current_user, verify_ws_token
 from src.auth.oauth import get_github_user, get_google_user, sync_user_profile
-from src.routers.websocket import websocket_endpoint
-from src.websocket.manager import WebSocketManager
 from src.data.pipeline import DataPipeline
+from src.database.repository import (
+    get_experiments,
+    get_market_data,
+    get_notifications,
+    upsert_option_parameters,
+    upsert_user_profile,
+)
+from src.database.supabase_client import get_supabase_client
+from src.exceptions import AuthenticationError, RepositoryError
+from src.main import app
+from src.queue.rabbitmq_client import get_rabbitmq_connection
+from src.routers.websocket import websocket_endpoint
 from src.scrapers.nse_next_scraper import NSEScraper
+from src.websocket.manager import WebSocketManager
+
 
 @pytest.mark.unit
 class TestBackendFinalCoverage:
-    
+
     @patch("src.database.repository.get_supabase_client")
     async def test_upsert_option_parameters_error(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
@@ -41,24 +44,32 @@ class TestBackendFinalCoverage:
         mock_response = MagicMock()
         mock_response.data = []
         mock_response.count = 0
-        mock_client.table.return_value.select.return_value.range.return_value.order.return_value.execute.return_value = mock_response
+        mock_client.table.return_value.select.return_value.range.return_value.order.return_value.execute.return_value = (
+            mock_response
+        )
         res = await get_experiments(method_type=None, market_source=None)
         assert res["total"] == 0
-        mock_client.table.return_value.select.return_value.eq.return_value.range.return_value.order.return_value.execute.return_value = mock_response
+        mock_client.table.return_value.select.return_value.eq.return_value.range.return_value.order.return_value.execute.return_value = (
+            mock_response
+        )
         await get_experiments(method_type="analytical", market_source=None)
 
     @patch("src.database.repository.get_supabase_client")
     async def test_get_market_data_branches(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
-        mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
+        mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = (
+            []
+        )
         await get_market_data("spy", trade_date=None, from_date=None, to_date=None, limit=100)
 
     @patch("src.database.repository.get_supabase_client")
     async def test_get_notifications_unread_branch(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
-        mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = []
+        mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = (
+            []
+        )
         await get_notifications("u1", unread_only=False)
 
     def test_supabase_client_direct(self) -> None:
@@ -76,20 +87,24 @@ class TestBackendFinalCoverage:
         assert mock_connect.called
 
     def test_startup_event(self) -> None:
-        with patch("src.storage.minio_client.get_minio") as mock_minio, \
-             patch("src.cache.redis_client.get_redis") as mock_redis, \
-             patch("src.main.start_consumers", new_callable=AsyncMock) as mock_start:
-            
+        with (
+            patch("src.storage.minio_client.get_minio") as mock_minio,
+            patch("src.cache.redis_client.get_redis") as mock_redis,
+            patch("src.main.start_consumers", new_callable=AsyncMock) as mock_start,
+        ):
+
             with TestClient(app) as client:
                 pass
-            
+
             assert mock_minio.called
             assert mock_redis.called
             assert mock_start.called
 
     @patch("src.auth.dependencies.get_supabase_client")
     @patch("src.routers.websocket.ws_manager", new_callable=AsyncMock)
-    async def test_websocket_endpoint_direct(self, mock_ws_manager: Any, mock_get_supabase: Any) -> None:
+    async def test_websocket_endpoint_direct(
+        self, mock_ws_manager: Any, mock_get_supabase: Any
+    ) -> None:
         mock_ws = AsyncMock()
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
@@ -130,6 +145,7 @@ class TestBackendFinalCoverage:
         mock_get_supabase.return_value = mock_client
         mock_client.auth.get_user.return_value = None
         from fastapi import HTTPException
+
         with pytest.raises(HTTPException):
             await get_current_user(MagicMock(credentials="bad"))
         mock_client.auth.get_user.side_effect = Exception("Auth fail")
@@ -184,8 +200,10 @@ class TestBackendFinalCoverage:
         mock_redis = MagicMock()
         mock_pubsub = MagicMock()
         mock_pubsub.subscribe = AsyncMock()
+
         async def mock_listen() -> Generator[dict[str, Any], None, None]:
             yield {"type": "message", "data": '{"foo": "bar"}'}
+
         mock_pubsub.listen = mock_listen
         mock_redis.pubsub.return_value = mock_pubsub
         mock_get_redis.return_value = mock_redis
@@ -193,7 +211,9 @@ class TestBackendFinalCoverage:
 
     @patch("src.data.pipeline.ScraperFactory.get_scraper")
     @patch("src.data.pipeline.create_audit_log", new_callable=AsyncMock)
-    async def test_pipeline_empty_market_data_branch(self, mock_audit: Any, mock_get_scraper: Any) -> None:
+    async def test_pipeline_empty_market_data_branch(
+        self, mock_audit: Any, mock_get_scraper: Any
+    ) -> None:
         pipeline = DataPipeline("run1", "spy")
         mock_scraper = AsyncMock()
         mock_scraper.scrape.return_value = MagicMock()
@@ -203,7 +223,10 @@ class TestBackendFinalCoverage:
 
     def test_cors_preflight(self) -> None:
         client = TestClient(app)
-        client.options("/api/v1/methods", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"})
+        client.options(
+            "/api/v1/methods",
+            headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
+        )
 
     @patch("src.scrapers.nse_next_scraper.async_playwright")
     async def test_nse_scraper_branches(self, mock_p: Any) -> None:
@@ -214,28 +237,31 @@ class TestBackendFinalCoverage:
         mock_browser.new_context.return_value = mock_context
         mock_page = AsyncMock()
         mock_context.new_page.return_value = mock_page
-        
+
         mock_val_elem = AsyncMock()
         mock_val_elem.inner_text.return_value = "Underlying: 22000"
-        
+
         mock_expiry_elem = AsyncMock()
         mock_expiry_elem.get_attribute.return_value = "25-Apr-2024"
-        
+
         # Side effect for query_selector
         async def mock_qs(sel):
-            if sel == "#equity_underlyingVal": return mock_val_elem
-            if sel == "#expirySelect": return mock_expiry_elem
+            if sel == "#equity_underlyingVal":
+                return mock_val_elem
+            if sel == "#expirySelect":
+                return mock_expiry_elem
             return None
+
         mock_page.query_selector.side_effect = mock_qs
-        
+
         mock_row = AsyncMock()
         mock_cols = [AsyncMock() for _ in range(21)]
         for i, col in enumerate(mock_cols):
             col.inner_text.return_value = "100" if i in [11, 8, 9, 12, 13] else "10"
         mock_row.query_selector_all.return_value = mock_cols
-        
+
         mock_page.query_selector_all.return_value = [mock_row]
-        
+
         await scraper.scrape(datetime.date(2024, 1, 1))
         mock_page.goto.side_effect = Exception("Fail")
         with pytest.raises(Exception):

@@ -16,7 +16,10 @@ export function useExperiments(options: UseExperimentsOptions = {}) {
   const qc = useQueryClient();
   const { methodType, marketSource, page = 1, pageSize = 50 } = options;
 
-  const queryKey = ["experiments", { methodType, marketSource, page, pageSize }];
+  const queryKey = [
+    "experiments",
+    { methodType, marketSource, page, pageSize },
+  ];
 
   const query = useQuery({
     queryKey,
@@ -26,8 +29,10 @@ export function useExperiments(options: UseExperimentsOptions = {}) {
       if (marketSource) params.append("market_source", marketSource);
       params.append("page", page.toString());
       params.append("page_size", pageSize.toString());
-      
-      return get<PaginatedResponse<Experiment>>(`/api/v1/experiments?${params.toString()}`);
+
+      return get<PaginatedResponse<Experiment>>(
+        `/api/v1/experiments?${params.toString()}`,
+      );
     },
   });
 
@@ -41,7 +46,7 @@ export function useExperiments(options: UseExperimentsOptions = {}) {
         return {
           ...old,
           items: [newExperiment, ...old.items].slice(0, pageSize),
-          total: old.total + 1
+          total: old.total + 1,
         };
       });
     },
@@ -49,6 +54,6 @@ export function useExperiments(options: UseExperimentsOptions = {}) {
 
   return {
     ...query,
-    experiments: query.data?.items ?? []
+    experiments: query.data?.items ?? [],
   };
 }
