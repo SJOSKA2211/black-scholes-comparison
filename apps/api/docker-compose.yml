@@ -108,6 +108,8 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.retention.time=90d
       - --web.enable-lifecycle
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
  
   # ── Grafana ──────────────────────────────────────────────────────

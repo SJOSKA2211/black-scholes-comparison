@@ -1,4 +1,4 @@
-"""Binomial CRR tree method for option pricing."""
+"""Binomial Cox-Ross-Rubinstein (CRR) tree method."""
 
 from __future__ import annotations
 
@@ -6,62 +6,133 @@ import time
 
 import numpy as np
 
-from src.methods.base import OptionParams, PriceResult
+from src.methods.base import MethodType, OptionParams, PriceResult
 
 
 class BinomialCRR:
-    """Binomial CRR tree wrapper."""
+    """
+    Binomial Tree method (Cox, Ross, and Rubinstein).
+    Supports European and American options.
+    Includes Richardson Extrapolation for faster convergence.
+    """
 
-    def price(self, params: OptionParams, num_steps: int = 500) -> PriceResult:
-        """CRR 1D in-place backward induction."""
-        start_time = time.time()
+    method_type: MethodType = "binomial_crr"
 
-        underlying_price = params.underlying_price
-        strike_price = params.strike_price
-        maturity_years = params.maturity_years
-        risk_free_rate = params.risk_free_rate
-        volatility = params.volatility
+    def __init__(self, num_steps: int = 1000, use_richardson: bool = False) -> None:
+        self.num_steps = num_steps
+        self.use_richardson = use_richardson
+        if use_richardson:
+            self.method_type = "binomial_crr_richardson"
 
-        time_step = maturity_years / num_steps
-        up_factor = np.exp(volatility * np.sqrt(time_step))
-        down_factor = 1.0 / up_factor
+    def _tree_solve(self, params: OptionParams, steps: int) -> tuple[float, float, float]:
+        """Internal CRR tree pricing engine. Returns (Price, Delta, Gamma)."""
+        if steps < 2:
+            return self._tree_price(params, steps), 0.0, 0.0
 
-        discount_factor = np.exp(-risk_free_rate * time_step)
-        prob_up = (np.exp(risk_free_rate * time_step) - down_factor) / (up_factor - down_factor)
-        prob_down = 1.0 - prob_up
+        delta_t = params.maturity_years / steps
+        up = np.exp(params.volatility * np.sqrt(delta_t))
+        dn = 1.0 / up
+        q_growth = np.exp(params.risk_free_rate * delta_t)
+        p_u = (q_growth - dn) / (up - dn)
+        p_d = 1.0 - p_u
 
-        # Terminal price grid
-        terminal_underlyings = (
-            underlying_price
-            * (up_factor ** np.arange(num_steps, -1, -1))
-            * (down_factor ** np.arange(0, num_steps + 1))
+        # Terminal payoffs
+        indices = np.arange(steps + 1)
+        st = params.underlying_price * (up**indices) * (dn ** (steps - indices))
+        v = (
+            np.maximum(st - params.strike_price, 0)
+            if params.option_type == "call"
+            else np.maximum(params.strike_price - st, 0)
         )
 
-        if params.option_type == "call":
-            values = np.maximum(terminal_underlyings - strike_price, 0)
-        else:
-            values = np.maximum(strike_price - terminal_underlyings, 0)
-
         # Backward induction
-        for step_idx in range(num_steps - 1, -1, -1):
-            values = discount_factor * (prob_up * values[:-1] + prob_down * values[1:])
-            # Early exercise (American) check
+        for i in range(steps - 1, -1, -1):
+            v = (p_u * v[1:] + p_d * v[:-1]) / q_growth
             if params.is_american:
-                underlyings_at_step = (
-                    underlying_price
-                    * (up_factor ** np.arange(step_idx, -1, -1))
-                    * (down_factor ** np.arange(0, step_idx + 1))
+                si = (
+                    params.underlying_price
+                    * (up ** np.arange(i + 1))
+                    * (dn ** (i - np.arange(i + 1)))
                 )
-                if params.option_type == "call":
-                    exercise_values = np.maximum(underlyings_at_step - strike_price, 0)
-                else:
-                    exercise_values = np.maximum(strike_price - underlyings_at_step, 0)
-                values = np.maximum(values, exercise_values)
+                v = np.maximum(
+                    v,
+                    (
+                        si - params.strike_price
+                        if params.option_type == "call"
+                        else params.strike_price - si
+                    ),
+                )
 
-        exec_seconds = time.time() - start_time
+            # Extract Delta/Gamma at step 1 and 2
+            if i == 2:
+                v2 = np.copy(v)
+            if i == 1:
+                v1 = np.copy(v)
+
+        # Delta = (V_u - V_d) / (S_u - S_d)
+        s_u = params.underlying_price * up
+        s_d = params.underlying_price * dn
+        delta = (v1[1] - v1[0]) / (s_u - s_d)
+
+        # Gamma = [(V_uu - V_ud) / (S_uu - S_ud) - (V_ud - V_dd) / (S_ud - S_dd)] / [0.5 * (S_uu - S_dd)]
+        s_uu = params.underlying_price * up**2
+        s_ud = params.underlying_price
+        s_dd = params.underlying_price * dn**2
+        gamma = ((v2[2] - v2[1]) / (s_uu - s_ud) - (v2[1] - v2[0]) / (s_ud - s_dd)) / (
+            0.5 * (s_uu - s_dd)
+        )
+
+        return float(v[0]), float(delta), float(gamma)
+
+    def price(self, params: OptionParams) -> PriceResult:
+        """Compute the option price and Greeks using CRR Binomial Tree."""
+        start_time = time.time()
+
+        def get_p(p: OptionParams) -> float:
+            res, _, _ = self._tree_solve(p, self.num_steps)
+            return res
+
+        computed_price, delta, gamma = self._tree_solve(params, self.num_steps)
+
+        # Richardson Extrapolation refinement
+        if self.use_richardson:
+            p_full, d_full, g_full = self._tree_solve(params, self.num_steps)
+            p_half, _, _ = self._tree_solve(params, self.num_steps // 2)
+            computed_price = 2 * p_full - p_half
+            # Delta/Gamma from full tree are usually fine
+
+        # Bumping for Vega, Theta, Rho
+        h_v, h_t, h_r = 0.01, 1 / 365.0, 0.01
+        vega = (
+            get_p(params.model_copy(update={"volatility": params.volatility + h_v}))
+            - computed_price
+        ) / h_v
+        theta = (
+            -(
+                computed_price
+                - get_p(
+                    params.model_copy(
+                        update={"maturity_years": max(0.0001, params.maturity_years - h_t)}
+                    )
+                )
+            )
+            / h_t
+            if params.maturity_years > h_t
+            else 0.0
+        )
+        rho = (
+            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r}))
+            - computed_price
+        ) / h_r
+
         return PriceResult(
-            method_type="binomial_crr",
-            computed_price=float(values[0]),
-            exec_seconds=exec_seconds,
-            parameter_set={"num_steps": num_steps},
+            method_type=self.method_type,
+            computed_price=computed_price,
+            exec_seconds=time.time() - start_time,
+            delta=delta,
+            gamma=gamma,
+            theta=theta,
+            vega=vega,
+            rho=rho,
+            parameter_set={"num_steps": self.num_steps, "use_richardson": self.use_richardson},
         )

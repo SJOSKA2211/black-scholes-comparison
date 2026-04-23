@@ -17,10 +17,18 @@ from src.database.repository import (
     update_scrape_run,
     upsert_option_parameters,
 )
-from src.metrics import SCRAPE_DURATION_SECONDS, SCRAPE_RUNS_TOTAL
+from src.metrics import SCRAPE_DURATION, SCRAPE_RUNS_TOTAL
 from src.scrapers.scraper_factory import ScraperFactory
 
 logger = structlog.get_logger(__name__)
+
+
+def get_pipeline(market: str, run_id: str | None = None) -> DataPipeline:
+    """Factory function for DataPipeline."""
+    import uuid
+
+    actual_run_id = run_id or str(uuid.uuid4())
+    return DataPipeline(run_id=actual_run_id, market=market)
 
 
 class DataPipeline:
@@ -30,9 +38,7 @@ class DataPipeline:
         self.run_id = run_id
         self.market = market
 
-    async def process_rows(
-        self, rows: list[dict[str, Any]], market: str, trade_date: date
-    ) -> int:
+    async def process_rows(self, rows: list[dict[str, Any]], market: str, trade_date: date) -> int:
         """Handles Transformation, Validation, and Persistence for a batch of rows."""
         await create_audit_log(self.run_id, "transform_validate", "started")
         params_list = transform_batch_df(pd.DataFrame(rows), market_source=market) if rows else []
@@ -68,8 +74,8 @@ class DataPipeline:
                     }
                 )
                 inserted_count += 1
-            except Exception as e:
-                logger.warning("row_skipped", error=str(e), run_id=self.run_id, row_index=i)
+            except Exception as error:
+                logger.warning("row_skipped", error=str(error), run_id=self.run_id, row_index=i)
                 continue
 
         # 3. Batch Insert Market Data
@@ -125,12 +131,12 @@ class DataPipeline:
             SCRAPE_RUNS_TOTAL.labels(market=market, status="success").inc()
             return result
 
-        except Exception as e:
-            logger.error("pipeline_failed", error=str(e), run_id=self.run_id)
-            await create_audit_log(self.run_id, "pipeline", "failed", message=str(e))
+        except Exception as error:
+            logger.error("pipeline_failed", error=str(error), run_id=self.run_id)
+            await create_audit_log(self.run_id, "pipeline", "failed", message=str(error))
             await update_scrape_run(self.run_id, {"status": "failed", "error_count": 1})
             SCRAPE_RUNS_TOTAL.labels(market=market, status="failed").inc()
-            return {"status": "failed", "error": str(e)}
+            return {"status": "failed", "error": str(error)}
         finally:
             duration = time.time() - start_time
-            SCRAPE_DURATION_SECONDS.labels(market=market).observe(duration)
+            SCRAPE_DURATION.labels(market=market).observe(duration)

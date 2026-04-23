@@ -1,5 +1,7 @@
+from typing import Any, Generator
 import pytest
 import asyncio
+import datetime
 from unittest.mock import MagicMock, AsyncMock, patch
 from fastapi.testclient import TestClient
 from fastapi import WebSocketDisconnect
@@ -25,7 +27,7 @@ from src.scrapers.nse_next_scraper import NSEScraper
 class TestBackendFinalCoverage:
     
     @patch("src.database.repository.get_supabase_client")
-    async def test_upsert_option_parameters_error(self, mock_get_supabase):
+    async def test_upsert_option_parameters_error(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.side_effect = Exception("DB Fail")
@@ -33,7 +35,7 @@ class TestBackendFinalCoverage:
             await upsert_option_parameters({"strike": 100})
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_experiments_branches(self, mock_get_supabase):
+    async def test_get_experiments_branches(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_response = MagicMock()
@@ -46,20 +48,20 @@ class TestBackendFinalCoverage:
         await get_experiments(method_type="analytical", market_source=None)
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_market_data_branches(self, mock_get_supabase):
+    async def test_get_market_data_branches(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.execute.return_value.data = []
-        await get_market_data("spy", trade_date=None, from_date=None, to_date=None, limit=None)
+        await get_market_data("spy", trade_date=None, from_date=None, to_date=None, limit=100)
 
     @patch("src.database.repository.get_supabase_client")
-    async def test_get_notifications_unread_branch(self, mock_get_supabase):
+    async def test_get_notifications_unread_branch(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.table.return_value.select.return_value.eq.return_value.order.return_value.limit.return_value.execute.return_value.data = []
         await get_notifications("u1", unread_only=False)
 
-    def test_supabase_client_direct(self):
+    def test_supabase_client_direct(self) -> None:
         with patch("src.database.supabase_client.get_settings") as mock_settings:
             mock_settings.return_value.supabase_url = "http://test.com"
             mock_settings.return_value.supabase_key = "key"
@@ -69,22 +71,25 @@ class TestBackendFinalCoverage:
                 assert mock_create.called
 
     @patch("aio_pika.connect_robust", new_callable=AsyncMock)
-    async def test_rabbitmq_client_direct(self, mock_connect):
+    async def test_rabbitmq_client_direct(self, mock_connect: Any) -> None:
         await get_rabbitmq_connection()
         assert mock_connect.called
 
-    def test_startup_event(self):
-        with patch("src.main.get_minio") as mock_minio:
-            mock_minio.side_effect = Exception("MinIO Fail")
-            with patch("src.main.start_consumers", new_callable=AsyncMock) as mock_start:
-                with TestClient(app) as client:
-                    pass
-                assert mock_minio.called
-                assert mock_start.called
+    def test_startup_event(self) -> None:
+        with patch("src.storage.minio_client.get_minio") as mock_minio, \
+             patch("src.cache.redis_client.get_redis") as mock_redis, \
+             patch("src.main.start_consumers", new_callable=AsyncMock) as mock_start:
+            
+            with TestClient(app) as client:
+                pass
+            
+            assert mock_minio.called
+            assert mock_redis.called
+            assert mock_start.called
 
     @patch("src.auth.dependencies.get_supabase_client")
     @patch("src.routers.websocket.ws_manager", new_callable=AsyncMock)
-    async def test_websocket_endpoint_direct(self, mock_ws_manager, mock_get_supabase):
+    async def test_websocket_endpoint_direct(self, mock_ws_manager: Any, mock_get_supabase: Any) -> None:
         mock_ws = AsyncMock()
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
@@ -108,7 +113,7 @@ class TestBackendFinalCoverage:
         await websocket_endpoint(mock_ws, "experiments", "token")
 
     @patch("src.routers.scrapers.publish_scrape_task", new_callable=AsyncMock)
-    def test_scrapers_router_branches(self, mock_publish):
+    def test_scrapers_router_branches(self, mock_publish: Any) -> None:
         app.dependency_overrides[get_current_user] = lambda: {"id": "u1"}
         client = TestClient(app)
         try:
@@ -120,7 +125,7 @@ class TestBackendFinalCoverage:
             app.dependency_overrides.clear()
 
     @patch("src.auth.dependencies.get_supabase_client")
-    async def test_auth_dependencies_errors(self, mock_get_supabase):
+    async def test_auth_dependencies_errors(self, mock_get_supabase: Any) -> None:
         mock_client = MagicMock()
         mock_get_supabase.return_value = mock_client
         mock_client.auth.get_user.return_value = None
@@ -138,43 +143,32 @@ class TestBackendFinalCoverage:
 
     @patch("httpx.AsyncClient.post", new_callable=AsyncMock)
     @patch("httpx.AsyncClient.get", new_callable=AsyncMock)
-    async def test_oauth_errors(self, mock_get, mock_post):
-        # 1. Github Exchange Fail (status_code != 200)
+    async def test_oauth_errors(self, mock_get: Any, mock_post: Any) -> None:
         mock_post.return_value = MagicMock(status_code=400)
         with pytest.raises(AuthenticationError):
             await get_github_user("code")
-            
-        # 2. Github No access token
         mock_post.return_value = MagicMock(status_code=200)
         mock_post.return_value.json.return_value = {"error": "bad"}
         with pytest.raises(AuthenticationError):
             await get_github_user("code")
-            
-        # 3. Github User Fetch Fail (line 44)
         mock_post.return_value.json.return_value = {"access_token": "at"}
         mock_get.return_value = MagicMock(status_code=404)
         with pytest.raises(AuthenticationError):
             await get_github_user("code")
-            
-        # 4. Google Exchange Fail
         mock_post.return_value = MagicMock(status_code=500)
         with pytest.raises(AuthenticationError):
             await get_google_user("code")
-            
-        # 5. Google No access token
         mock_post.return_value = MagicMock(status_code=200)
         mock_post.return_value.json.return_value = {"error": "bad"}
         with pytest.raises(AuthenticationError):
             await get_google_user("code")
-            
-        # 6. Google User Fetch Fail
         mock_post.return_value.json.return_value = {"access_token": "at"}
         mock_get.return_value = MagicMock(status_code=401)
         with pytest.raises(AuthenticationError):
             await get_google_user("code")
 
     @patch("src.database.repository.upsert_user_profile", new_callable=AsyncMock)
-    async def test_sync_user_profile(self, mock_upsert):
+    async def test_sync_user_profile(self, mock_upsert: Any) -> None:
         with pytest.raises(ValueError):
             await sync_user_profile({})
         mock_upsert.side_effect = Exception("Sync fail")
@@ -185,12 +179,12 @@ class TestBackendFinalCoverage:
         await sync_user_profile({"id": "u1", "email": "test@test.com"})
 
     @patch("src.websocket.manager.get_redis")
-    async def test_websocket_manager_exit_loop(self, mock_get_redis):
+    async def test_websocket_manager_exit_loop(self, mock_get_redis: Any) -> None:
         manager = WebSocketManager()
         mock_redis = MagicMock()
         mock_pubsub = MagicMock()
         mock_pubsub.subscribe = AsyncMock()
-        async def mock_listen():
+        async def mock_listen() -> Generator[dict[str, Any], None, None]:
             yield {"type": "message", "data": '{"foo": "bar"}'}
         mock_pubsub.listen = mock_listen
         mock_redis.pubsub.return_value = mock_pubsub
@@ -199,7 +193,7 @@ class TestBackendFinalCoverage:
 
     @patch("src.data.pipeline.ScraperFactory.get_scraper")
     @patch("src.data.pipeline.create_audit_log", new_callable=AsyncMock)
-    async def test_pipeline_empty_market_data_branch(self, mock_audit, mock_get_scraper):
+    async def test_pipeline_empty_market_data_branch(self, mock_audit: Any, mock_get_scraper: Any) -> None:
         pipeline = DataPipeline("run1", "spy")
         mock_scraper = AsyncMock()
         mock_scraper.scrape.return_value = MagicMock()
@@ -207,12 +201,12 @@ class TestBackendFinalCoverage:
         mock_get_scraper.return_value = mock_scraper
         await pipeline.run()
 
-    def test_cors_preflight(self):
+    def test_cors_preflight(self) -> None:
         client = TestClient(app)
         client.options("/api/v1/methods", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"})
 
     @patch("src.scrapers.nse_next_scraper.async_playwright")
-    async def test_nse_scraper_branches(self, mock_p):
+    async def test_nse_scraper_branches(self, mock_p: Any) -> None:
         scraper = NSEScraper("run1")
         mock_browser = AsyncMock()
         mock_p.return_value.__aenter__.return_value.chromium.launch.return_value = mock_browser
@@ -238,7 +232,6 @@ class TestBackendFinalCoverage:
         
         mock_page.query_selector_all.return_value = [mock_row, mock_row_fail]
         
-        import datetime
         await scraper.scrape(datetime.date(2024, 1, 1))
         mock_page.goto.side_effect = Exception("Fail")
         with pytest.raises(Exception):

@@ -8,7 +8,7 @@ import structlog
 
 from src.cache.redis_client import get_redis
 from src.database.repository import insert_notification
-from src.metrics import NOTIFICATIONS_SENT_TOTAL
+from src.metrics import NOTIFICATIONS_SENT
 from src.notifications.email import send_email
 from src.notifications.push import send_push_notification
 
@@ -52,15 +52,15 @@ async def notify_user(
             # In a real app, we'd fetch user email from DB/Auth
             # For this prototype, we'll assume a placeholder if not provided
             await send_email("placeholder@example.com", title, body)
-            NOTIFICATIONS_SENT_TOTAL.labels(channel="email", severity=severity).inc()
+            NOTIFICATIONS_SENT.labels(channel="email", severity=severity).inc()
 
         if channel == "push":
             await send_push_notification(str(user_id), title, body)
-            NOTIFICATIONS_SENT_TOTAL.labels(channel="push", severity=severity).inc()
+            NOTIFICATIONS_SENT.labels(channel="push", severity=severity).inc()
 
-        NOTIFICATIONS_SENT_TOTAL.labels(channel="in_app", severity=severity).inc()
+        NOTIFICATIONS_SENT.labels(channel="in_app", severity=severity).inc()
         logger.info("notification_dispatched", user_id=user_id, severity=severity, channel=channel)
 
-    except Exception as e:
-        logger.error("notification_dispatch_failed", error=str(e), user_id=user_id)
+    except Exception as error:
+        logger.error("notification_dispatch_failed", error=str(error), user_id=user_id)
         raise  # Raise so caller knows it failed

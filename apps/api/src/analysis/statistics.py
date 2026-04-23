@@ -13,7 +13,7 @@ def compute_mape(results: list[dict[str, Any]], analytical_ref: float) -> float:
     if not results or analytical_ref == 0:
         return 0.0
 
-    errors = [abs(r["computed_price"] - analytical_ref) / analytical_ref for r in results]
+    errors = [abs(res["computed_price"] - analytical_ref) / analytical_ref for res in results]
     return float(np.mean(errors)) * 100
 
 

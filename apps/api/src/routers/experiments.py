@@ -1,7 +1,5 @@
 """Router for managing numerical experiments and grid runs."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import structlog
@@ -15,7 +13,7 @@ from src.database.repository import (
 )
 from src.queue.publisher import publish_experiment_task
 
-router = APIRouter()
+router = APIRouter(prefix="/experiments", tags=["Experiments"])
 logger = structlog.get_logger(__name__)
 
 
@@ -33,9 +31,9 @@ async def run_experiment(
         await publish_experiment_task(params)
         logger.info("experiment_submitted", user_id=current_user["id"], step="router")
         return {"message": "Experiment submitted successfully", "status": "queued"}
-    except Exception as e:
-        logger.error("experiment_submission_failed", error=str(e), step="router")
-        raise HTTPException(status_code=500, detail="Failed to submit experiment") from e
+    except Exception as error:
+        logger.error("experiment_submission_failed", error=str(error), step="router")
+        raise HTTPException(status_code=500, detail="Failed to submit experiment") from error
 
 
 @router.get("/results")
@@ -53,9 +51,9 @@ async def get_results(
             results_dict = await get_experiments(page_size=limit)
             results = results_dict.get("items", [])
         return results
-    except Exception as e:
-        logger.error("results_fetch_failed", error=str(e), step="router")
-        raise HTTPException(status_code=500, detail="Failed to fetch results") from e
+    except Exception as error:
+        logger.error("results_fetch_failed", error=str(error), step="router")
+        raise HTTPException(status_code=500, detail="Failed to fetch results") from error
 
 
 @router.get("/results/{experiment_id}")
@@ -70,8 +68,8 @@ async def get_result_detail(
         return result
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception as error:
         logger.error(
-            "experiment_detail_fetch_failed", error=str(e), id=experiment_id, step="router"
+            "experiment_detail_fetch_failed", error=str(error), id=experiment_id, step="router"
         )
-        raise HTTPException(status_code=500, detail="Failed to fetch experiment detail") from e
+        raise HTTPException(status_code=500, detail="Failed to fetch experiment detail") from error

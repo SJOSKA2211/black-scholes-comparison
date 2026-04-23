@@ -9,7 +9,7 @@ from src.auth.dependencies import verify_ws_token
 from src.websocket.channels import ALLOWED_CHANNELS
 from src.websocket.manager import ws_manager
 
-router = APIRouter()
+router = APIRouter(prefix="/ws", tags=["WebSockets"])
 logger = structlog.get_logger(__name__)
 
 
@@ -39,6 +39,6 @@ async def websocket_endpoint(
             # Handle optional incoming messages if needed
     except WebSocketDisconnect:
         await ws_manager.disconnect(websocket, channel)
-    except Exception as e:
-        logger.error("ws_connection_error", error=str(e), channel=channel)
+    except Exception as error:
+        logger.error("ws_connection_error", error=str(error), channel=channel)
         await ws_manager.disconnect(websocket, channel)

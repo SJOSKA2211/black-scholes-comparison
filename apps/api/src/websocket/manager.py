@@ -27,11 +27,11 @@ class WebSocketManager:
         self._listeners: dict[str, asyncio.Task[None]] = {}
 
     async def connect(self, websocket: WebSocket, channel: str) -> None:
-        """Accepts a connection and adds it to the specified channel."""
+        """Accept connection and start listener if needed."""
         await websocket.accept()
         if channel not in self._connections:
             self._connections[channel] = set()
-            # Start a Redis listener for this channel if not already running
+            # Start a single Redis listener per channel across all users
             self._listeners[channel] = asyncio.create_task(self.start_redis_listener(channel))
 
         self._connections[channel].add(websocket)
@@ -43,19 +43,24 @@ class WebSocketManager:
         )
 
     async def disconnect(self, websocket: WebSocket, channel: str) -> None:
-        """Removes a connection from the channel."""
+        """Remove connection and cleanup listener if last client."""
         if channel in self._connections:
             self._connections[channel].discard(websocket)
+            logger.info(
+                "ws_client_disconnected",
+                channel=channel,
+                total=len(self._connections[channel]),
+                step="websocket",
+            )
             if not self._connections[channel]:
-                # Stop listener if no more connections
-                if channel in self._listeners:
-                    self._listeners[channel].cancel()
-                    del self._listeners[channel]
-                del self._connections[channel]
-        logger.info("ws_client_disconnected", channel=channel, step="websocket")
+                # Last client disconnected, stop the Redis listener
+                task = self._listeners.pop(channel, None)
+                if task:
+                    task.cancel()
+                self._connections.pop(channel, None)
 
     async def broadcast(self, channel: str, message: dict[str, Any]) -> None:
-        """Sends a message to all connected clients on a channel."""
+        """Send message to all clients in the channel."""
         if channel not in self._connections:
             return
 
@@ -74,21 +79,20 @@ class WebSocketManager:
         try:
             redis = get_redis()
             pubsub = redis.pubsub()
-            redis_channel = f"ws:{channel}"
-            await pubsub.subscribe(redis_channel)
-            logger.info("redis_ws_listener_started", channel=redis_channel)
+            await pubsub.subscribe(f"ws:{channel}")
+            logger.info("redis_listener_started", channel=channel, step="websocket")
 
             async for msg in pubsub.listen():
                 if msg["type"] == "message":
                     try:
                         data = json.loads(msg["data"])
                         await self.broadcast(channel, data)
-                    except Exception as e:
-                        logger.error("ws_broadcast_error", error=str(e), channel=channel)
+                    except Exception as error:
+                        logger.error("ws_broadcast_failed", error=str(error), channel=channel)
         except asyncio.CancelledError:
-            logger.info("redis_ws_listener_stopped", channel=channel)
-        except Exception as e:
-            logger.error("redis_ws_listener_failed", error=str(e), channel=channel)
+            logger.info("redis_listener_cancelled", channel=channel, step="websocket")
+        except Exception as error:
+            logger.error("redis_listener_failed", error=str(error), channel=channel)
 
 
 # Singleton instance

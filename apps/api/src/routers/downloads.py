@@ -1,84 +1,86 @@
-"""Router for generating and retrieving data exports."""
+"""Download router — handles CSV/JSON export generation."""
 
 from __future__ import annotations
 
 import io
-import time
 from typing import Any
 
 import pandas as pd
-import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
 from src.database.repository import get_experiments, get_market_data
 from src.storage.storage_service import upload_export
 
-router = APIRouter()
-logger = structlog.get_logger(__name__)
+router = APIRouter(prefix="/download", tags=["Downloads"])
 
 
 async def _fetch_data(resource: str) -> pd.DataFrame:
-    """Helper to fetch data based on resource type."""
+    """Fetch raw data from DB and return as DataFrame."""
     if resource == "experiments":
-        # Use get_experiments and extract data list
-        results_dict = await get_experiments(page_size=1000)
-        data = results_dict.get("items", [])
+        results = await get_experiments(page_size=1000)
+        # get_experiments returns {"items": [...], "total": ...}
+        data = results.get("items", [])
     elif resource == "market_data":
-        data = await get_market_data(source="synthetic", limit=1000)
+        data = await get_market_data(source="spy", limit=1000)
     else:
-        raise ValueError(f"Unknown resource: {resource}")
+        raise ValueError(f"Unknown resource type: {resource}")
+
     return pd.DataFrame(data)
 
 
 def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
-    """Helper to serialize DataFrame to requested format."""
+    """Serialize DataFrame to bytes for specific format."""
     if format == "csv":
-        return df.to_csv(index=False).encode(), "text/csv"
+        csv_buffer = io.BytesIO()
+        df.to_csv(csv_buffer, index=False)
+        return csv_buffer.getvalue(), "text/csv"
     elif format == "json":
         return df.to_json(orient="records").encode(), "application/json"
     elif format == "xlsx":
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df.to_excel(writer, index=False)
+        xlsx_buffer = io.BytesIO()
+        df.to_excel(xlsx_buffer, index=False)
         return (
-            output.getvalue(),
+            xlsx_buffer.getvalue(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     else:
-        raise ValueError(f"Unknown format: {format}")
+        raise ValueError(f"Unsupported format: {format}")
 
 
-@router.get("/{resource}")
-async def download_resource(
-    resource: str,
-    format: str = Query("csv", pattern="^(csv|json|xlsx)$"),
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """
-    Generates the export file, uploads to MinIO, returns a presigned URL.
-    The frontend redirects the browser to the URL for direct download.
-    """
+async def download_resource(resource: str, format: str, user: dict[str, Any]) -> dict[str, str]:
+    """Core logic for resource download."""
     try:
         df = await _fetch_data(resource)
         if df.empty:
-            raise HTTPException(status_code=404, detail="No data found for resource")
+            raise HTTPException(status_code=404, detail="No data found for export")
 
         data, content_type = _serialize(df, format)
-        filename = f"{resource}_{int(time.time())}.{format}"
-        presigned_url = upload_export(data=data, filename=filename, content_type=content_type)
+        filename = f"{resource}_export.{format}"
 
-        logger.info(
-            "download_generated",
-            resource=resource,
-            format=format,
-            rows=len(df),
-            user_id=current_user["id"],
-            step="download",
-        )
-        return {"url": presigned_url, "filename": filename, "expires_in": 3600}
+        # Upload to MinIO
+        download_url = upload_export(data, filename, content_type)
+        return {"url": download_url}
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("download_failed", error=str(e), resource=resource, step="router")
-        raise HTTPException(status_code=500, detail=f"Failed to generate download: {e!s}") from e
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get("/experiments")
+async def export_experiments(
+    format: str = Query("json", description="Export format (json/csv/xlsx)"),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str]:
+    """Generate an export of experiments."""
+    return await download_resource("experiments", format, user)
+
+
+@router.get("/market_data")
+async def export_market_data(
+    format: str = Query("json", description="Export format (json/csv/xlsx)"),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str]:
+    """Generate an export of market data."""
+    return await download_resource("market_data", format, user)

@@ -1,7 +1,5 @@
 """Router for accessing historical and real-time market data."""
 
-from __future__ import annotations
-
 import datetime
 from typing import Any
 
@@ -11,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from src.auth.dependencies import get_current_user
 from src.database.repository import get_market_data
 
-router = APIRouter()
+router = APIRouter(prefix="/market-data", tags=["Market Data"])
 logger = structlog.get_logger(__name__)
 
 
@@ -26,6 +24,6 @@ async def get_market_quotes(
     try:
         data = await get_market_data(source=source, trade_date=trade_date, limit=limit)
         return data
-    except Exception as e:
-        logger.error("market_data_fetch_failed", error=str(e), source=source, step="router")
-        raise HTTPException(status_code=500, detail="Failed to fetch market data") from e
+    except Exception as error:
+        logger.error("market_data_fetch_failed", error=str(error), source=source, step="router")
+        raise HTTPException(status_code=500, detail="Failed to fetch market data") from error

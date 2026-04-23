@@ -32,13 +32,13 @@ async def get_current_user(
             "email": response.user.email,
             "role": response.user.user_metadata.get("role", "researcher"),
         }
-    except Exception as e:
-        logger.error("auth_error", error=str(e), step="auth")
+    except Exception as error:
+        logger.error("auth_error", error=str(error), step="auth")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication failed",
             headers={"WWW-Authenticate": "Bearer"},
-        ) from e
+        ) from error
 
 
 async def verify_ws_token(websocket: WebSocket, token: str | None) -> dict[str, Any] | None:
@@ -55,7 +55,7 @@ async def verify_ws_token(websocket: WebSocket, token: str | None) -> dict[str, 
             return None
 
         return {"id": response.user.id, "email": response.user.email}
-    except Exception as e:
-        logger.error("ws_auth_error", error=str(e), step="auth")
+    except Exception as error:
+        logger.error("ws_auth_error", error=str(error), step="auth")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Auth failed")
         return None

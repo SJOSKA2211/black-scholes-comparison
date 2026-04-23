@@ -1,8 +1,15 @@
+import os
+import sys
+
+# Add apps/api to path
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "apps/api")))
+
 from src.methods.analytical import BlackScholesAnalytical
 from src.methods.base import OptionParams
-import math
+from src.methods.tree_methods.binomial_crr import BinomialCRR
 
-def test_acceptance():
+
+def verify_mape() -> None:
     params = OptionParams(
         underlying_price=100.0,
         strike_price=100.0,
@@ -11,10 +18,17 @@ def test_acceptance():
         risk_free_rate=0.05,
         option_type="call"
     )
-    result = BlackScholesAnalytical().price(params)
-    print(f"Computed Price: {result.computed_price:.4f}")
-    assert abs(result.computed_price - 10.4506) < 0.01
-    print("Acceptance Gate: PASS")
+
+    analytical = BlackScholesAnalytical()
+    ref_price = analytical.price(params).computed_price
+
+    tree = BinomialCRR()
+    # High resolution
+    tree_price = tree.price(params, num_steps=2000).computed_price
+
+    mape = abs(tree_price - ref_price) / ref_price * 100
+    print(f"Ref: {ref_price:.6f}, Tree: {tree_price:.6f}, MAPE: {mape:.6f}%")
+    assert mape < 0.1
 
 if __name__ == "__main__":
-    test_acceptance()
+    verify_mape()

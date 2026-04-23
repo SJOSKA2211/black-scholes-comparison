@@ -3,58 +3,83 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 
-import aio_pika
 import structlog
+from aio_pika.abc import AbstractIncomingMessage
 
-from scripts.run_experiments import run_experiments
 from src.data.pipeline import DataPipeline
 from src.queue.rabbitmq_client import get_rabbitmq_connection
 
 logger = structlog.get_logger(__name__)
 
 
-async def handle_scrape_task(message: aio_pika.abc.AbstractIncomingMessage) -> None:
-    """Handle incoming market data scraping tasks."""
+async def handle_scrape_task(message: AbstractIncomingMessage) -> None:
+    """Process a market data scrape task."""
     async with message.process():
         payload = json.loads(message.body)
-        run_id = payload.get("run_id", "unknown")
-        market = payload.get("market", "unknown")
+        market = payload["market"]
+        trade_date = date.fromisoformat(payload["date"])
 
-        logger.info("scrape_task_received", market=market, run_id=run_id, step="queue")
+        logger.info(
+            "scrape_task_received", market=market, date=trade_date.isoformat(), step="queue"
+        )
 
-        # Instantiate pipeline for this run
-        pipeline = DataPipeline(run_id=run_id)
+        # Create pipeline instance and run
+        # Note: Pipeline ID is generated here for tracking
+        import uuid
 
-        # If payload contains rows, process them
-        if "rows" in payload:
-            await pipeline.process_rows(payload["rows"])
-        else:
-            logger.warning("scrape_task_empty", run_id=run_id)
+        run_id = str(uuid.uuid4())
+        pipeline = DataPipeline(run_id=run_id, market=market)
+
+        try:
+            await pipeline.run(trade_date)
+            logger.info("scrape_task_success", market=market, run_id=run_id, step="queue")
+        except Exception as error:
+            logger.error("scrape_task_failed", market=market, error=str(error), step="queue")
+            # In production, we might want to dead-letter or retry here
+            raise
 
 
-async def handle_experiment_task(message: aio_pika.abc.AbstractIncomingMessage) -> None:
-    """Handle incoming numerical experiment tasks."""
+async def handle_experiment_task(message: AbstractIncomingMessage) -> None:
+    """Process an experiment grid run task."""
+    from scripts.run_experiments import run_experiments
+
     async with message.process():
         payload = json.loads(message.body)
         logger.info("experiment_task_received", payload=payload, step="queue")
-        await run_experiments(payload)
+
+        try:
+            await run_experiments(payload)
+            logger.info("experiment_task_success", step="queue")
+        except Exception as error:
+            logger.error("experiment_task_failed", error=str(error), step="queue")
+            # Log failure but process() handles ack/nack depending on robustness needs
+            raise
 
 
 async def start_consumers() -> None:
-    """Start consuming from both queues — called from main.py on startup."""
+    """
+    Start consuming from both queues — called from main.py lifespan.
+    Adheres to Section 8.4 of the Production Final mandate.
+    """
     try:
         connection = await get_rabbitmq_connection()
         channel = await connection.channel()
+
+        # Prefetch 1 ensures fair dispatch (Section 8.4)
         await channel.set_qos(prefetch_count=1)
 
-        # Declare queues to ensure they exist
+        # Ensure queues exist
         scrape_queue = await channel.declare_queue("bs.scrape", durable=True)
         experiment_queue = await channel.declare_queue("bs.experiment", durable=True)
 
+        # Start consuming
         await scrape_queue.consume(handle_scrape_task)
         await experiment_queue.consume(handle_experiment_task)
 
-        logger.info("consumers_started", step="init")
-    except Exception as e:
-        logger.error("consumer_startup_failed", error=str(e), step="init")
+        logger.info("consumers_active", queues=["bs.scrape", "bs.experiment"], step="init")
+    except Exception as error:
+        logger.error("consumers_start_failed", error=str(error), step="init")
+        # Do not raise here to allow API to start even if RabbitMQ is transiently down
+        # Robustness handled by connect_robust in rabbitmq_client.py

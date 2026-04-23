@@ -1,16 +1,16 @@
-import math
-import time
+"""Pricing router — handles individual and grid pricing requests."""
+
+import asyncio
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
+from src.cache.decorators import cache_response
+from src.database.repository import upsert_option_parameters, upsert_price_result
 from src.methods.analytical import BlackScholesAnalytical
-from src.methods.base import MethodType, OptionParams, PriceResult
-
-# Modular imports for v4
+from src.methods.base import MethodMetadata, MethodType, NumericalMethod, OptionParams, PriceResult
 from src.methods.finite_difference.crank_nicolson import CrankNicolsonFDM
 from src.methods.finite_difference.explicit import ExplicitFDM
 from src.methods.finite_difference.implicit import ImplicitFDM
@@ -19,203 +19,199 @@ from src.methods.monte_carlo.control_variates import ControlVariateMC
 from src.methods.monte_carlo.quasi_mc import QuasiMC
 from src.methods.monte_carlo.standard import StandardMC
 from src.methods.tree_methods.binomial_crr import BinomialCRR
-from src.methods.tree_methods.richardson import (
-    BinomialCRRRickardson,
-    TrinomialRichardson,
-)
+from src.methods.tree_methods.richardson import BinomialCRRRichardson, TrinomialRichardson
 from src.methods.tree_methods.trinomial import TrinomialTree
-from src.metrics import (
-    PRICE_COMPUTATION_DURATION_SECONDS,
-    PRICE_COMPUTATIONS_TOTAL,
-    PRICE_MAPE_GAUGE,
-)
 
-router = APIRouter()
+router = APIRouter(prefix="/pricing", tags=["Pricing"])
 logger = structlog.get_logger(__name__)
 
 
-class PriceRequest(BaseModel):
-    params: OptionParams
-    methods: list[MethodType]
-
-
-class PriceResponse(BaseModel):
-    results: list[PriceResult]
-    analytical_reference: float
-    exec_ms: float
-
-
-# Registry of pricer instances
-analytical_engine = BlackScholesAnalytical()
-explicit_fdm_engine = ExplicitFDM()
-implicit_fdm_engine = ImplicitFDM()
-crank_nicolson_engine = CrankNicolsonFDM()
-standard_mc_engine = StandardMC()
-antithetic_mc_engine = AntitheticMC()
-control_variate_mc_engine = ControlVariateMC()
-quasi_mc_engine = QuasiMC()
-binomial_crr_engine = BinomialCRR()
-trinomial_engine = TrinomialTree()
-binomial_richardson_engine = BinomialCRRRickardson()
-trinomial_richardson_engine = TrinomialRichardson()
-
-METHOD_MAP = {
-    "analytical": analytical_engine.price,
-    "explicit_fdm": explicit_fdm_engine.price,
-    "implicit_fdm": implicit_fdm_engine.price,
-    "crank_nicolson": crank_nicolson_engine.price,
-    "standard_mc": standard_mc_engine.price,
-    "antithetic_mc": antithetic_mc_engine.price,
-    "control_variate_mc": control_variate_mc_engine.price,
-    "quasi_mc": quasi_mc_engine.price,
-    "binomial_crr": binomial_crr_engine.price,
-    "trinomial": trinomial_engine.price,
-    "binomial_crr_richardson": binomial_richardson_engine.price,
-    "trinomial_richardson": trinomial_richardson_engine.price,
-}
-
-
-@router.post("/price", response_model=PriceResponse)
-async def price_options(
-    request: PriceRequest, current_user: dict[str, Any] = Depends(get_current_user)
-) -> PriceResponse:
-    """
-    Prices options using requested numerical methods.
-    Instruments computations with Prometheus metrics.
-    """
-    try:
-        start_time = time.time()
-
-        # Analytical reference always computed for MAPE tracking
-        ref_res = analytical_engine.price(request.params)
-        analytical_price = ref_res.computed_price
-
-        results = []
-
-        for method_type in request.methods:
-            if method_type not in METHOD_MAP:
-                continue
-
-            pricer_fn = METHOD_MAP[method_type]
-
-            # Track duration
-            with PRICE_COMPUTATION_DURATION_SECONDS.labels(method_type=method_type).time():
-                result = pricer_fn(request.params)
-
-            # Track total computations and convergence status
-            converged_status = "True"
-            if math.isnan(result.computed_price) or math.isinf(result.computed_price):
-                converged_status = "False"
-
-            PRICE_COMPUTATIONS_TOTAL.labels(
-                method_type=method_type,
-                option_type=request.params.option_type,
-                converged=converged_status,
-            ).inc()
-
-            # Track MAPE if converged
-            if converged_status == "True" and analytical_price > 0:
-                mape = abs(result.computed_price - analytical_price) / analytical_price * 100
-                PRICE_MAPE_GAUGE.labels(method_type=method_type).set(mape)
-
-            results.append(result)
-
-        exec_ms = (time.time() - start_time) * 1000
-
-        return PriceResponse(
-            results=results, analytical_reference=analytical_price, exec_ms=exec_ms
-        )
-    except Exception as e:
-        logger.error("pricing_failed", error=str(e), step="router")
-        raise HTTPException(status_code=500, detail=f"Pricing computation failed: {e!s}") from e
-
-
-@router.get("/methods", response_model=None)
-async def get_methods() -> list[dict[str, Any]]:
-    """Returns list of available numerical methods with metadata."""
+@router.get("/methods", response_model=list[MethodMetadata])
+async def list_methods() -> list[MethodMetadata]:
+    """Returns metadata for all supported numerical methods."""
     return [
-        {
-            "id": "analytical",
-            "name": "Black-Scholes Analytical",
-            "convergence_order": "Exact",
-            "stability_class": "Exact",
-            "american_suitable": False,
-        },
-        {
-            "id": "explicit_fdm",
-            "name": "Explicit FDM (FTCS)",
-            "convergence_order": "1 (time), 2 (space)",
-            "stability_class": "Conditional",
-            "american_suitable": False,
-        },
-        {
-            "id": "implicit_fdm",
-            "name": "Implicit FDM (BTCS)",
-            "convergence_order": "1 (time), 2 (space)",
-            "stability_class": "Unconditional",
-            "american_suitable": False,
-        },
-        {
-            "id": "crank_nicolson",
-            "name": "Crank-Nicolson FDM",
-            "convergence_order": "2 (time), 2 (space)",
-            "stability_class": "Unconditional",
-            "american_suitable": False,
-        },
-        {
-            "id": "standard_mc",
-            "name": "Standard Monte Carlo",
-            "convergence_order": "0.5",
-            "stability_class": "Stochastic",
-            "american_suitable": False,
-        },
-        {
-            "id": "antithetic_mc",
-            "name": "Antithetic Variates MC",
-            "convergence_order": "0.5 (reduced var)",
-            "stability_class": "Stochastic",
-            "american_suitable": False,
-        },
-        {
-            "id": "control_variate_mc",
-            "name": "Control Variate MC",
-            "convergence_order": "0.5 (high var red)",
-            "stability_class": "Stochastic",
-            "american_suitable": False,
-        },
-        {
-            "id": "quasi_mc",
-            "name": "Quasi-Monte Carlo (Sobol)",
-            "convergence_order": "~1.0",
-            "stability_class": "Deterministic",
-            "american_suitable": False,
-        },
-        {
-            "id": "binomial_crr",
-            "name": "Binomial CRR Tree",
-            "convergence_order": "1",
-            "stability_class": "Stable",
-            "american_suitable": True,
-        },
-        {
-            "id": "trinomial",
-            "name": "Trinomial Tree (Boyle)",
-            "convergence_order": "1 (Smoother)",
-            "stability_class": "Stable",
-            "american_suitable": True,
-        },
-        {
-            "id": "binomial_crr_richardson",
-            "name": "Binomial + Richardson",
-            "convergence_order": "2",
-            "stability_class": "Stable",
-            "american_suitable": True,
-        },
-        {
-            "id": "trinomial_richardson",
-            "name": "Trinomial + Richardson",
-            "convergence_order": "2",
-            "stability_class": "Stable",
-            "american_suitable": True,
-        },
+        MethodMetadata(
+            id="analytical",
+            name="Black-Scholes Analytical",
+            complexity="O(1)",
+            type="Exact",
+            convergence_rate="Infinite",
+        ),
+        MethodMetadata(
+            id="explicit_fdm",
+            name="Explicit Finite Difference",
+            complexity="O(N_s * N_t)",
+            type="FDM",
+            convergence_rate="O(dt + dx^2)",
+        ),
+        MethodMetadata(
+            id="implicit_fdm",
+            name="Implicit Finite Difference",
+            complexity="O(N_s * N_t)",
+            type="FDM",
+            convergence_rate="O(dt + dx^2)",
+        ),
+        MethodMetadata(
+            id="crank_nicolson",
+            name="Crank-Nicolson FDM",
+            complexity="O(N_s * N_t)",
+            type="FDM",
+            convergence_rate="O(dt^2 + dx^2)",
+        ),
+        MethodMetadata(
+            id="standard_mc",
+            name="Standard Monte Carlo",
+            complexity="O(N_sim)",
+            type="Monte Carlo",
+            convergence_rate="O(N^-0.5)",
+        ),
+        MethodMetadata(
+            id="antithetic_mc",
+            name="Antithetic Monte Carlo",
+            complexity="O(N_sim)",
+            type="Monte Carlo",
+            convergence_rate="O(N^-0.5)",
+        ),
+        MethodMetadata(
+            id="control_variate_mc",
+            name="Control Variate MC",
+            complexity="O(N_sim)",
+            type="Monte Carlo",
+            convergence_rate="O(N^-0.5)",
+        ),
+        MethodMetadata(
+            id="quasi_mc",
+            name="Quasi-Monte Carlo",
+            complexity="O(N_sim)",
+            type="Monte Carlo",
+            convergence_rate="O(N^-1)",
+        ),
+        MethodMetadata(
+            id="binomial_crr",
+            name="Binomial CRR",
+            complexity="O(N^2)",
+            type="Tree",
+            convergence_rate="O(N^-1)",
+        ),
+        MethodMetadata(
+            id="binomial_crr_richardson",
+            name="Binomial + Richardson",
+            complexity="O(N^2)",
+            type="Tree",
+            convergence_rate="O(N^-2)",
+        ),
+        MethodMetadata(
+            id="trinomial",
+            name="Trinomial Tree",
+            complexity="O(N^2)",
+            type="Tree",
+            convergence_rate="O(N^-2)",
+        ),
+        MethodMetadata(
+            id="trinomial_richardson",
+            name="Trinomial + Richardson",
+            complexity="O(N^2)",
+            type="Tree",
+            convergence_rate="O(N^-4)",
+        ),
     ]
+
+
+def get_method_instance(method_type: MethodType) -> NumericalMethod:
+    """Factory to return an instance of the requested numerical method."""
+    if method_type == "analytical":
+        return BlackScholesAnalytical()
+    elif method_type == "explicit_fdm":
+        return ExplicitFDM()
+    elif method_type == "implicit_fdm":
+        return ImplicitFDM()
+    elif method_type == "crank_nicolson":
+        return CrankNicolsonFDM()
+    elif method_type == "standard_mc":
+        return StandardMC()
+    elif method_type == "antithetic_mc":
+        return AntitheticMC()
+    elif method_type == "control_variate_mc":
+        return ControlVariateMC()
+    elif method_type == "quasi_mc":
+        return QuasiMC()
+    elif method_type == "binomial_crr":
+        return BinomialCRR()
+    elif method_type == "binomial_crr_richardson":
+        return BinomialCRRRichardson()
+    elif method_type == "trinomial":
+        return TrinomialTree()
+    elif method_type == "trinomial_richardson":
+        return TrinomialRichardson()
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported method: {method_type}")
+
+
+@router.post("/calculate", response_model=PriceResult)
+@cache_response(key_prefix="price", ttl_seconds=3600)
+async def calculate_price(
+    params: OptionParams,
+    method_type: MethodType = Query(..., description="Numerical method to use"),
+    persist: bool = Query(False, description="Whether to save the result to database"),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> PriceResult:
+    """
+    Compute the price of an option using the specified numerical method.
+    Optionally persists the parameters and result to Supabase.
+    """
+    method = get_method_instance(method_type)
+
+    try:
+        from src.metrics import PRICE_COMPUTATIONS_TOTAL, PRICE_DURATION_SECONDS
+
+        start_time = asyncio.get_event_loop().time()
+        # Run in thread pool to avoid blocking async loop for heavy computations
+        result = await asyncio.to_thread(method.price, params)
+        duration = asyncio.get_event_loop().time() - start_time
+
+        # Metrics
+        PRICE_COMPUTATIONS_TOTAL.labels(
+            method_type=method_type,
+            option_type=params.option_type,
+            converged=str(result.converged),
+        ).inc()
+        PRICE_DURATION_SECONDS.labels(method_type=method_type).observe(duration)
+
+        if persist:
+            # Save params and result
+            option_id = await upsert_option_parameters(params.model_dump(exclude={"market_source"}))
+            await upsert_price_result(option_id, result)
+
+        return result
+    except Exception as error:
+        logger.error(
+            "pricing_calculation_failed", error=str(error), method=method_type, step="router"
+        )
+        raise HTTPException(status_code=500, detail="Pricing calculation failed") from error
+
+
+@router.post("/compare")
+@cache_response(key_prefix="compare", ttl_seconds=3600)
+async def compare_methods(
+    params: OptionParams,
+    methods: list[MethodType] = Query(..., description="Methods to compare"),
+    user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, PriceResult]:
+    """
+    Compute prices using multiple methods for comparison.
+    Analytical method is always included as a benchmark if not requested.
+    """
+    if "analytical" not in methods:
+        methods.append("analytical")
+
+    try:
+        tasks = []
+        for m_type in methods:
+            method = get_method_instance(m_type)
+            tasks.append(asyncio.to_thread(method.price, params))
+
+        results = await asyncio.gather(*tasks)
+        return {res.method_type: res for res in results}
+    except Exception as error:
+        logger.error("pricing_comparison_failed", error=str(error), step="router")
+        raise HTTPException(status_code=500, detail="Pricing comparison failed") from error

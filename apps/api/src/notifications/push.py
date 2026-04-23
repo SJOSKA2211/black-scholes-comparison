@@ -26,11 +26,11 @@ async def send_push_notification(user_id: str, title: str, body: str) -> bool:
                 if not sub.get("subscription_info"):
                     raise ValueError("Invalid subscription info")
                 success_count += 1
-            except Exception as e:
-                logger.error("push_delivery_failed", user_id=user_id, error=str(e))
+            except Exception as error:
+                logger.error("push_delivery_failed", user_id=user_id, error=str(error))
 
         logger.info("push_notifications_sent", user_id=user_id, count=success_count)
         return success_count > 0
-    except Exception as e:
-        logger.error("push_service_failed", user_id=user_id, error=str(e))
+    except Exception as error:
+        logger.error("push_service_failed", user_id=user_id, error=str(error))
         return False

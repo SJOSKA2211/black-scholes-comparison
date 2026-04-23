@@ -1,4 +1,4 @@
-"""MinIO client singleton — handles bucket initialization."""
+"""MinIO client singleton — bucket initialization."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
-BUCKETS = ["bs-exports", "bs-scraper"]
+# Bucket names are managed in src.config (Section 1.2)
 
 
 @lru_cache(maxsize=1)
@@ -24,11 +24,13 @@ def get_minio() -> Minio:
         secret_key=settings.minio_secret_key,
         secure=settings.minio_secure,
     )
-    for bucket in BUCKETS:
+    # Ensure buckets exist
+    for bucket in [settings.minio_bucket_exports, settings.minio_bucket_scraper]:
         try:
             if not client.bucket_exists(bucket):
                 client.make_bucket(bucket)
                 logger.info("minio_bucket_created", bucket=bucket, step="init", rows=0)
-        except Exception as e:
-            logger.error("minio_init_failed", bucket=bucket, error=str(e), step="init")
+        except Exception as error:
+            logger.error("minio_bucket_check_failed", bucket=bucket, error=str(error), step="init")
+
     return client

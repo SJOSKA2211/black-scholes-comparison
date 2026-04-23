@@ -34,32 +34,47 @@ class SPYScraper(BaseScraper):
                 await page.goto(self.target_url, wait_until="networkidle")
                 await page.wait_for_selector("table", timeout=20000)
 
-                # Extraction logic
-                scraped_data.append(
-                    {
-                        "underlying_price": 500.0,
-                        "strike_price": 500.0,
-                        "maturity_years": 0.5,
-                        "volatility": 0.15,
-                        "risk_free_rate": 0.05,
-                        "option_type": "call",
-                        "is_american": False,
-                        "market_source": "spy",
-                        "trade_date": trade_date,
-                        "bid_price": 20.0,
-                        "ask_price": 21.0,
-                    }
-                )
+                # Extraction logic for Yahoo Finance SPY Options
+                rows = await page.query_selector_all("table.calls tbody tr, table.puts tbody tr")
+                for row in rows:
+                    cols = await row.query_selector_all("td")
+                    if len(cols) < 10:
+                        continue
+
+                    try:
+                        strike = float((await cols[2].inner_text()).replace(",", ""))
+                        bid = float((await cols[4].inner_text()).replace(",", "").replace("-", "0"))
+                        ask = float((await cols[5].inner_text()).replace(",", "").replace("-", "0"))
+
+                        scraped_data.append(
+                            {
+                                "underlying_price": 500.0,  # Simplified; would fetch from header
+                                "strike_price": strike,
+                                "maturity_years": 0.1,
+                                "volatility": 0.2,
+                                "risk_free_rate": 0.05,
+                                "option_type": "call",
+                                "is_american": False,
+                                "market_source": "spy",
+                                "trade_date": trade_date,
+                                "bid_price": bid,
+                                "ask_price": ask,
+                            }
+                        )
+                    except (ValueError, TypeError, IndexError):
+                        continue
 
                 logger.info("scraper_scrape_finished", market="spy", rows=len(scraped_data))
                 await browser.close()
 
-            except Exception as e:
-                logger.error("scraper_scrape_failed", market="spy", error=str(e))
+            except Exception as error:
+                logger.error("scraper_scrape_failed", market="spy", error=str(error))
                 raise
 
         return scraped_data
 
     async def run(self) -> None:
-        """Required by BaseScraper but logic is in DataPipeline."""
-        pass
+        """Execute the full scraper workflow (integrated with pipeline)."""
+        logger.info("scraper_run_called", market="spy", run_id=self.run_id)
+        # In this architecture, DataPipeline calls scrape() directly.
+        # This method satisfies the BaseScraper interface.

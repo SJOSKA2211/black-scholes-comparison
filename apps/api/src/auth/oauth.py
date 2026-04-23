@@ -101,6 +101,6 @@ async def sync_user_profile(user_data: dict[str, Any]) -> dict[str, Any]:
         profile = await repository.upsert_user_profile(profile_data)
         logger.info("user_profile_synced", user_id=user_id)
         return profile
-    except Exception as e:
-        logger.error("profile_sync_failed", user_id=user_id, error=str(e))
+    except Exception as error:
+        logger.error("profile_sync_failed", user_id=user_id, error=str(error))
         raise

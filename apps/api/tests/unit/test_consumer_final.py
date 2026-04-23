@@ -19,7 +19,8 @@ class TestConsumerFinal:
             await handle_scrape_task(message)
             assert not mock_pipeline.return_value.process_rows.called
 
-    async def test_handle_experiment_task(self):
+    @patch("scripts.run_experiments.run_experiments", new_callable=AsyncMock)
+    async def test_handle_experiment_task(self, mock_run):
         message = AsyncMock()
         process_mock = MagicMock()
         process_mock.__aenter__ = AsyncMock()
@@ -30,6 +31,7 @@ class TestConsumerFinal:
         await handle_experiment_task(message)
         # Verify it processes
         assert message.process.called
+        assert mock_run.called
 
     @patch("src.queue.consumer.get_rabbitmq_connection")
     async def test_start_consumers_success(self, mock_get_conn):

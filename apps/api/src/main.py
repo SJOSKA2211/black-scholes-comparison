@@ -1,17 +1,16 @@
-"""FastAPI application entry point."""
+"""Main FastAPI Application Entrypoint."""
 
 from __future__ import annotations
 
-import asyncio
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
 
 import structlog
-from typing import Generator, AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
+from src.config import get_settings
 from src.queue.consumer import start_consumers
 from src.routers import (
     downloads,
@@ -23,63 +22,90 @@ from src.routers import (
     scrapers,
     websocket,
 )
-from src.storage.minio_client import get_minio
 
 logger = structlog.get_logger(__name__)
-
-# Global set to store references to long-running tasks to prevent garbage collection
-background_tasks: set[asyncio.Task[Any]] = set()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Initializes infrastructure and background workers."""
-    logger.info("api_starting_up")
+    """
+    Handle application startup and shutdown events.
+    Boot background workers and initialize infrastructure clients.
+    """
+    settings = get_settings()
+    logger.info("app_starting", env=settings.env, step="init")
+
+    # 1. Initialize infrastructure singletons
+    from src.cache.redis_client import get_redis
+    from src.storage.minio_client import get_minio
+
+    # Eager initialization
+    get_redis()
+    get_minio()
+
+    # 2. Start RabbitMQ consumers (Section 8.4)
+    # Background workers consume tasks from bs.scrape and bs.experiment
     try:
-        get_minio()
-    except Exception as e:
-        logger.error("minio_init_failed_in_lifespan", error=str(e))
+        await start_consumers()
+        logger.info("consumers_started", step="init")
+    except Exception as error:
+        logger.error("consumers_start_failed", error=str(error), step="init")
 
-    task = asyncio.create_task(start_consumers())
-    background_tasks.add(task)
-    task.add_done_callback(background_tasks.discard)
-    logger.info("api_startup_completed")
+    logger.info("app_ready", step="init")
+
     yield
-    logger.info("api_shutting_down")
+
+    # Shutdown logic
+    logger.info("app_shutting_down", step="shutdown")
+    # Add any cleanup logic here (e.g. closing DB connections if managed locally)
 
 
-app = FastAPI(
-    title="Black-Scholes Research API v4",
-    description="Full-stack research platform for numerical methods in finance.",
-    version="4.0.0",
-    docs_url="/api/docs",
-    openapi_url="/api/openapi.json",
-    lifespan=lifespan,
-)
+def create_app() -> FastAPI:
+    """Initialize and configure the FastAPI application."""
+    settings = get_settings()
 
-# CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    app = FastAPI(
+        title="Black-Scholes Research Platform",
+        version="4.0.0",
+        description="Production-grade full-stack options pricing research system.",
+        docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
+        lifespan=lifespan,
+    )
 
-# Prometheus Instrumentation
-Instrumentator().instrument(app).expose(app)
+    # CORS configuration
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-# Register Routers (Mandate Aligned)
-app.include_router(pricing.router, prefix="/api/v1", tags=["Pricing"])
-app.include_router(experiments.router, prefix="/api/v1/experiments", tags=["Experiments"])
-app.include_router(market_data.router, prefix="/api/v1/market-data", tags=["Market Data"])
-app.include_router(scrapers.router, prefix="/api/v1/scrapers", tags=["Scrapers"])
-app.include_router(downloads.router, prefix="/api/v1/download", tags=["Downloads"])
-app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
-app.include_router(websocket.router, tags=["WebSocket"])
-app.include_router(health.router, tags=["Health"])
+    # Prometheus Instrumentation (Section 12.1)
+    # Exposes /metrics for Prometheus scraping
+    Instrumentator().instrument(app).expose(app)
+
+    # Include routers (Section 17.2)
+    # Health check is exposed at /health for infrastructure probes
+    app.include_router(health.router)
+
+    # API v1 routes
+    api_v1_prefix = "/api/v1"
+    app.include_router(market_data.router, prefix=api_v1_prefix)
+    app.include_router(pricing.router, prefix=api_v1_prefix)
+    app.include_router(experiments.router, prefix=api_v1_prefix)
+    app.include_router(scrapers.router, prefix=api_v1_prefix)
+    app.include_router(downloads.router, prefix=api_v1_prefix)
+    app.include_router(notifications.router, prefix=api_v1_prefix)
+    app.include_router(websocket.router, prefix=api_v1_prefix)
+
+    @app.get("/")
+    async def root() -> dict[str, str]:
+        """Root endpoint with project identification."""
+        return {"message": "Black-Scholes Research API v4. Production Stable."}
+
+    return app
 
 
-@app.get("/")
-async def root() -> dict[str, str]:
-    return {"message": "Black-Scholes Research API v4 is active", "version": "4.0.0"}
+app = create_app()

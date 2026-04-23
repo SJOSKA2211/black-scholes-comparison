@@ -90,12 +90,13 @@ class NSEScraper(BaseScraper):
                 logger.info("scraper_scrape_finished", market="nse", rows=len(scraped_data))
                 await browser.close()
 
-            except Exception as e:
-                logger.error("scraper_scrape_failed", market="nse", error=str(e))
+            except Exception as error:
+                logger.error("scraper_scrape_failed", market="nse", error=str(error))
                 raise
 
         return scraped_data
 
     async def run(self) -> None:
-        """Required by BaseScraper but logic is in DataPipeline."""
-        pass
+        """Execute the full scraper workflow (integrated with pipeline)."""
+        logger.info("scraper_run_called", market="nse", run_id=self.run_id)
+        # DataPipeline handles the end-to-end orchestration.

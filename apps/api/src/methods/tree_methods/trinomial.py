@@ -6,13 +6,17 @@ import time
 
 import numpy as np
 
-from src.methods.base import OptionParams, PriceResult
+from src.methods.base import MethodType, OptionParams, PriceResult
 
 
 class TrinomialTree:
-    """Trinomial tree wrapper."""
+    """Trinomial tree wrapper using Boyle (1988) lattice."""
 
-    def price(self, params: OptionParams, num_steps: int = 500) -> PriceResult:
+    def __init__(self, num_steps: int = 500) -> None:
+        self.num_steps = num_steps
+        self.method_type: MethodType = "trinomial"
+
+    def price(self, params: OptionParams) -> PriceResult:
         """Boyle (1988) Three-branch lattice Trinomial tree solver."""
         start_time = time.time()
 
@@ -22,45 +26,42 @@ class TrinomialTree:
         risk_free_rate = params.risk_free_rate
         volatility = params.volatility
 
-        time_step = maturity_years / num_steps
+        time_step = maturity_years / self.num_steps
         up_factor = np.exp(volatility * np.sqrt(2 * time_step))
         discount_factor = np.exp(-risk_free_rate * time_step)
 
         # Boyle (1986) probabilities
-        prob_up = (
-            (np.exp(risk_free_rate * time_step / 2) - np.exp(-volatility * np.sqrt(time_step / 2)))
-            / (
-                np.exp(volatility * np.sqrt(time_step / 2))
-                - np.exp(-volatility * np.sqrt(time_step / 2))
-            )
-        ) ** 2
-        prob_down = (
-            (np.exp(volatility * np.sqrt(time_step / 2)) - np.exp(risk_free_rate * time_step / 2))
-            / (
-                np.exp(volatility * np.sqrt(time_step / 2))
-                - np.exp(-volatility * np.sqrt(time_step / 2))
-            )
-        ) ** 2
+        numerator_up = np.exp(risk_free_rate * time_step / 2) - np.exp(
+            -volatility * np.sqrt(time_step / 2)
+        )
+        denominator_base = np.exp(volatility * np.sqrt(time_step / 2)) - np.exp(
+            -volatility * np.sqrt(time_step / 2)
+        )
+        prob_up = (numerator_up / denominator_base) ** 2
+
+        numerator_down = np.exp(volatility * np.sqrt(time_step / 2)) - np.exp(
+            risk_free_rate * time_step / 2
+        )
+        prob_down = (numerator_down / denominator_base) ** 2
+
         prob_mid = 1.0 - prob_up - prob_down
 
         # Grid sizes
-        terminal_underlyings = underlying_price * (
-            up_factor ** np.arange(num_steps, -num_steps - 1, -1)
-        )
+        indices = np.arange(self.num_steps, -self.num_steps - 1, -1)
+        terminal_underlyings = underlying_price * (up_factor**indices)
 
         if params.option_type == "call":
             values = np.maximum(terminal_underlyings - strike_price, 0)
         else:
             values = np.maximum(strike_price - terminal_underlyings, 0)
 
-        for step_idx in range(num_steps - 1, -1, -1):
+        for step_idx in range(self.num_steps - 1, -1, -1):
             values = discount_factor * (
                 prob_up * values[:-2] + prob_mid * values[1:-1] + prob_down * values[2:]
             )
             if params.is_american:
-                underlyings_at_step = underlying_price * (
-                    up_factor ** np.arange(step_idx, -step_idx - 1, -1)
-                )
+                step_indices = np.arange(step_idx, -step_idx - 1, -1)
+                underlyings_at_step = underlying_price * (up_factor**step_indices)
                 if params.option_type == "call":
                     exercise_values = np.maximum(underlyings_at_step - strike_price, 0)
                 else:
@@ -69,8 +70,8 @@ class TrinomialTree:
 
         exec_seconds = time.time() - start_time
         return PriceResult(
-            method_type="trinomial",
+            method_type=self.method_type,
             computed_price=float(values[0]),
             exec_seconds=exec_seconds,
-            parameter_set={"num_steps": num_steps},
+            parameter_set={"num_steps": self.num_steps},
         )
