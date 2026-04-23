@@ -1,4 +1,4 @@
-"""Implicit Finite Difference Method for option pricing."""
+"""Implicit Finite Difference Method (BTCS) with Thomas Algorithm."""
 
 from __future__ import annotations
 
@@ -6,86 +6,146 @@ import time
 
 import numpy as np
 
-from src.methods.base import OptionParams, PriceResult
+from src.methods.base import MethodType, OptionParams, PriceResult
 
 
-def _thomas_algorithm(
-    lower_diag: np.ndarray,
-    main_diag: np.ndarray,
-    upper_diag: np.ndarray,
-    rhs: np.ndarray,
-) -> np.ndarray:
-    """Solves Ax = rhs where A is a tridiagonal matrix. O(n) complexity."""
-    num_elements = len(rhs)
-    c_prime = np.zeros(num_elements)
-    d_prime = np.zeros(num_elements)
+class ImplicitFDM:
+    """
+    Implicit Finite Difference Method (Backward-Time Central-Space).
+    Uses Thomas Algorithm (TDMA) for O(n) tridiagonal system resolution.
+    """
 
-    c_prime[0] = upper_diag[0] / main_diag[0]
-    d_prime[0] = rhs[0] / main_diag[0]
+    method_type: MethodType = "implicit_fdm"
 
-    for idx in range(1, num_elements):
-        denominator = main_diag[idx] - lower_diag[idx] * c_prime[idx - 1]
-        c_prime[idx] = upper_diag[idx] / denominator
-        d_prime[idx] = (rhs[idx] - lower_diag[idx] * d_prime[idx - 1]) / denominator
+    def __init__(self, num_time_steps: int = 100, num_price_steps: int = 100) -> None:
+        self.num_time_steps = num_time_steps
+        self.num_price_steps = num_price_steps
 
-    solution = np.zeros(num_elements)
-    solution[-1] = d_prime[-1]
-    for idx in range(num_elements - 2, -1, -1):
-        solution[idx] = d_prime[idx] - c_prime[idx] * solution[idx + 1]
+    @staticmethod
+    def thomas_algorithm(
+        lower: np.ndarray, main: np.ndarray, upper: np.ndarray, rhs: np.ndarray
+    ) -> np.ndarray:
+        """
+        Solve a tridiagonal system Ax = rhs.
+        lower: lower diagonal [1:num_elements]
+        main: main diagonal [0:num_elements]
+        upper: upper diagonal [0:num_elements-1]
+        rhs: right hand side [0:num_elements]
+        """
+        num_elements = len(rhs)
+        upper_prime = np.zeros(num_elements - 1)
+        rhs_prime = np.zeros(num_elements)
 
-    return solution
+        upper_prime[0] = upper[0] / main[0]
+        rhs_prime[0] = rhs[0] / main[0]
 
+        for index in range(1, num_elements - 1):
+            denominator = main[index] - lower[index - 1] * upper_prime[index - 1]
+            upper_prime[index] = upper[index] / denominator
+            rhs_prime[index] = (rhs[index] - lower[index - 1] * rhs_prime[index - 1]) / denominator
 
-def price_implicit_fdm(
-    params: OptionParams, num_spatial: int = 100, num_time: int = 100
-) -> PriceResult:
-    """BTCS Implicit FDM solver."""
-    start_time = time.time()
-    strike_price = params.strike_price
-    max_underlying = 4 * strike_price
-    time_step = params.maturity_years / num_time
-    underlying_values = np.linspace(0, max_underlying, num_spatial + 1)
+        rhs_prime[num_elements - 1] = (
+            rhs[num_elements - 1] - lower[num_elements - 2] * rhs_prime[num_elements - 2]
+        ) / (main[num_elements - 1] - lower[num_elements - 2] * upper_prime[num_elements - 2])
 
-    if params.option_type == "call":
-        values = np.maximum(underlying_values - strike_price, 0)
-    else:
-        values = np.maximum(strike_price - underlying_values, 0)
+        solution = np.zeros(num_elements)
+        solution[num_elements - 1] = rhs_prime[num_elements - 1]
+        for index in range(num_elements - 2, -1, -1):
+            solution[index] = rhs_prime[index] - upper_prime[index] * solution[index + 1]
 
-    vol_sq = params.volatility**2
-    risk_free_rate = params.risk_free_rate
-    space_indices = np.arange(1, num_spatial)
+        return solution
 
-    lower_diag = -0.5 * time_step * (vol_sq * space_indices**2 - risk_free_rate * space_indices)
-    main_diag = 1 + time_step * (vol_sq * space_indices**2 + risk_free_rate)
-    upper_diag = -0.5 * time_step * (vol_sq * space_indices**2 + risk_free_rate * space_indices)
+    def price(self, params: OptionParams) -> PriceResult:
+        """Compute the option price and Greeks using Implicit FDM."""
+        start_time = time.time()
 
-    for time_idx in range(num_time):
-        rhs_values = values[1:-1].copy()
-        if params.option_type == "call":
-            rhs_values[-1] -= upper_diag[-1] * (
-                max_underlying - strike_price * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
+        def _solve(p: OptionParams) -> tuple[np.ndarray, np.ndarray, float]:
+            max_p = p.strike_price * 3.0
+            dt = p.maturity_years / self.num_time_steps
+            ds = max_p / self.num_price_steps
+            v_prices = np.linspace(0, max_p, self.num_price_steps + 1)
+            v_grid = (
+                np.maximum(v_prices - p.strike_price, 0)
+                if p.option_type == "call"
+                else np.maximum(p.strike_price - v_prices, 0)
             )
+
+            indices = np.arange(1, self.num_price_steps)
+            vol_sq = p.volatility**2
+            r = p.risk_free_rate
+            lower = -0.5 * dt * (vol_sq * (indices[1:] ** 2) - r * indices[1:])
+            main = 1 + dt * (vol_sq * (indices**2) + r)
+            upper = -0.5 * dt * (vol_sq * (indices[:-1] ** 2) + r * indices[:-1])
+
+            for step in range(self.num_time_steps):
+                rhs = v_grid[1 : self.num_price_steps]
+                if p.option_type == "call":
+                    rhs[-1] -= upper[-1] * (max_p - p.strike_price * np.exp(-r * dt * step))
+                else:
+                    rhs[0] -= lower[0] * (p.strike_price * np.exp(-r * dt * step))
+
+                v_grid[1 : self.num_price_steps] = self.thomas_algorithm(lower, main, upper, rhs)
+                if p.option_type == "call":
+                    v_grid[0], v_grid[-1] = 0, max_p - p.strike_price * np.exp(-r * dt * (step + 1))
+                else:
+                    v_grid[0], v_grid[-1] = p.strike_price * np.exp(-r * dt * (step + 1)), 0
+
+            return v_prices, v_grid, ds
+
+        prices, grid, delta_s = _solve(params)
+        computed_price = float(np.interp(params.underlying_price, prices, grid))
+
+        idx = np.searchsorted(prices, params.underlying_price)
+        if 0 < idx < self.num_price_steps:
+            delta = (grid[idx + 1] - grid[idx - 1]) / (2 * delta_s)
+            gamma = (grid[idx + 1] - 2 * grid[idx] + grid[idx - 1]) / (delta_s**2)
         else:
-            rhs_values[0] -= lower_diag[0] * (
-                strike_price * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
+            delta = (
+                (grid[idx + 1] - grid[idx]) / delta_s
+                if idx < self.num_price_steps
+                else (grid[idx] - grid[idx - 1]) / delta_s
             )
+            gamma = 0.0
 
-        values[1:-1] = _thomas_algorithm(lower_diag, main_diag, upper_diag, rhs_values)
+        h_v, h_t, h_r = 0.01, 1 / 365.0, 0.01
 
-        if params.option_type == "call":
-            values[0] = 0
-            values[num_spatial] = max_underlying - strike_price * np.exp(
-                -risk_free_rate * (time_idx + 1) * time_step
+        def get_p(p: OptionParams) -> float:
+            _, g, _ = _solve(p)
+            return float(np.interp(p.underlying_price, prices, g))
+
+        vega = (
+            get_p(params.model_copy(update={"volatility": params.volatility + h_v}))
+            - computed_price
+        ) / h_v
+        theta = (
+            -(
+                computed_price
+                - get_p(
+                    params.model_copy(
+                        update={"maturity_years": max(0.0001, params.maturity_years - h_t)}
+                    )
+                )
             )
-        else:
-            values[0] = strike_price * np.exp(-risk_free_rate * (time_idx + 1) * time_step)
-            values[num_spatial] = 0
+            / h_t
+            if params.maturity_years > h_t
+            else 0.0
+        )
+        rho = (
+            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r}))
+            - computed_price
+        ) / h_r
 
-    price = np.interp(params.underlying_price, underlying_values, values)
-    exec_seconds = time.time() - start_time
-    return PriceResult(
-        method_type="implicit_fdm",
-        computed_price=float(price),
-        exec_seconds=exec_seconds,
-        parameter_set={"num_spatial": num_spatial, "num_time": num_time},
-    )
+        return PriceResult(
+            method_type=self.method_type,
+            computed_price=computed_price,
+            exec_seconds=time.time() - start_time,
+            delta=float(delta),
+            gamma=float(gamma),
+            theta=float(theta),
+            vega=float(vega),
+            rho=float(rho),
+            parameter_set={
+                "num_time_steps": self.num_time_steps,
+                "num_price_steps": self.num_price_steps,
+            },
+        )

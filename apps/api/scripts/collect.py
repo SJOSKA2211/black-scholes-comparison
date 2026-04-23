@@ -1,48 +1,53 @@
-import asyncio
+"""CLI script for manual and scheduled market data collection."""
+
+from __future__ import annotations
+
 import argparse
+import asyncio
+from datetime import date
+
 import structlog
-from datetime import datetime
-from src.scrapers.spy_scraper import SPYScraper
-from src.scrapers.nse_scraper import NSEScraper
-from src.database import repository
+
+from src.data.pipeline import get_pipeline
 
 logger = structlog.get_logger(__name__)
 
-async def run_collection(market: str, collection_date: str):
+async def run_collection(market: str, target_date_str: str) -> None:
     """
     CLI entry point for running a specific scraper.
     """
-    logger.info("cli_scraper_started", market=market, collection_date=collection_date)
-    
-    # Create a record in scrape_runs
-    run_id = await repository.create_scrape_run(market)
-    
     try:
-        if market == "spy":
-            scraper = SPYScraper(run_id)
-        elif market == "nse":
-            scraper = NSEScraper(run_id)
-        else:
-            raise ValueError(f"Unknown market: {market}")
-            
-        await scraper.run()
-        logger.info("cli_scraper_completed", market=market, run_id=run_id)
-        
-    except Exception as e:
-        logger.error("cli_scraper_failed", market=market, error=str(e))
-        await repository.update_scrape_run(run_id, {
-            "status": "failed",
-            "finished_at": datetime.utcnow().isoformat()
-        })
+        target_date = date.fromisoformat(target_date_str)
+    except ValueError:
+        logger.error("invalid_date_format", date=target_date_str)
+        return
 
-def main():
+    logger.info("cli_scraper_started", market=market, collection_date=target_date.isoformat())
+
+    # In this architecture, we use the DataPipeline to handle the full workflow
+    pipeline = get_pipeline(market)
+    try:
+        await pipeline.run(target_date)
+        logger.info("cli_scraper_completed", market=market)
+    except Exception as error:
+        logger.error("cli_scraper_failed", market=market, error=str(error))
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Black-Scholes Market Data Scraper CLI")
-    parser.add_argument("--market", choices=["spy", "nse"], required=True, help="Market to scrape")
-    parser.add_argument("--date", default=datetime.today().strftime("%Y-%m-%d"), help="Target date (YYYY-MM-DD)")
-    
+    parser.add_argument("--market", choices=["spy", "nse", "both"], required=True, help="Market to scrape")
+    parser.add_argument("--date", default=date.today().strftime("%Y-%m-%d"), help="Target date (YYYY-MM-DD)")
+
     args = parser.parse_args()
-    
-    asyncio.run(run_collection(args.market, args.date))
+
+    if args.market == "both":
+        async def run_both() -> None:
+            await asyncio.gather(
+                run_collection("spy", args.date),
+                run_collection("nse", args.date)
+            )
+        asyncio.run(run_both())
+    else:
+        asyncio.run(run_collection(args.market, args.date))
 
 if __name__ == "__main__":
     main()

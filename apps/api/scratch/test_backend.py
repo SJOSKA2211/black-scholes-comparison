@@ -1,9 +1,10 @@
-import requests
 import json
+
+import requests
 
 BASE_URL = "http://localhost"  # Through Nginx
 
-def test_health():
+def test_health() -> None:
     print("Testing /health...")
     try:
         response = requests.get(f"{BASE_URL}/health", verify=False)
@@ -12,7 +13,7 @@ def test_health():
     except Exception as e:
         print(f"Error: {e}")
 
-def test_root():
+def test_root() -> None:
     print("\nTesting /...")
     try:
         response = requests.get(f"{BASE_URL}/", verify=False)

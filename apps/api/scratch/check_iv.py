@@ -1,10 +1,11 @@
+
 import numpy as np
 from scipy.optimize import brentq
 from scipy.stats import norm
-import time
+
 
 class OptionParams:
-    def __init__(self, underlying_price, strike_price, maturity_years, risk_free_rate, volatility, option_type, is_american=False):
+    def __init__(self, underlying_price, strike_price, maturity_years, risk_free_rate, volatility, option_type, is_american=False) -> None:
         self.underlying_price = underlying_price
         self.strike_price = strike_price
         self.maturity_years = maturity_years
@@ -23,10 +24,10 @@ def price(params):
     T = params.maturity_years
     r = params.risk_free_rate
     sigma = params.volatility
-    
+
     d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
-    
+
     if params.option_type == "call":
         p = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
     else:

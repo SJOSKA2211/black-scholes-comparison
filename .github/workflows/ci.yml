@@ -48,7 +48,7 @@ jobs:
       - run: cd apps/api && pip install -r requirements.txt -r requirements-dev.txt
       - run: |
           cd apps/api
-          pytest tests/unit/ -m unit \
+          PYTHONPATH=. pytest tests/unit/ -m unit \
             --cov=src --cov-branch \
             --cov-report=xml --cov-report=term-missing \
             --cov-fail-under=100 \
@@ -77,7 +77,7 @@ jobs:
       - run: cd apps/api && pip install -r requirements.txt -r requirements-dev.txt
       - run: |
           cd apps/api
-          pytest tests/integration/ -m integration \
+          PYTHONPATH=. pytest tests/integration/ -m integration \
             --cov=src --cov-branch --cov-append \
             --cov-fail-under=100 -v
  

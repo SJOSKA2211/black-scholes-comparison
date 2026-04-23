@@ -14,7 +14,7 @@ from src.database.repository import (
     mark_notification_read,
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/notifications", tags=["Notifications"])
 logger = structlog.get_logger(__name__)
 
 
@@ -30,11 +30,14 @@ async def get_user_notifications(
             user_id=current_user["id"], limit=limit, unread_only=unread_only
         )
         return notifications
-    except Exception as e:
+    except Exception as error:
         logger.error(
-            "notifications_fetch_failed", error=str(e), user_id=current_user["id"], step="router"
+            "notifications_fetch_failed",
+            error=str(error),
+            user_id=current_user["id"],
+            step="router",
         )
-        raise HTTPException(status_code=500, detail="Failed to fetch notifications") from e
+        raise HTTPException(status_code=500, detail="Failed to fetch notifications") from error
 
 
 @router.patch("/{notification_id}/read")
@@ -45,9 +48,11 @@ async def acknowledge_notification(
     try:
         await mark_notification_read(notification_id)
         return {"message": "Notification marked as read"}
-    except Exception as e:
-        logger.error("notification_update_failed", error=str(e), id=notification_id, step="router")
-        raise HTTPException(status_code=500, detail="Failed to update notification") from e
+    except Exception as error:
+        logger.error(
+            "notification_update_failed", error=str(error), id=notification_id, step="router"
+        )
+        raise HTTPException(status_code=500, detail="Failed to update notification") from error
 
 
 @router.post("/read-all")
@@ -58,11 +63,11 @@ async def acknowledge_all_notifications(
     try:
         await mark_all_notifications_read(current_user["id"])
         return {"message": "All notifications marked as read"}
-    except Exception as e:
+    except Exception as error:
         logger.error(
             "notifications_bulk_update_failed",
-            error=str(e),
+            error=str(error),
             user_id=current_user["id"],
             step="router",
         )
-        raise HTTPException(status_code=500, detail="Failed to update all notifications") from e
+        raise HTTPException(status_code=500, detail="Failed to update all notifications") from error

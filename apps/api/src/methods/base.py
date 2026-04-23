@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -15,6 +15,7 @@ MethodType = Literal[
     "trinomial",
     "binomial_crr_richardson",
     "trinomial_richardson",
+    "analytical_asian",
 ]
 
 OptionType = Literal["call", "put"]
@@ -40,3 +41,23 @@ class PriceResult(BaseModel):
     replications: int = 1
     parameter_set: dict[str, Any] = Field(default_factory=dict)
     confidence_interval: tuple[float, float] | None = None
+    # Greeks (explicitly typed for production visibility)
+    delta: float | None = None
+    gamma: float | None = None
+    theta: float | None = None
+    vega: float | None = None
+    rho: float | None = None
+
+
+class MethodMetadata(BaseModel):
+    name: str
+    complexity: str
+    type: str
+    convergence_rate: str
+    id: MethodType
+
+
+class NumericalMethod(Protocol):
+    """Protocol for all numerical pricing methods."""
+
+    def price(self, params: OptionParams) -> PriceResult: ...

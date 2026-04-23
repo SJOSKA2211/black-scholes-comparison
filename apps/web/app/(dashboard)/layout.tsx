@@ -1,31 +1,21 @@
-"use client";
-import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { createServerClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
-  const router = useRouter();
+  const supabase = await createServerClient();
+  const { data: { session } } = await supabase.auth.getSession();
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-      </div>
-    );
+  if (!session) {
+    redirect("/login");
   }
+
+  const user = session.user;
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">

@@ -19,8 +19,18 @@ class NumericalMethodError(BlackScholesError):
 class CFLViolationError(NumericalMethodError):
     """Raised when the CFL stability condition is violated in FDM."""
 
-    def __init__(self, message: str, suggested_dt: float | None = None) -> None:
-        details = {"suggested_dt": suggested_dt} if suggested_dt else {}
+    def __init__(
+        self,
+        cfl_actual: float,
+        cfl_bound: float = 0.5,
+        suggested_dt: float | None = None,
+    ) -> None:
+        message = f"CFL stability condition failed: {cfl_actual:.4f} > {cfl_bound:.4f}"
+        details = {
+            "cfl_actual": cfl_actual,
+            "cfl_bound": cfl_bound,
+            "suggested_dt": suggested_dt,
+        }
         super().__init__(message, details=details)
 
 

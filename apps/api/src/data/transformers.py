@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal, cast
 
 import pandas as pd
 import structlog
@@ -27,10 +27,10 @@ def transform_market_row(row: dict[str, Any], market_source: str = "synthetic") 
             risk_free_rate=float(row["risk_free_rate"]),
             option_type=row["option_type"],
             is_american=bool(row.get("is_american", False)),
-            market_source=market_source,
+            market_source=cast("Literal['synthetic', 'spy', 'nse']", market_source),
         )
-    except (KeyError, ValueError, TypeError) as e:
-        logger.error("transformation_error", error=str(e), row=row)
+    except (KeyError, ValueError, TypeError) as error:
+        logger.error("transformation_error", error=str(error), row=row)
         raise
 
 
@@ -39,8 +39,10 @@ def transform_batch_df(df: pd.DataFrame, market_source: str = "synthetic") -> li
     params_list: list[OptionParams] = []
     for _, row in df.iterrows():
         try:
-            params_list.append(transform_market_row(row.to_dict(), market_source))
-        except Exception as e:
-            logger.warning("batch_transform_row_skipped", error=str(e))
+            params_list.append(
+                transform_market_row(cast("dict[str, Any]", row.to_dict()), market_source)
+            )
+        except Exception as error:
+            logger.warning("batch_transform_row_skipped", error=str(error))
             continue
     return params_list

@@ -1,4 +1,4 @@
-"""Explicit Finite Difference Method for option pricing."""
+"""Explicit Finite Difference Method (FTCS)."""
 
 from __future__ import annotations
 
@@ -7,72 +7,103 @@ import time
 import numpy as np
 
 from src.exceptions import CFLViolationError
-from src.methods.base import OptionParams, PriceResult
+from src.methods.base import MethodType, OptionParams, PriceResult
 
 
-def price_explicit_fdm(
-    params: OptionParams, num_spatial: int = 100, num_time: int = 1000
-) -> PriceResult:
-    """FTCS Explicit FDM solver."""
-    start_time = time.time()
-    strike_price = params.strike_price
-    max_underlying = 4 * strike_price
-    time_step = params.maturity_years / num_time
-    spatial_step = max_underlying / num_spatial
+class ExplicitFDM:
+    """
+    Explicit Finite Difference Method (Forward-Time Central-Space).
+    Stability condition: dt / dS^2 * volatility^2 * underlying^2 <= 0.5.
+    """
 
-    volatility = params.volatility
-    risk_free_rate = params.risk_free_rate
+    method_type: MethodType = "explicit_fdm"
 
-    # CFL Condition check
-    cfl_threshold = 0.5 * (spatial_step**2) / (volatility**2 * max_underlying**2)
-    if time_step > cfl_threshold:
-        suggested_num_time = int(params.maturity_years / (0.9 * cfl_threshold)) + 1
-        raise CFLViolationError(
-            f"CFL condition violated. dt ({time_step:.6f}) > threshold ({cfl_threshold:.6f}).",
-            suggested_dt=params.maturity_years / suggested_num_time,
+    def __init__(self, num_time_steps: int = 1000, num_price_steps: int = 100) -> None:
+        self.num_time_steps = num_time_steps
+        self.num_price_steps = num_price_steps
+
+    def price(
+        self, params: OptionParams, num_spatial: int | None = None, num_time: int | None = None
+    ) -> PriceResult:
+        """Compute the option price and Greeks using Explicit FDM."""
+        start_time = time.time()
+
+        nx = num_spatial if num_spatial is not None else self.num_price_steps
+        nt = num_time if num_time is not None else self.num_time_steps
+
+        def _solve(p: OptionParams, local_nx: int, local_nt: int) -> tuple[float, float, float]:
+            max_s = p.underlying_price * 3.0
+            ds = max_s / local_nx
+            dt = p.maturity_years / local_nt
+
+            # CFL Stability Check
+            stability_limit = 0.5 * ds**2 / ((p.volatility**2) * (max_s**2))
+            if dt > stability_limit:
+                raise CFLViolationError(cfl_actual=float(dt), cfl_bound=float(stability_limit))
+
+            s_vals = np.linspace(0, max_s, local_nx + 1)
+            v = (
+                np.maximum(s_vals - p.strike_price, 0)
+                if p.option_type == "call"
+                else np.maximum(p.strike_price - s_vals, 0)
+            )
+
+            for _ in range(local_nt):
+                v_new = np.copy(v)
+                for j in range(1, local_nx):
+                    delta_fd = (v[j + 1] - v[j - 1]) / (2 * ds)
+                    gamma_fd = (v[j + 1] - 2 * v[j] + v[j - 1]) / (ds**2)
+                    drift = p.risk_free_rate * s_vals[j] * delta_fd
+                    diffusion = 0.5 * (p.volatility**2) * (s_vals[j] ** 2) * gamma_fd
+                    v_new[j] = v[j] + dt * (diffusion + drift - p.risk_free_rate * v[j])
+                v = v_new
+
+            idx = np.searchsorted(s_vals, p.underlying_price)
+            price = float(np.interp(p.underlying_price, s_vals, v))
+            delta = (v[idx] - v[idx - 1]) / ds
+            gamma = (v[idx + 1] - 2 * v[idx] + v[idx - 1]) / (ds**2)
+            return price, delta, gamma
+
+        price_main, delta, gamma = _solve(params, nx, nt)
+
+        # Bumping for sensitivities
+        def get_p(p_mod: OptionParams) -> float:
+            try:
+                res, _, _ = _solve(p_mod, nx, nt)
+                return res
+            except CFLViolationError:
+                return price_main
+
+        h_v, h_r, h_t = 0.01, 0.01, 1 / 365.0
+        vega = (
+            get_p(params.model_copy(update={"volatility": params.volatility + h_v})) - price_main
+        ) / h_v
+        rho = (
+            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r}))
+            - price_main
+        ) / h_r
+        theta = (
+            -(
+                price_main
+                - get_p(
+                    params.model_copy(
+                        update={"maturity_years": max(0.0001, params.maturity_years - h_t)}
+                    )
+                )
+            )
+            / h_t
+            if params.maturity_years > h_t
+            else 0.0
         )
 
-    underlying_values = np.linspace(0, max_underlying, num_spatial + 1)
-    grid = np.zeros((num_time + 1, num_spatial + 1))
-
-    # Terminal condition
-    if params.option_type == "call":
-        grid[0, :] = np.maximum(underlying_values - strike_price, 0)
-    else:
-        grid[0, :] = np.maximum(strike_price - underlying_values, 0)
-
-    # Time stepping
-    for time_idx in range(0, num_time):
-        for space_idx in range(1, num_spatial):
-            vol_sq = volatility**2
-
-            a_coeff = 0.5 * time_step * (vol_sq * space_idx**2 - risk_free_rate * space_idx)
-            b_coeff = 1 - time_step * (vol_sq * space_idx**2 + risk_free_rate)
-            c_coeff = 0.5 * time_step * (vol_sq * space_idx**2 + risk_free_rate * space_idx)
-
-            grid[time_idx + 1, space_idx] = (
-                a_coeff * grid[time_idx, space_idx - 1]
-                + b_coeff * grid[time_idx, space_idx]
-                + c_coeff * grid[time_idx, space_idx + 1]
-            )
-
-        # Boundary conditions
-        if params.option_type == "call":
-            grid[time_idx + 1, 0] = 0
-            grid[time_idx + 1, num_spatial] = max_underlying - strike_price * np.exp(
-                -risk_free_rate * (time_idx + 1) * time_step
-            )
-        else:
-            grid[time_idx + 1, 0] = strike_price * np.exp(
-                -risk_free_rate * (time_idx + 1) * time_step
-            )
-            grid[time_idx + 1, num_spatial] = 0
-
-    price = np.interp(params.underlying_price, underlying_values, grid[num_time, :])
-    exec_seconds = time.time() - start_time
-    return PriceResult(
-        method_type="explicit_fdm",
-        computed_price=float(price),
-        exec_seconds=exec_seconds,
-        parameter_set={"num_spatial": num_spatial, "num_time": num_time},
-    )
+        return PriceResult(
+            method_type=self.method_type,
+            computed_price=price_main,
+            exec_seconds=time.time() - start_time,
+            delta=delta,
+            gamma=gamma,
+            theta=theta,
+            vega=vega,
+            rho=rho,
+            parameter_set={"nx": nx, "nt": nt},
+        )

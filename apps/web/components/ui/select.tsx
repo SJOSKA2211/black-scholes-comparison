@@ -3,20 +3,26 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
-export function Select({ children, value, _onValueChange }: any) {
+export interface SelectProps {
+  children?: React.ReactNode;
+  value?: string;
+  onValueChange?: (value: string) => void;
+}
+
+export function Select({ children, value, onValueChange }: SelectProps) {
   return (
     <div className="relative inline-block w-full">
       {React.Children.map(children, (child: any) => {
-        if (child.type === SelectTrigger) {
-          return React.cloneElement(child, { value });
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child as React.ReactElement<any>, { value, onValueChange });
         }
-        return null;
+        return child;
       })}
     </div>
   );
 }
 
-export function SelectTrigger({ children, className, _value }: any) {
+export function SelectTrigger({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex h-10 w-full items-center justify-between rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm", className)}>
       {children}
@@ -25,14 +31,21 @@ export function SelectTrigger({ children, className, _value }: any) {
   );
 }
 
-export function SelectValue({ placeholder, value }: any) {
+export function SelectValue({ placeholder, value }: { placeholder?: string; value?: string }) {
   return <span>{value || placeholder}</span>;
 }
 
-export function SelectContent({ _children }: any) {
-  return null; // Minimal implementation
+export function SelectContent({ children }: { children: React.ReactNode }) {
+  return <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-800 bg-slate-950 p-1 shadow-md">{children}</div>;
 }
 
-export function SelectItem({ _children, _value }: any) {
-  return null; // Minimal implementation
+export function SelectItem({ children, value, onValueChange }: { children: React.ReactNode; value: string; onValueChange?: (value: string) => void }) {
+  return (
+    <div
+      className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-slate-800"
+      onClick={() => onValueChange?.(value)}
+    >
+      {children}
+    </div>
+  );
 }

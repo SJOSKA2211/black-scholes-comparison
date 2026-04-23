@@ -1,6 +1,7 @@
-from supabase import create_client
 import os
+
 from dotenv import load_dotenv
+from supabase import create_client
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ try:
         if u.email == email:
             supabase.auth.admin.delete_user(u.id)
             print(f"Deleted existing user {email}")
-            
+
     # Create user
     res = supabase.auth.admin.create_user({
         "email": email,

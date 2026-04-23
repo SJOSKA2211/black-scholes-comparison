@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Github, Globe, Mail, Lock, ArrowRight, LineChart, AlertCircle } from "lucide-react";
+import { Github, Mail, LineChart, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function LoginContent() {
@@ -41,7 +41,7 @@ function LoginContent() {
 
   const containerVariants: any = {
     hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.1, duration: 0.6, ease: "easeOut" } },
+    visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.05, duration: 0.4, ease: "easeOut" } },
   };
 
   const itemVariants: any = {

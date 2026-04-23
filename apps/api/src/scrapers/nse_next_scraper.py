@@ -22,7 +22,7 @@ class NSEScraper(BaseScraper):
         self.target_url = "https://www.nseindia.com/option-chain"
 
     async def scrape(self, trade_date: date) -> list[dict[str, Any]]:
-        """Scrapes raw data for the given date."""
+        """Scrapes live NSE NIFTY option chain data."""
         logger.info("scraper_scrape_started", market="nse", run_id=self.run_id)
         scraped_data: list[dict[str, Any]] = []
 
@@ -38,64 +38,126 @@ class NSEScraper(BaseScraper):
                 )
                 page = await context.new_page()
 
-                # Step 1: Establish session
+                # Step 1: Establish session (NSE requires visiting home first)
                 await page.goto("https://www.nseindia.com", wait_until="networkidle")
                 await asyncio.sleep(2)
 
                 # Step 2: Option chain
                 await page.goto(self.target_url, wait_until="networkidle")
-                await page.wait_for_selector("#optionChainTable", timeout=20000)
+                await page.wait_for_selector("#optionChainTable", timeout=30000)
 
+                # 3. Underlying Price
                 underlying_element = await page.query_selector("#equity_underlyingVal")
                 underlying_text = (
                     await underlying_element.inner_text() if underlying_element else "22000"
                 )
+                # Text is usually "UNDERLYING VALUE 22,000.00"
                 underlying_price = float(underlying_text.split()[-1].replace(",", ""))
 
-                rows = await page.query_selector_all("#optionChainTable tbody tr")
+                # 4. Maturity calculation
+                # NSE has an expiry date dropdown
+                expiry_el = await page.query_selector("#expirySelect")
+                maturity_years = 7 / 365.0  # default 1 week
+                if expiry_el:
+                    selected_val = await expiry_el.get_attribute("value")
+                    if selected_val:
+                        # Format is usually DD-MMM-YYYY (e.g., 25-Apr-2024)
+                        from datetime import datetime
 
+                        try:
+                            expiry_dt = datetime.strptime(selected_val, "%d-%b-%Y").date()
+                            days_to_expiry = (expiry_dt - trade_date).days
+                            maturity_years = max(0.001, days_to_expiry / 365.0)
+                        except ValueError:
+                            pass
+
+                # 5. Extraction logic
+                rows = await page.query_selector_all("#optionChainTable tbody tr")
                 for row in rows:
                     cols = await row.query_selector_all("td")
                     if len(cols) < 20:
                         continue
 
                     try:
+                        # Strike is in Col 11
                         strike = float((await cols[11].inner_text()).replace(",", ""))
-                        call_bid = float(
+
+                        # CALLS (Left side): Bid in 8, Ask in 9, IV in 7
+                        c_bid = float(
                             (await cols[8].inner_text()).replace("-", "0").replace(",", "")
                         )
-                        call_ask = float(
+                        c_ask = float(
                             (await cols[9].inner_text()).replace("-", "0").replace(",", "")
                         )
+                        c_iv = (
+                            float((await cols[7].inner_text()).replace("-", "20").replace(",", ""))
+                            / 100.0
+                        )
 
-                        if call_ask > 0:
+                        # PUTS (Right side): Bid in 12, Ask in 13, IV in 14
+                        p_bid = float(
+                            (await cols[12].inner_text()).replace("-", "0").replace(",", "")
+                        )
+                        p_ask = float(
+                            (await cols[13].inner_text()).replace("-", "0").replace(",", "")
+                        )
+                        p_iv = (
+                            float((await cols[14].inner_text()).replace("-", "20").replace(",", ""))
+                            / 100.0
+                        )
+
+                        if c_ask > 0:
                             scraped_data.append(
                                 {
                                     "underlying_price": underlying_price,
                                     "strike_price": strike,
-                                    "maturity_years": 7 / 365.0,
-                                    "volatility": 0.2,
-                                    "risk_free_rate": 0.07,
+                                    "maturity_years": maturity_years,
+                                    "volatility": c_iv,
+                                    "risk_free_rate": 0.07,  # RBI rate approx
                                     "option_type": "call",
+                                    "is_american": False,  # NIFTY options are European
+                                    "market_source": "nse",
+                                    "trade_date": trade_date,
+                                    "bid_price": c_bid,
+                                    "ask_price": c_ask,
+                                }
+                            )
+
+                        if p_ask > 0:
+                            scraped_data.append(
+                                {
+                                    "underlying_price": underlying_price,
+                                    "strike_price": strike,
+                                    "maturity_years": maturity_years,
+                                    "volatility": p_iv,
+                                    "risk_free_rate": 0.07,
+                                    "option_type": "put",
                                     "is_american": False,
                                     "market_source": "nse",
                                     "trade_date": trade_date,
-                                    "bid_price": call_bid,
-                                    "ask_price": call_ask,
+                                    "bid_price": p_bid,
+                                    "ask_price": p_ask,
                                 }
                             )
-                    except (ValueError, TypeError):
+
+                    except (ValueError, TypeError, IndexError):
                         continue
 
-                logger.info("scraper_scrape_finished", market="nse", rows=len(scraped_data))
+                logger.info(
+                    "scraper_scrape_finished",
+                    market="nse",
+                    rows=len(scraped_data),
+                    price=underlying_price,
+                )
                 await browser.close()
 
-            except Exception as e:
-                logger.error("scraper_scrape_failed", market="nse", error=str(e))
+            except Exception as error:
+                logger.error("scraper_scrape_failed", market="nse", error=str(error))
                 raise
 
         return scraped_data
 
     async def run(self) -> None:
-        """Required by BaseScraper but logic is in DataPipeline."""
-        pass
+        """Execute the full scraper workflow (integrated with pipeline)."""
+        logger.info("scraper_run_called", market="nse", run_id=self.run_id)
+        # DataPipeline handles the end-to-end orchestration.

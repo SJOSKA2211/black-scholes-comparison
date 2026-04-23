@@ -4,7 +4,8 @@ services:
     build:
       context: .
     volumes:
-      - ./src:/app/src    # Mount source for hot reload
+      - ./src:/app/src        # Mount source for hot reload
+      - ./scripts:/app/scripts # Mount scripts for consistency
     environment:
       LOG_LEVEL: DEBUG
     command:

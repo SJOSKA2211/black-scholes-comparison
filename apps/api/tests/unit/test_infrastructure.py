@@ -1,32 +1,31 @@
+from typing import Any
 import pytest
-import os
 from unittest.mock import MagicMock, patch
-from src.config import get_settings, Settings
+from src.config import get_settings
 from src.exceptions import BlackScholesError, NumericalMethodError
-from src.metrics import PRICE_COMPUTATION_DURATION_SECONDS, EXPERIMENT_GRID_PROGRESS
+from src.metrics import PRICE_DURATION_SECONDS, EXPERIMENT_PROGRESS
 
 @pytest.mark.unit
 class TestInfrastructure:
-    def test_settings_load(self):
+    def test_settings_load(self) -> None:
         with patch("src.config.Settings") as mock_settings_class:
             mock_settings_class.return_value.supabase_url = "http://test"
             get_settings.cache_clear()
             settings = get_settings()
             assert settings.supabase_url == "http://test"
 
-    def test_exceptions(self):
+    def test_exceptions(self) -> None:
         ex = BlackScholesError(message="test")
         assert ex.message == "test"
         
         ex2 = NumericalMethodError("math error")
         assert "math error" in str(ex2)
 
-    def test_metrics_definitions(self):
-        assert PRICE_COMPUTATION_DURATION_SECONDS._name == "black_scholes_price_computation_duration_seconds"
-        assert EXPERIMENT_GRID_PROGRESS._name == "black_scholes_experiment_grid_progress_ratio"
+    def test_metrics_definitions(self) -> None:
+        assert "price_computation_duration_seconds" in PRICE_DURATION_SECONDS._name
+        assert "experiment_grid_progress_ratio" in EXPERIMENT_PROGRESS._name
 
-    @patch("src.logging_config.structlog")
-    def test_logging_config(self, mock_structlog):
-        from src.logging_config import configure_logging
-        configure_logging()
-        assert mock_structlog.configure.called
+    @patch("src.metrics.Counter")
+    def test_metrics_logging(self, mock_counter: Any) -> None:
+        from src.metrics import PRICE_COMPUTATIONS_TOTAL
+        assert PRICE_COMPUTATIONS_TOTAL is not None

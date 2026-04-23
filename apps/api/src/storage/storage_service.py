@@ -24,7 +24,9 @@ def upload_export(
     URL valid for 1 hour — sufficient for browser-direct download.
     """
     client: Minio = get_minio()
-    object_name = f"exports/{datetime.datetime.utcnow():%Y/%m/%d}/{filename}"
+    # Organized by date for better scalability
+    object_name = f"exports/{datetime.datetime.now(datetime.UTC):%Y/%m/%d}/{filename}"
+
     client.put_object(
         bucket_name=bucket,
         object_name=object_name,
@@ -32,10 +34,14 @@ def upload_export(
         length=len(data),
         content_type=content_type,
     )
+
+    # Generate a presigned URL that is accessible via Nginx proxy
+    # The URL will contain the internal hostname, but the client will access it via /minio/
     url = client.presigned_get_object(
         bucket_name=bucket,
         object_name=object_name,
         expires=datetime.timedelta(hours=1),
     )
+
     logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage", rows=1)
     return url
