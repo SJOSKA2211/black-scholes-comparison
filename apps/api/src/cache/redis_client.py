@@ -1,5 +1,3 @@
-"""Redis client singleton — cache, session store, and pub/sub for WebSockets."""
-
 from __future__ import annotations
 
 from functools import lru_cache
@@ -14,7 +12,7 @@ logger = structlog.get_logger(__name__)
 
 
 @lru_cache(maxsize=1)
-def get_redis() -> Any:
+def get_redis() -> aioredis.Redis[Any]:
     """Return a cached async Redis client."""
     settings = get_settings()
     client = aioredis.from_url(

@@ -28,6 +28,9 @@ export function useApi() {
   const supabase = createBrowserClient();
 
   const getToken = useCallback(async () => {
+    if (process.env.NEXT_PUBLIC_SKIP_AUTH === "true") {
+      return "test-token";
+    }
     const { data } = await supabase.auth.getSession();
     return data.session?.access_token ?? null;
   }, [supabase]);

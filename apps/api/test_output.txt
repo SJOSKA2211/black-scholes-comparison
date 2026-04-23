@@ -1,3 +1,1483 @@
-docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error mounting "/home/kamau/black-scholes-comparison/apps/api/apps/api/pyproject.toml" to rootfs at "/app/pyproject.toml": mount src=/home/kamau/black-scholes-comparison/apps/api/apps/api/pyproject.toml, dst=/app/pyproject.toml, dstFd=/proc/thread-self/fd/11, flags=MS_BIND|MS_REC: not a directory: Are you trying to mount a directory onto a file (or vice-versa)? Check if the specified host path exists and is the expected type
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/black-scholes-comparison/apps/api/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, timeout-2.3.1, mock-3.14.0, cov-5.0.0, asyncio-0.23.6
+asyncio: mode=Mode.AUTO
+collecting ... collected 240 items
 
-Run 'docker run --help' for more information
+tests/integration/test_pipeline.py::test_pipeline_run_spy PASSED         [  0%]
+tests/integration/test_pipeline.py::test_pipeline_invalid_data PASSED    [  0%]
+tests/integration/test_repository.py::test_upsert_option_parameters PASSED [  1%]
+tests/integration/test_repository.py::test_price_result_flow PASSED      [  1%]
+tests/integration/test_repository.py::test_user_profile_operations SKIPPED [  2%]
+tests/integration/test_repository.py::test_notification_workflow PASSED  [  2%]
+tests/integration/test_repository.py::test_market_data_operations PASSED [  2%]
+tests/integration/test_repository.py::test_scrape_run_and_audit PASSED   [  3%]
+tests/integration/test_repository.py::test_db_health_and_validation PASSED [  3%]
+tests/integration/test_repository.py::test_repository_error_scenarios PASSED [  4%]
+tests/integration/test_repository.py::test_push_subscriptions SKIPPED    [  4%]
+tests/integration/test_routers.py::TestPricingRouter::test_get_methods PASSED [  5%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_valid PASSED [  5%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_invalid_params PASSED [  5%]
+tests/integration/test_routers.py::TestPricingRouter::test_unauthorized PASSED [  6%]
+tests/integration/test_routers.py::TestDownloadsRouter::test_download_experiments[csv] SKIPPED [  6%]
+tests/integration/test_routers.py::TestDownloadsRouter::test_download_experiments[json] SKIPPED [  7%]
+tests/integration/test_routers.py::TestDownloadsRouter::test_download_experiments[xlsx] SKIPPED [  7%]
+tests/integration/test_routers.py::TestNotificationsRouter::test_notification_flow PASSED [  7%]
+tests/integration/test_routers.py::TestExperimentsRouter::test_get_results PASSED [  8%]
+tests/integration/test_routers.py::TestExperimentsRouter::test_run_experiment_unauthorized PASSED [  8%]
+tests/integration/test_routers.py::TestScrapersRouter::test_get_runs PASSED [  9%]
+tests/integration/test_routers.py::TestScrapersRouter::test_trigger_scraper_invalid_market PASSED [  9%]
+tests/integration/test_routers.py::test_health_check PASSED              [ 10%]
+tests/integration/test_websocket.py::test_websocket_lifecycle PASSED     [ 10%]
+tests/integration/test_websocket.py::test_websocket_invalid_channels PASSED [ 10%]
+tests/integration/test_websocket.py::test_websocket_unauthorized PASSED  [ 11%]
+tests/integration/test_websocket.py::test_redis_pubsub_integration SKIPPED [ 11%]
+tests/unit/test_all_routers.py::TestAllRouters::test_market_data_router PASSED [ 12%]
+tests/unit/test_all_routers.py::TestAllRouters::test_scrapers_router_trigger PASSED [ 12%]
+tests/unit/test_all_routers.py::TestAllRouters::test_scrapers_router_runs PASSED [ 12%]
+tests/unit/test_all_routers.py::TestAllRouters::test_experiments_router_run PASSED [ 13%]
+tests/unit/test_all_routers.py::TestAllRouters::test_experiments_router_results PASSED [ 13%]
+tests/unit/test_all_routers.py::TestAllRouters::test_notifications_router PASSED [ 14%]
+tests/unit/test_all_routers.py::TestAllRouters::test_downloads_router PASSED [ 14%]
+tests/unit/test_analysis_final.py::TestAnalysis::test_analyze_convergence_order PASSED [ 15%]
+tests/unit/test_analysis_final.py::TestAnalysis::test_compute_mape PASSED [ 15%]
+tests/unit/test_analysis_final.py::TestAnalysis::test_get_convergence_metrics PASSED [ 15%]
+tests/unit/test_api.py::TestAPI::test_pricing_endpoint_full FAILED       [ 16%]
+tests/unit/test_api.py::TestAPI::test_get_methods FAILED                 [ 16%]
+tests/unit/test_api.py::TestAPI::test_health_check_fail_branches PASSED  [ 17%]
+tests/unit/test_api.py::TestAPI::test_market_data_fail FAILED            [ 17%]
+tests/unit/test_api.py::TestAPI::test_notifications_branches FAILED      [ 17%]
+tests/unit/test_api.py::TestAPI::test_scrapers_branches FAILED           [ 18%]
+tests/unit/test_api.py::TestAPI::test_experiments_branches FAILED        [ 18%]
+tests/unit/test_api.py::TestAPI::test_download_branches FAILED           [ 19%]
+tests/unit/test_api.py::TestAPI::test_websocket_invalid_channel PASSED   [ 19%]
+tests/unit/test_backend_final_coverage.py::test_upsert_option_parameters_error FAILED [ 20%]
+tests/unit/test_backend_final_coverage.py::test_get_experiments_branches FAILED [ 20%]
+tests/unit/test_backend_final_coverage.py::test_get_market_data_branches FAILED [ 20%]
+tests/unit/test_backend_final_coverage.py::test_get_notifications_unread_branch FAILED [ 21%]
+tests/unit/test_backend_final_coverage.py::test_supabase_client_direct PASSED [ 21%]
+tests/unit/test_backend_final_coverage.py::test_rabbitmq_client_direct FAILED [ 22%]
+tests/unit/test_backend_final_coverage.py::test_websocket_endpoint_direct FAILED [ 22%]
+tests/unit/test_backend_final_coverage.py::test_scrapers_router_branches PASSED [ 22%]
+tests/unit/test_backend_final_coverage.py::test_auth_dependencies_errors FAILED [ 23%]
+tests/unit/test_backend_final_coverage.py::test_oauth_errors FAILED      [ 23%]
+tests/unit/test_backend_final_coverage.py::test_sync_user_profile FAILED [ 24%]
+tests/unit/test_backend_final_coverage.py::test_websocket_manager_exit_loop FAILED [ 24%]
+tests/unit/test_backend_final_coverage.py::test_pipeline_empty_market_data_branch FAILED [ 25%]
+tests/unit/test_backend_final_coverage.py::test_cors_preflight PASSED    [ 25%]
+tests/unit/test_backend_final_coverage.py::test_nse_scraper_branches FAILED [ 25%]
+tests/unit/test_cache.py::TestCache::test_get_redis_init PASSED          [ 26%]
+tests/unit/test_cache.py::TestCache::test_cache_decorator_hit FAILED     [ 26%]
+tests/unit/test_cache.py::TestCache::test_cache_decorator_miss FAILED    [ 27%]
+tests/unit/test_cache.py::TestCache::test_cache_decorator_error FAILED   [ 27%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_handle_scrape_task_empty FAILED [ 27%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_handle_experiment_task FAILED [ 28%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_start_consumers_success FAILED [ 28%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_start_consumers_failure FAILED [ 29%]
+tests/unit/test_convergence_extra.py::TestConvergenceExtra::test_analyze_convergence_low_resolutions PASSED [ 29%]
+tests/unit/test_convergence_extra.py::TestConvergenceExtra::test_analyze_convergence_dt_resolution PASSED [ 30%]
+tests/unit/test_convergence_extra.py::TestConvergenceExtra::test_analyze_convergence_invalid_dt PASSED [ 30%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_serialize_formats PASSED [ 30%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_success FAILED [ 31%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_fetch_data_logic FAILED [ 31%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_empty FAILED [ 32%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_failure FAILED [ 32%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_run_experiment_exception PASSED [ 32%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_get_results_by_method PASSED [ 33%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_get_results_exception PASSED [ 33%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_get_result_detail_flow PASSED [ 34%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_settings_load PASSED [ 34%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_exceptions PASSED [ 35%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_metrics_definitions PASSED [ 35%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_metrics_logging PASSED [ 35%]
+tests/unit/test_logging_config.py::test_configure_logging PASSED         [ 36%]
+tests/unit/test_main_coverage.py::TestMainCoverage::test_lifespan_timeout FAILED [ 36%]
+tests/unit/test_main_coverage.py::TestMainCoverage::test_lifespan_exception FAILED [ 37%]
+tests/unit/test_main_coverage.py::TestMainCoverage::test_root_endpoint FAILED [ 37%]
+tests/unit/test_methods.py::test_all_methods_call PASSED                 [ 37%]
+tests/unit/test_methods.py::test_all_methods_put PASSED                  [ 38%]
+tests/unit/test_methods.py::test_american_call PASSED                    [ 38%]
+tests/unit/test_methods.py::test_american_put PASSED                     [ 39%]
+tests/unit/test_methods.py::test_analytical_extras PASSED                [ 39%]
+tests/unit/test_methods.py::test_implied_volatility_logic PASSED         [ 40%]
+tests/unit/test_methods.py::test_explicit_fdm_cfl_violation PASSED       [ 40%]
+tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_binomial_crr_richardson_logic PASSED [ 40%]
+tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_binomial_crr_richardson_wrapper PASSED [ 41%]
+tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_richardson_none_greek PASSED [ 41%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_explicit_fdm_cfl_violation PASSED [ 42%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_standard_mc_put PASSED [ 42%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_antithetic_mc_put PASSED [ 42%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_quasi_mc_put PASSED [ 43%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_control_variate_put PASSED [ 43%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_binomial_put PASSED [ 44%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_trinomial_put PASSED [ 44%]
+tests/unit/test_methods_final.py::test_binomial_american_put_coverage PASSED [ 45%]
+tests/unit/test_methods_final.py::test_trinomial_american_call_coverage PASSED [ 45%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_config_rabbitmq_override PASSED [ 45%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_config_rabbitmq_no_override PASSED [ 46%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_analytical_iv_failure PASSED [ 46%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_fdm_boundary_delta PASSED [ 47%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_explicit_fdm_cfl_bumping PASSED [ 47%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_mc_replications_branch PASSED [ 47%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_tree_steps_branch PASSED [ 48%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_richardson_none_greeks PASSED [ 48%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_pricing_router_compare_success_with_analytical FAILED [ 49%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_pricing_router_compare_exception FAILED [ 49%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_scrapers_router_exception FAILED [ 50%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_nse_scraper_value_error FAILED [ 50%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_methods_base_protocol PASSED [ 50%]
+tests/unit/test_missing_coverage.py::TestMissingCoverage::test_analytical_asian PASSED [ 51%]
+tests/unit/test_modules_v4.py::TestDataTransformers::test_transform_market_row_success PASSED [ 51%]
+tests/unit/test_modules_v4.py::TestAnalysis::test_compute_mape PASSED    [ 52%]
+tests/unit/test_modules_v4.py::TestScraperFactory::test_get_scraper PASSED [ 52%]
+tests/unit/test_modules_v4.py::TestStorage::test_upload_export PASSED    [ 52%]
+tests/unit/test_modules_v4.py::TestAuthDeps::test_verify_ws_token_success FAILED [ 53%]
+tests/unit/test_modules_v4.py::TestAuthDeps::test_verify_ws_token_missing FAILED [ 53%]
+tests/unit/test_modules_v4.py::TestWebSocketManager::test_connect_disconnect FAILED [ 54%]
+tests/unit/test_modules_v4.py::TestNotifications::test_notify_user FAILED [ 54%]
+tests/unit/test_notifications.py::TestNotifications::test_notify_user_hierarchy_success FAILED [ 55%]
+tests/unit/test_notifications.py::TestNotifications::test_notify_user_hierarchy_failure FAILED [ 55%]
+tests/unit/test_notifications.py::TestNotifications::test_email_service_success FAILED [ 55%]
+tests/unit/test_notifications.py::TestNotifications::test_email_service_no_key FAILED [ 56%]
+tests/unit/test_notifications.py::TestNotifications::test_email_service_failure FAILED [ 56%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_success FAILED [ 57%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_partial_failure FAILED [ 57%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_no_subs FAILED [ 57%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_failure FAILED [ 58%]
+tests/unit/test_notifications_router_coverage.py::TestNotificationsRouterCoverage::test_get_notifications_exception PASSED [ 58%]
+tests/unit/test_notifications_router_coverage.py::TestNotificationsRouterCoverage::test_acknowledge_notification_exception PASSED [ 59%]
+tests/unit/test_notifications_router_coverage.py::TestNotificationsRouterCoverage::test_acknowledge_all_notifications_exception PASSED [ 59%]
+tests/unit/test_nse_scraper_coverage.py::TestNSEScraperCoverage::test_scrape_edge_cases FAILED [ 60%]
+tests/unit/test_nse_scraper_coverage.py::TestNSEScraperCoverage::test_run_method FAILED [ 60%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_github_user_success FAILED [ 60%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_github_user_fail FAILED [ 61%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_google_user_success FAILED [ 61%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_google_user_fail FAILED [ 62%]
+tests/unit/test_pipeline.py::test_get_pipeline_factory PASSED            [ 62%]
+tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_run_success FAILED [ 62%]
+tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_no_market FAILED [ 63%]
+tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_run_failure FAILED [ 63%]
+tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_row_failure FAILED [ 64%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_get_method_instance_all_branches PASSED [ 64%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_calculate_price_persist PASSED [ 65%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_compare_methods_without_analytical PASSED [ 65%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_compare_methods_exception PASSED [ 65%]
+tests/unit/test_queue.py::TestPublisher::test_publish_scrape_task FAILED [ 66%]
+tests/unit/test_queue.py::TestPublisher::test_publish_experiment_task FAILED [ 66%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task FAILED   [ 67%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_failure FAILED [ 67%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_execution_failure FAILED [ 67%]
+tests/unit/test_queue.py::TestConsumer::test_handle_experiment_task FAILED [ 68%]
+tests/unit/test_queue.py::TestConsumer::test_start_consumers_failure FAILED [ 68%]
+tests/unit/test_rabbitmq_client_coverage.py::test_get_rabbitmq_connection_reuse FAILED [ 69%]
+tests/unit/test_rabbitmq_client_coverage.py::test_close_rabbitmq_connection_flow FAILED [ 69%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_insert_method_result_with_user_id FAILED [ 70%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_price_result FAILED [ 70%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_check_db_health_flow FAILED [ 70%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_option_parameters_exception FAILED [ 71%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_insert_method_result_exception FAILED [ 71%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_price_result_none_greeks FAILED [ 72%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_create_scrape_run_with_triggered_by FAILED [ 72%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_option_parameters_existing FAILED [ 72%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_option_parameters_new FAILED [ 73%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_method_result FAILED [ 73%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments FAILED [ 74%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_notification FAILED [ 74%]
+tests/unit/test_repository_final.py::TestRepository::test_get_user_profile FAILED [ 75%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_user_profile FAILED [ 75%]
+tests/unit/test_repository_final.py::TestRepository::test_get_market_data FAILED [ 75%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_market_data FAILED [ 76%]
+tests/unit/test_repository_final.py::TestRepository::test_get_validation_summary FAILED [ 76%]
+tests/unit/test_repository_final.py::TestRepository::test_create_scrape_run FAILED [ 77%]
+tests/unit/test_repository_final.py::TestRepository::test_update_scrape_run FAILED [ 77%]
+tests/unit/test_repository_final.py::TestRepository::test_get_scrape_runs FAILED [ 77%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_notification_read FAILED [ 78%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_all_notifications_read FAILED [ 78%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiment_by_id FAILED [ 79%]
+tests/unit/test_repository_final.py::TestRepository::test_get_push_subscriptions FAILED [ 79%]
+tests/unit/test_repository_final.py::TestRepository::test_delete_push_subscription FAILED [ 80%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments_by_method FAILED [ 80%]
+tests/unit/test_repository_final.py::TestRepository::test_get_notifications FAILED [ 80%]
+tests/unit/test_repository_final.py::TestRepository::test_create_audit_log FAILED [ 81%]
+tests/unit/test_repository_final.py::TestRepository::test_get_push_subscriptions_error FAILED [ 81%]
+tests/unit/test_repository_final.py::TestRepository::test_delete_push_subscription_error FAILED [ 82%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_notification_read_error FAILED [ 82%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_all_notifications_read_error FAILED [ 82%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiment_by_id_error FAILED [ 83%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments_by_method_error FAILED [ 83%]
+tests/unit/test_repository_final.py::TestRepository::test_get_scrape_runs_error FAILED [ 84%]
+tests/unit/test_repository_final.py::TestRepository::test_update_scrape_run_error FAILED [ 84%]
+tests/unit/test_repository_final.py::TestRepository::test_create_scrape_run_error FAILED [ 85%]
+tests/unit/test_repository_final.py::TestRepository::test_get_validation_summary_error FAILED [ 85%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_market_data_error FAILED [ 85%]
+tests/unit/test_repository_final.py::TestRepository::test_get_market_data_error FAILED [ 86%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_user_profile_error FAILED [ 86%]
+tests/unit/test_repository_final.py::TestRepository::test_get_user_profile_error FAILED [ 87%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_notification_error FAILED [ 87%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments_error FAILED [ 87%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_method_result_error FAILED [ 88%]
+tests/unit/test_routers.py::TestRouters::test_root_endpoint PASSED       [ 88%]
+tests/unit/test_routers.py::TestRouters::test_health_check PASSED        [ 89%]
+tests/unit/test_routers.py::TestRouters::test_pricing_endpoint PASSED    [ 89%]
+tests/unit/test_routers.py::TestRouters::test_methods_list PASSED        [ 90%]
+tests/unit/test_routers.py::TestRouters::test_docs_reachability PASSED   [ 90%]
+tests/unit/test_scrapers.py::TestScrapers::test_spy_scraper_success FAILED [ 90%]
+tests/unit/test_scrapers.py::TestScrapers::test_spy_scraper_failure FAILED [ 91%]
+tests/unit/test_scrapers.py::TestScrapers::test_nse_scraper_success FAILED [ 91%]
+tests/unit/test_scrapers.py::TestScrapers::test_scraper_factory PASSED   [ 92%]
+tests/unit/test_spy_scraper_coverage.py::TestSPYScraperCoverage::test_scrape_edge_cases FAILED [ 92%]
+tests/unit/test_spy_scraper_coverage.py::TestSPYScraperCoverage::test_run_method FAILED [ 92%]
+tests/unit/test_storage.py::TestStorage::test_get_minio_init PASSED      [ 93%]
+tests/unit/test_storage.py::TestStorage::test_get_minio_s3_error PASSED  [ 93%]
+tests/unit/test_storage.py::TestStorage::test_upload_export PASSED       [ 94%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_market_row_success PASSED [ 94%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_market_row_failure PASSED [ 95%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_batch_df_success PASSED [ 95%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_batch_df_partial_failure PASSED [ 95%]
+tests/unit/test_validators.py::TestValidators::test_numeric_validators_success PASSED [ 96%]
+tests/unit/test_validators.py::TestValidators::test_numeric_validators_failure PASSED [ 96%]
+tests/unit/test_validators.py::TestValidators::test_validate_quote_success PASSED [ 97%]
+tests/unit/test_validators.py::TestValidators::test_validate_quote_missing_keys PASSED [ 97%]
+tests/unit/test_validators.py::TestValidators::test_validate_quote_invalid_values PASSED [ 97%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_connect_disconnect FAILED [ 98%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_broadcast FAILED [ 98%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_redis_listener_flow FAILED [ 99%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_redis_listener_error FAILED [ 99%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_channels_import PASSED [100%]/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestScrapers.test_spy_scraper_failure' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestScrapers.test_nse_scraper_success' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestSPYScraperCoverage.test_scrape_edge_cases' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestSPYScraperCoverage.test_run_method' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestWebSocketManager.test_connect_disconnect' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestWebSocketManager.test_broadcast' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestWebSocketManager.test_redis_listener_flow' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/ast.py:50: RuntimeWarning: coroutine 'TestWebSocketManager.test_redis_listener_error' was never awaited
+  return compile(source, filename, mode, flags,
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+
+
+=================================== FAILURES ===================================
+______________________ TestAPI.test_pricing_endpoint_full ______________________
+tests/unit/test_api.py:50: in test_pricing_endpoint_full
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: POST http://testserver/api/v1/pricing/calculate?method_type=standard_mc "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/pricing/calculate?method_type=standard_mc "HTTP/1.1 403 Forbidden"
+___________________________ TestAPI.test_get_methods ___________________________
+tests/unit/test_api.py:69: in test_get_methods
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: GET http://testserver/api/v1/pricing/methods "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: GET http://testserver/api/v1/pricing/methods "HTTP/1.1 403 Forbidden"
+________________________ TestAPI.test_market_data_fail _________________________
+tests/unit/test_api.py:113: in test_market_data_fail
+    assert response.status_code == 500
+E   assert 403 == 500
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: GET http://testserver/api/v1/market-data/ "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: GET http://testserver/api/v1/market-data/ "HTTP/1.1 403 Forbidden"
+_____________________ TestAPI.test_notifications_branches ______________________
+tests/unit/test_api.py:128: in test_notifications_branches
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: GET http://testserver/api/v1/notifications/ "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: GET http://testserver/api/v1/notifications/ "HTTP/1.1 403 Forbidden"
+________________________ TestAPI.test_scrapers_branches ________________________
+tests/unit/test_api.py:143: in test_scrapers_branches
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: POST http://testserver/api/v1/scrapers/trigger?market=spy "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/scrapers/trigger?market=spy "HTTP/1.1 403 Forbidden"
+______________________ TestAPI.test_experiments_branches _______________________
+tests/unit/test_api.py:173: in test_experiments_branches
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: POST http://testserver/api/v1/experiments/run "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: POST http://testserver/api/v1/experiments/run "HTTP/1.1 403 Forbidden"
+________________________ TestAPI.test_download_branches ________________________
+tests/unit/test_api.py:190: in test_download_branches
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = <Response [403 Forbidden]>.status_code
+----------------------------- Captured stderr call -----------------------------
+HTTP Request: GET http://testserver/api/v1/download/experiments?format=csv "HTTP/1.1 403 Forbidden"
+------------------------------ Captured log call -------------------------------
+INFO     httpx:_client.py:1026 HTTP Request: GET http://testserver/api/v1/download/experiments?format=csv "HTTP/1.1 403 Forbidden"
+_____________________ test_upsert_option_parameters_error ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________________ test_get_experiments_branches _________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________________ test_get_market_data_branches _________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ test_get_notifications_unread_branch _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________________ test_rabbitmq_client_direct __________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________________ test_websocket_endpoint_direct ________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________________ test_auth_dependencies_errors _________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________________________ test_oauth_errors _______________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________________ test_sync_user_profile ____________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________________ test_websocket_manager_exit_loop _______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ test_pipeline_empty_market_data_branch ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________________ test_nse_scraper_branches ___________________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________________ TestCache.test_cache_decorator_hit ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestCache.test_cache_decorator_miss ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestCache.test_cache_decorator_error _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestConsumerFinal.test_handle_scrape_task_empty ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestConsumerFinal.test_handle_experiment_task _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestConsumerFinal.test_start_consumers_success ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestConsumerFinal.test_start_consumers_failure ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________ TestDownloadsFinal.test_download_resource_success _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestDownloadsFinal.test_fetch_data_logic ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestDownloadsFinal.test_download_resource_empty ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________ TestDownloadsFinal.test_download_resource_failure _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestMainCoverage.test_lifespan_timeout ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestMainCoverage.test_lifespan_exception ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestMainCoverage.test_root_endpoint ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___ TestMissingCoverage.test_pricing_router_compare_success_with_analytical ____
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________ TestMissingCoverage.test_pricing_router_compare_exception ___________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________ TestMissingCoverage.test_scrapers_router_exception ______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestMissingCoverage.test_nse_scraper_value_error _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestAuthDeps.test_verify_ws_token_success ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestAuthDeps.test_verify_ws_token_missing ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestWebSocketManager.test_connect_disconnect _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________________ TestNotifications.test_notify_user ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________ TestNotifications.test_notify_user_hierarchy_success _____________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________ TestNotifications.test_notify_user_hierarchy_failure _____________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestNotifications.test_email_service_success _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestNotifications.test_email_service_no_key __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestNotifications.test_email_service_failure _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestNotifications.test_push_service_success __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________ TestNotifications.test_push_service_partial_failure ______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestNotifications.test_push_service_no_subs __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestNotifications.test_push_service_failure __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestNSEScraperCoverage.test_scrape_edge_cases _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestNSEScraperCoverage.test_run_method ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestOAuth.test_get_github_user_success ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestOAuth.test_get_github_user_fail ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestOAuth.test_get_google_user_success ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestOAuth.test_get_google_user_fail ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestDataPipeline.test_pipeline_run_success __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestDataPipeline.test_pipeline_no_market ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestDataPipeline.test_pipeline_run_failure __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestDataPipeline.test_pipeline_row_failure __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestPublisher.test_publish_scrape_task ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestPublisher.test_publish_experiment_task __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestConsumer.test_handle_scrape_task _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestConsumer.test_handle_scrape_task_failure _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________ TestConsumer.test_handle_scrape_task_execution_failure ____________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestConsumer.test_handle_experiment_task ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestConsumer.test_start_consumers_failure ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________________ test_get_rabbitmq_connection_reuse ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ test_close_rabbitmq_connection_flow ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________ TestRepositoryCoverage.test_insert_method_result_with_user_id _________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepositoryCoverage.test_upsert_price_result ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepositoryCoverage.test_check_db_health_flow _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________ TestRepositoryCoverage.test_upsert_option_parameters_exception ________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________ TestRepositoryCoverage.test_insert_method_result_exception __________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________ TestRepositoryCoverage.test_upsert_price_result_none_greeks __________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______ TestRepositoryCoverage.test_create_scrape_run_with_triggered_by ________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________ TestRepository.test_upsert_option_parameters_existing _____________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepository.test_upsert_option_parameters_new _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestRepository.test_insert_method_result ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestRepository.test_get_experiments ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestRepository.test_insert_notification ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestRepository.test_get_user_profile _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestRepository.test_upsert_user_profile ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestRepository.test_get_market_data ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestRepository.test_insert_market_data ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_get_validation_summary __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestRepository.test_create_scrape_run _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestRepository.test_update_scrape_run _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestRepository.test_get_scrape_runs ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_mark_notification_read __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepository.test_mark_all_notifications_read ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+___________________ TestRepository.test_get_experiment_by_id ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_get_push_subscriptions __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestRepository.test_delete_push_subscription _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestRepository.test_get_experiments_by_method _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestRepository.test_get_notifications _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestRepository.test_create_audit_log _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepository.test_get_push_subscriptions_error _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+______________ TestRepository.test_delete_push_subscription_error ______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepository.test_mark_notification_read_error _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________ TestRepository.test_mark_all_notifications_read_error _____________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestRepository.test_get_experiment_by_id_error ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________ TestRepository.test_get_experiments_by_method_error ______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_get_scrape_runs_error ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestRepository.test_update_scrape_run_error __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestRepository.test_create_scrape_run_error __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_______________ TestRepository.test_get_validation_summary_error _______________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestRepository.test_insert_market_data_error _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_get_market_data_error ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestRepository.test_upsert_user_profile_error _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_get_user_profile_error __________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestRepository.test_insert_notification_error _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+__________________ TestRepository.test_get_experiments_error ___________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestRepository.test_insert_method_result_error ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestScrapers.test_spy_scraper_success _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestScrapers.test_spy_scraper_failure _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestScrapers.test_nse_scraper_success _____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestSPYScraperCoverage.test_scrape_edge_cases _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+____________________ TestSPYScraperCoverage.test_run_method ____________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_________________ TestWebSocketManager.test_connect_disconnect _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+_____________________ TestWebSocketManager.test_broadcast ______________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestWebSocketManager.test_redis_listener_flow _________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+________________ TestWebSocketManager.test_redis_listener_error ________________
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:436: in runtest
+    super().runtest()
+.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:894: in inner
+    _loop = asyncio.get_event_loop()
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py:681: in get_event_loop
+    raise RuntimeError('There is no current event loop in thread %r.'
+E   RuntimeError: There is no current event loop in thread 'MainThread'.
+=============================== warnings summary ===============================
+.venv/lib/python3.11/site-packages/supabase/_sync/auth_client.py:3
+  /home/kamau/black-scholes-comparison/apps/api/.venv/lib/python3.11/site-packages/supabase/_sync/auth_client.py:3: DeprecationWarning: The `gotrue` package is deprecated, is not going to receive updates in the future. Please, use `supabase_auth` instead.
+    from gotrue import (
+
+tests/integration/test_pipeline.py::test_pipeline_run_spy
+  /home/kamau/black-scholes-comparison/apps/api/.venv/lib/python3.11/site-packages/pytest_asyncio/plugin.py:759: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /home/kamau/black-scholes-comparison/apps/api/tests/conftest.py:21
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.15-final-0 ----------
+Name                                              Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------------------------------------------------
+src/__init__.py                                       0      0      0      0   100%
+src/analysis/__init__.py                              0      0      0      0   100%
+src/analysis/convergence.py                          25      0     12      0   100%
+src/analysis/statistics.py                           14      0      4      0   100%
+src/auth/__init__.py                                  0      0      0      0   100%
+src/auth/dependencies.py                             33     10      6      2    64%   25, 35-37, 47-48, 53-57
+src/auth/oauth.py                                    46     35     14      0    18%   19-44, 49-76, 84-106
+src/cache/__init__.py                                 0      0      0      0   100%
+src/cache/decorators.py                              32      4      2      0    82%   36-38, 46
+src/cache/redis_client.py                            13      0      0      0   100%
+src/config.py                                        44      0      0      0   100%
+src/data/__init__.py                                  0      0      0      0   100%
+src/data/pipeline.py                                 65     11      8      2    82%   77-79, 93, 96, 134-139
+src/data/transformers.py                             21      0      2      0   100%
+src/data/validators.py                              105      0     22      0   100%
+src/database/__init__.py                              0      0      0      0   100%
+src/database/repository.py                          321    111     24      5    66%   73-74, 81-84, 132, 146-149, 177-180, 184-195, 199-210, 226->228, 229, 231, 236-239, 251-254, 270-273, 284, 289-292, 304-307, 328-330, 344-347, 365-368, 379-382, 395-398, 423-434, 438-448, 465-468, 478-480
+src/database/supabase_client.py                       7      0      0      0   100%
+src/exceptions.py                                    21      0      0      0   100%
+src/logging_config.py                                 5      0      0      0   100%
+src/main.py                                          51      3      0      0    94%   54, 57-58
+src/methods/__init__.py                               0      0      0      0   100%
+src/methods/analytical.py                            71      0      6      0   100%
+src/methods/base.py                                  35      0      0      0   100%
+src/methods/finite_difference/__init__.py             4      0      0      0   100%
+src/methods/finite_difference/crank_nicolson.py      53      0      8      0   100%
+src/methods/finite_difference/explicit.py            56      0      6      0   100%
+src/methods/finite_difference/implicit.py            68      0     12      0   100%
+src/methods/monte_carlo/__init__.py                   5      0      0      0   100%
+src/methods/monte_carlo/antithetic.py                45      0      4      0   100%
+src/methods/monte_carlo/control_variates.py          56      0      4      0   100%
+src/methods/monte_carlo/quasi_mc.py                  41      0      4      0   100%
+src/methods/monte_carlo/standard.py                  36      0      2      0   100%
+src/methods/tree_methods/__init__.py                  4      0      0      0   100%
+src/methods/tree_methods/binomial_crr.py             57      0     14      0   100%
+src/methods/tree_methods/richardson.py               41      0      4      0   100%
+src/methods/tree_methods/trinomial.py                53      0     12      0   100%
+src/metrics.py                                       20      0      0      0   100%
+src/notifications/__init__.py                         0      0      0      0   100%
+src/notifications/email.py                           24     18      2      0    23%   17-52
+src/notifications/hierarchy.py                       25     15      4      0    34%   29-66
+src/notifications/push.py                            23     18      6      0    17%   16-36
+src/routers/__init__.py                               0      0      0      0   100%
+src/routers/downloads.py                             48      9     12      2    78%   24-27, 56, 65-68, 86
+src/routers/experiments.py                           41      0      4      0   100%
+src/routers/health.py                                41      0      2      0   100%
+src/routers/market_data.py                           16      3      0      0    81%   27-29
+src/routers/notifications.py                         32      0      0      0   100%
+src/routers/pricing.py                               80      3     30      1    96%   186-190, 204->207
+src/routers/scrapers.py                              23      0      2      0   100%
+src/routers/websocket.py                             25      3      4      0    90%   42-44
+src/scrapers/__init__.py                              0      0      0      0   100%
+src/scrapers/base_scraper.py                          7      0      0      0   100%
+src/scrapers/nse_next_scraper.py                     66     52     12      0    18%   26-158, 162
+src/scrapers/scraper_factory.py                      13      0      2      0   100%
+src/scrapers/spy_scraper.py                          66     53     14      0    16%   25-139, 143
+src/storage/__init__.py                               0      0      0      0   100%
+src/storage/minio_client.py                          20      0      4      0   100%
+src/storage/storage_service.py                       14      0      0      0   100%
+src/task_queues/__init__.py                           0      0      0      0   100%
+src/task_queues/consumer.py                          46     32      0      0    30%   19-41, 46-58, 68-81, 83
+src/task_queues/publisher.py                         29     18      0      0    38%   20-32, 37-45, 50-58
+src/task_queues/rabbitmq_client.py                   16      5      4      1    60%   29-31, 37-39
+src/websocket/__init__.py                             0      0      0      0   100%
+src/websocket/channels.py                             2      0      0      0   100%
+src/websocket/manager.py                             57     14     18      6    68%   32->37, 47->exit, 55->exit, 58->60, 65, 71-72, 75, 83-91, 94-95
+---------------------------------------------------------------------------------------------
+TOTAL                                              2162    417    290     19    80%
+
+FAIL Required test coverage of 100.0% not reached. Total coverage: 79.53%
+=========================== short test summary info ============================
+FAILED tests/unit/test_api.py::TestAPI::test_pricing_endpoint_full - assert 4...
+FAILED tests/unit/test_api.py::TestAPI::test_get_methods - assert 403 == 200
+FAILED tests/unit/test_api.py::TestAPI::test_market_data_fail - assert 403 ==...
+FAILED tests/unit/test_api.py::TestAPI::test_notifications_branches - assert ...
+FAILED tests/unit/test_api.py::TestAPI::test_scrapers_branches - assert 403 =...
+FAILED tests/unit/test_api.py::TestAPI::test_experiments_branches - assert 40...
+FAILED tests/unit/test_api.py::TestAPI::test_download_branches - assert 403 =...
+FAILED tests/unit/test_backend_final_coverage.py::test_upsert_option_parameters_error
+FAILED tests/unit/test_backend_final_coverage.py::test_get_experiments_branches
+FAILED tests/unit/test_backend_final_coverage.py::test_get_market_data_branches
+FAILED tests/unit/test_backend_final_coverage.py::test_get_notifications_unread_branch
+FAILED tests/unit/test_backend_final_coverage.py::test_rabbitmq_client_direct
+FAILED tests/unit/test_backend_final_coverage.py::test_websocket_endpoint_direct
+FAILED tests/unit/test_backend_final_coverage.py::test_auth_dependencies_errors
+FAILED tests/unit/test_backend_final_coverage.py::test_oauth_errors - Runtime...
+FAILED tests/unit/test_backend_final_coverage.py::test_sync_user_profile - Ru...
+FAILED tests/unit/test_backend_final_coverage.py::test_websocket_manager_exit_loop
+FAILED tests/unit/test_backend_final_coverage.py::test_pipeline_empty_market_data_branch
+FAILED tests/unit/test_backend_final_coverage.py::test_nse_scraper_branches
+FAILED tests/unit/test_cache.py::TestCache::test_cache_decorator_hit - Runtim...
+FAILED tests/unit/test_cache.py::TestCache::test_cache_decorator_miss - Runti...
+FAILED tests/unit/test_cache.py::TestCache::test_cache_decorator_error - Runt...
+FAILED tests/unit/test_consumer_final.py::TestConsumerFinal::test_handle_scrape_task_empty
+FAILED tests/unit/test_consumer_final.py::TestConsumerFinal::test_handle_experiment_task
+FAILED tests/unit/test_consumer_final.py::TestConsumerFinal::test_start_consumers_success
+FAILED tests/unit/test_consumer_final.py::TestConsumerFinal::test_start_consumers_failure
+FAILED tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_success
+FAILED tests/unit/test_downloads_final.py::TestDownloadsFinal::test_fetch_data_logic
+FAILED tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_empty
+FAILED tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_failure
+FAILED tests/unit/test_main_coverage.py::TestMainCoverage::test_lifespan_timeout
+FAILED tests/unit/test_main_coverage.py::TestMainCoverage::test_lifespan_exception
+FAILED tests/unit/test_main_coverage.py::TestMainCoverage::test_root_endpoint
+FAILED tests/unit/test_missing_coverage.py::TestMissingCoverage::test_pricing_router_compare_success_with_analytical
+FAILED tests/unit/test_missing_coverage.py::TestMissingCoverage::test_pricing_router_compare_exception
+FAILED tests/unit/test_missing_coverage.py::TestMissingCoverage::test_scrapers_router_exception
+FAILED tests/unit/test_missing_coverage.py::TestMissingCoverage::test_nse_scraper_value_error
+FAILED tests/unit/test_modules_v4.py::TestAuthDeps::test_verify_ws_token_success
+FAILED tests/unit/test_modules_v4.py::TestAuthDeps::test_verify_ws_token_missing
+FAILED tests/unit/test_modules_v4.py::TestWebSocketManager::test_connect_disconnect
+FAILED tests/unit/test_modules_v4.py::TestNotifications::test_notify_user - R...
+FAILED tests/unit/test_notifications.py::TestNotifications::test_notify_user_hierarchy_success
+FAILED tests/unit/test_notifications.py::TestNotifications::test_notify_user_hierarchy_failure
+FAILED tests/unit/test_notifications.py::TestNotifications::test_email_service_success
+FAILED tests/unit/test_notifications.py::TestNotifications::test_email_service_no_key
+FAILED tests/unit/test_notifications.py::TestNotifications::test_email_service_failure
+FAILED tests/unit/test_notifications.py::TestNotifications::test_push_service_success
+FAILED tests/unit/test_notifications.py::TestNotifications::test_push_service_partial_failure
+FAILED tests/unit/test_notifications.py::TestNotifications::test_push_service_no_subs
+FAILED tests/unit/test_notifications.py::TestNotifications::test_push_service_failure
+FAILED tests/unit/test_nse_scraper_coverage.py::TestNSEScraperCoverage::test_scrape_edge_cases
+FAILED tests/unit/test_nse_scraper_coverage.py::TestNSEScraperCoverage::test_run_method
+FAILED tests/unit/test_oauth_final.py::TestOAuth::test_get_github_user_success
+FAILED tests/unit/test_oauth_final.py::TestOAuth::test_get_github_user_fail
+FAILED tests/unit/test_oauth_final.py::TestOAuth::test_get_google_user_success
+FAILED tests/unit/test_oauth_final.py::TestOAuth::test_get_google_user_fail
+FAILED tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_run_success
+FAILED tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_no_market
+FAILED tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_run_failure
+FAILED tests/unit/test_pipeline.py::TestDataPipeline::test_pipeline_row_failure
+FAILED tests/unit/test_queue.py::TestPublisher::test_publish_scrape_task - Ru...
+FAILED tests/unit/test_queue.py::TestPublisher::test_publish_experiment_task
+FAILED tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task - Runt...
+FAILED tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_failure
+FAILED tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_execution_failure
+FAILED tests/unit/test_queue.py::TestConsumer::test_handle_experiment_task - ...
+FAILED tests/unit/test_queue.py::TestConsumer::test_start_consumers_failure
+FAILED tests/unit/test_rabbitmq_client_coverage.py::test_get_rabbitmq_connection_reuse
+FAILED tests/unit/test_rabbitmq_client_coverage.py::test_close_rabbitmq_connection_flow
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_insert_method_result_with_user_id
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_price_result
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_check_db_health_flow
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_option_parameters_exception
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_insert_method_result_exception
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_price_result_none_greeks
+FAILED tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_create_scrape_run_with_triggered_by
+FAILED tests/unit/test_repository_final.py::TestRepository::test_upsert_option_parameters_existing
+FAILED tests/unit/test_repository_final.py::TestRepository::test_upsert_option_parameters_new
+FAILED tests/unit/test_repository_final.py::TestRepository::test_insert_method_result
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_experiments
+FAILED tests/unit/test_repository_final.py::TestRepository::test_insert_notification
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_user_profile
+FAILED tests/unit/test_repository_final.py::TestRepository::test_upsert_user_profile
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_market_data
+FAILED tests/unit/test_repository_final.py::TestRepository::test_insert_market_data
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_validation_summary
+FAILED tests/unit/test_repository_final.py::TestRepository::test_create_scrape_run
+FAILED tests/unit/test_repository_final.py::TestRepository::test_update_scrape_run
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_scrape_runs
+FAILED tests/unit/test_repository_final.py::TestRepository::test_mark_notification_read
+FAILED tests/unit/test_repository_final.py::TestRepository::test_mark_all_notifications_read
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_experiment_by_id
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_push_subscriptions
+FAILED tests/unit/test_repository_final.py::TestRepository::test_delete_push_subscription
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_experiments_by_method
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_notifications
+FAILED tests/unit/test_repository_final.py::TestRepository::test_create_audit_log
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_push_subscriptions_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_delete_push_subscription_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_mark_notification_read_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_mark_all_notifications_read_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_experiment_by_id_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_experiments_by_method_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_scrape_runs_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_update_scrape_run_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_create_scrape_run_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_validation_summary_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_insert_market_data_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_market_data_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_upsert_user_profile_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_user_profile_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_insert_notification_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_get_experiments_error
+FAILED tests/unit/test_repository_final.py::TestRepository::test_insert_method_result_error
+FAILED tests/unit/test_scrapers.py::TestScrapers::test_spy_scraper_success - ...
+FAILED tests/unit/test_scrapers.py::TestScrapers::test_spy_scraper_failure - ...
+FAILED tests/unit/test_scrapers.py::TestScrapers::test_nse_scraper_success - ...
+FAILED tests/unit/test_spy_scraper_coverage.py::TestSPYScraperCoverage::test_scrape_edge_cases
+FAILED tests/unit/test_spy_scraper_coverage.py::TestSPYScraperCoverage::test_run_method
+FAILED tests/unit/test_websocket.py::TestWebSocketManager::test_connect_disconnect
+FAILED tests/unit/test_websocket.py::TestWebSocketManager::test_broadcast - R...
+FAILED tests/unit/test_websocket.py::TestWebSocketManager::test_redis_listener_flow
+FAILED tests/unit/test_websocket.py::TestWebSocketManager::test_redis_listener_error
+====== 123 failed, 111 passed, 6 skipped, 2 warnings in 184.29s (0:03:04) ======

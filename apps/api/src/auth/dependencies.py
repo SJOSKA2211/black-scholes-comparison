@@ -19,6 +19,15 @@ async def get_current_user(
 ) -> dict[str, Any]:
     """Validates JWT token against Supabase and returns user info."""
     supabase = get_supabase_client()
+    # Development bypass for E2E tests
+    from src.config import settings
+    if settings.environment == "development" and auth.credentials == "test-token":
+        return {
+            "id": "00000000-0000-0000-0000-000000000000",
+            "email": "test@example.com",
+            "role": "researcher",
+        }
+
     try:
         response = supabase.auth.get_user(auth.credentials)
         if response is None or not response.user:

@@ -48,7 +48,7 @@ def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
         raise ValueError(f"Unsupported format: {format}")
 
 
-async def download_resource(resource: str, format: str, user: dict[str, Any]) -> dict[str, str]:
+async def download_resource(resource: str, format: str, user: dict[str, Any]) -> dict[str, Any]:
     """Core logic for resource download."""
     try:
         df = await _fetch_data(resource)
@@ -60,7 +60,7 @@ async def download_resource(resource: str, format: str, user: dict[str, Any]) ->
 
         # Upload to MinIO
         download_url = upload_export(data, filename, content_type)
-        return {"url": download_url}
+        return {"url": download_url, "filename": filename, "expires_in": 3600}
 
     except HTTPException:
         raise
@@ -72,7 +72,7 @@ async def download_resource(resource: str, format: str, user: dict[str, Any]) ->
 async def export_experiments(
     format: str = Query("json", description="Export format (json/csv/xlsx)"),
     user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Generate an export of experiments."""
     return await download_resource("experiments", format, user)
 
@@ -81,6 +81,6 @@ async def export_experiments(
 async def export_market_data(
     format: str = Query("json", description="Export format (json/csv/xlsx)"),
     user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Generate an export of market data."""
     return await download_resource("market_data", format, user)

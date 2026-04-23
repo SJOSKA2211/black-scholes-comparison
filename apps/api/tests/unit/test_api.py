@@ -16,7 +16,12 @@ async def mock_get_current_user() -> dict[str, str]:
     return {"id": "user-123", "email": "test@example.com"}
 
 
-app.dependency_overrides[get_current_user] = mock_get_current_user
+@pytest.fixture(autouse=True)
+def override_auth() -> Generator[None, None]:
+    app.dependency_overrides[get_current_user] = mock_get_current_user
+    yield
+    if get_current_user in app.dependency_overrides:
+        del app.dependency_overrides[get_current_user]
 
 
 @pytest.fixture(autouse=True)

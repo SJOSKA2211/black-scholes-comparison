@@ -22,7 +22,8 @@ def auth_client():
     app.dependency_overrides[get_current_user] = lambda: MOCK_USER
     with TestClient(app) as client:
         yield client
-    app.dependency_overrides.clear()
+    if get_current_user in app.dependency_overrides:
+        del app.dependency_overrides[get_current_user]
 
 
 @pytest.mark.integration

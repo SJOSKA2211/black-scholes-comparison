@@ -101,14 +101,15 @@ async def test_price_result_flow(sample_option_params, cleanup_ids) -> None:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Requires real auth.users record which cannot be mocked on real Supabase")
-async def test_user_profile_operations(cleanup_ids) -> None:
-    user_id = str(uuid.uuid4())
+async def test_user_profile_operations(cleanup_ids, test_user_id) -> None:
+    # Use existing user_id or a unique one if we can't create auth.users
+    user_id = test_user_id
     profile = {"id": user_id, "display_name": "Test User", "role": "researcher"}
 
     res = await repository.upsert_user_profile(profile)
     assert res["id"] == user_id
-    cleanup_ids["user_profiles"].append(user_id)
+    # We don't cleanup user_profiles as it's a shared test user
+    # cleanup_ids["user_profiles"].append(user_id)
 
     fetched = await repository.get_user_profile(user_id)
     assert fetched["display_name"] == "Test User"
@@ -209,7 +210,6 @@ async def test_repository_error_scenarios() -> None:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.skip(reason="Schema mismatch for push_subscriptions table")
 async def test_push_subscriptions(cleanup_ids, test_user_id) -> None:
     user_id = test_user_id
 
@@ -219,7 +219,11 @@ async def test_push_subscriptions(cleanup_ids, test_user_id) -> None:
     supabase = get_supabase_client()
     sub_id = str(uuid.uuid4())
     supabase.table("push_subscriptions").insert(
-        {"id": sub_id, "user_id": user_id, "endpoint": "https://example.com", "p256dh": "key"}
+        {
+            "id": sub_id,
+            "user_id": user_id,
+            "subscription_info": {"endpoint": "https://example.com", "keys": {"p256dh": "key"}},
+        }
     ).execute()
     cleanup_ids["push_subscriptions"].append(sub_id)
 

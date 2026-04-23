@@ -13,11 +13,19 @@ export default async function DashboardLayout({
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
+  // Dev bypass for E2E tests (Section 16.3)
+  const skipAuth = process.env.SKIP_AUTH === "true" || process.env.NODE_ENV === "test";
+  
+  if (!session && !skipAuth) {
     redirect("/login");
   }
 
-  const user = session.user;
+  // Mock user if skipping auth
+  const user = session?.user || {
+    id: "00000000-0000-0000-0000-000000000000",
+    email: "test@example.com",
+    user_metadata: { full_name: "Test User" },
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
