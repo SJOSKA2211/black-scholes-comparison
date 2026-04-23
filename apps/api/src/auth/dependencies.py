@@ -21,6 +21,7 @@ async def get_current_user(
     supabase = get_supabase_client()
     # Development bypass for E2E tests
     from src.config import settings
+
     if settings.environment == "development" and auth.credentials == "test-token":
         return {
             "id": "00000000-0000-0000-0000-000000000000",
