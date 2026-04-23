@@ -74,7 +74,8 @@ class ExplicitFDM:
                     v[0] = p.strike_price * np.exp(-r * dt * (_ + 1))
                     v[local_nx] = 0
 
-            idx = np.searchsorted(s_vals, p.underlying_price)
+            idx = int(np.searchsorted(s_vals, p.underlying_price))
+            idx = max(1, min(idx, local_nx - 1))
             price = float(np.interp(p.underlying_price, s_vals, v))
             delta = float((v[idx] - v[idx - 1]) / ds)
             gamma = float((v[idx + 1] - 2 * v[idx] + v[idx - 1]) / (ds**2))

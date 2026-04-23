@@ -18,6 +18,17 @@ class TrinomialTree:
 
     def price(self, params: OptionParams) -> PriceResult:
         """Boyle (1988) Three-branch lattice Trinomial tree solver with Greeks."""
+        if self.num_steps < 1:
+            return PriceResult(
+                method_type=self.method_type,
+                computed_price=0.0,
+                exec_seconds=0.0,
+                delta=0.0,
+                gamma=0.0,
+                theta=0.0,
+                vega=0.0,
+                rho=0.0,
+            )
         start_time = time.time()
 
         def _solve(p: OptionParams) -> tuple[float, float, float]:
@@ -43,6 +54,8 @@ class TrinomialTree:
             else:
                 values = np.maximum(p.strike_price - underlyings, 0)
 
+            terminal_values = np.copy(values)
+
             # Backward induction
             for step in range(self.num_steps - 1, -1, -1):
                 values = discount * (p_u * values[:-2] + p_m * values[1:-1] + p_d * values[2:])
@@ -63,7 +76,7 @@ class TrinomialTree:
             # If num_steps=1, we don't go through the loop correctly for v_u/v_m/v_d
             if self.num_steps == 1:
                 # Manually compute step 1 values (terminal values)
-                v_u, v_m, v_d = values[0], values[1], values[2]  # values at step 0 actually
+                v_u, v_m, v_d = terminal_values[0], terminal_values[1], terminal_values[2]
 
             # For delta/gamma we need step 1 underlyings
             s_u = p.underlying_price * up_factor

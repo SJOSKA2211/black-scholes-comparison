@@ -46,6 +46,8 @@ class BinomialCRR:
         )
 
         # Backward induction
+        v1 = np.zeros(2)
+        v2 = np.zeros(3)
         for i in range(steps - 1, -1, -1):
             v = (p_u * v[1:] + p_d * v[:-1]) / q_growth
             if params.is_american:

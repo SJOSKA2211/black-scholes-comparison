@@ -99,7 +99,8 @@ class ImplicitFDM:
         prices, grid, delta_s = _solve(params)
         computed_price = float(np.interp(params.underlying_price, prices, grid))
 
-        idx = np.searchsorted(prices, params.underlying_price)
+        idx = int(np.searchsorted(prices, params.underlying_price))
+        idx = min(idx, self.num_price_steps)
         if 0 < idx < self.num_price_steps:
             delta = (grid[idx + 1] - grid[idx - 1]) / (2 * delta_s)
             gamma = (grid[idx + 1] - 2 * grid[idx] + grid[idx - 1]) / (delta_s**2)

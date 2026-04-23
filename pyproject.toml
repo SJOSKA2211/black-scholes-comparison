@@ -1,0 +1,19 @@
+[tool.mypy]
+python_version   = "3.11"
+strict           = true
+warn_return_any  = true
+warn_unused_configs = true
+disallow_untyped_defs  = true
+disallow_any_generics  = true
+no_implicit_optional   = true
+
+[[tool.mypy.overrides]]
+module = [
+    "scipy.*",
+    "pandas.*",
+    "playwright.*",
+    "resend.*",
+    "matplotlib.*",
+    "structlog.*",
+]
+ignore_missing_imports = true

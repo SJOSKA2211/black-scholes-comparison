@@ -1,4 +1,4 @@
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -57,7 +57,8 @@ class MethodMetadata(BaseModel):
     id: MethodType
 
 
+@runtime_checkable
 class NumericalMethod(Protocol):
     """Protocol for all numerical pricing methods."""
 
-    def price(self, params: OptionParams) -> PriceResult: ...
+    def price(self, params: OptionParams) -> PriceResult: ...  # pragma: no cover

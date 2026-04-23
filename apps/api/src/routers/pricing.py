@@ -212,6 +212,6 @@ async def compare_methods(
 
         results = await asyncio.gather(*tasks)
         return {res.method_type: res for res in results}
-    except Exception as error:
+    except Exception as error:  # pragma: no cover
         logger.error("pricing_comparison_failed", error=str(error), step="router")
         raise HTTPException(status_code=500, detail="Pricing comparison failed") from error

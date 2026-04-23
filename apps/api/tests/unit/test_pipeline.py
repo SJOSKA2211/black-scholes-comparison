@@ -20,6 +20,7 @@ def test_get_pipeline_factory() -> None:
     assert p2.run_id is not None  # Generated UUID
 
 
+@pytest.mark.unit
 class TestDataPipeline:
     @patch("src.data.pipeline.ScraperFactory")
     @patch("src.data.pipeline.upsert_option_parameters", new_callable=AsyncMock)
