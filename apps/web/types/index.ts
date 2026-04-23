@@ -1,5 +1,5 @@
-export type OptionType = 'call' | 'put';
-export type MarketSource = 'synthetic' | 'spy' | 'nse';
+export type OptionType = "call" | "put";
+export type MarketSource = "synthetic" | "spy" | "nse";
 
 export interface OptionParams {
   underlying_price: float;
@@ -63,8 +63,8 @@ export interface Notification {
   user_id: string;
   title: string;
   body: string;
-  severity: 'info' | 'warning' | 'error' | 'critical';
-  channel: 'in_app' | 'email' | 'push';
+  severity: "info" | "warning" | "error" | "critical";
+  channel: "in_app" | "email" | "push";
   read: boolean;
   action_url?: string;
   created_at: string;

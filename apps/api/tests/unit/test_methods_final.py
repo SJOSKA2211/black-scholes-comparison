@@ -1,7 +1,9 @@
 import pytest
+
 from src.methods.base import OptionParams
 from src.methods.tree_methods.binomial_crr import BinomialCRR
 from src.methods.tree_methods.trinomial import TrinomialTree
+
 
 @pytest.fixture
 def base_params():
@@ -12,8 +14,9 @@ def base_params():
         volatility=0.2,
         risk_free_rate=0.05,
         option_type="call",
-        is_american=False
+        is_american=False,
     )
+
 
 @pytest.mark.unit
 def test_binomial_american_put_coverage(base_params):
@@ -21,6 +24,7 @@ def test_binomial_american_put_coverage(base_params):
     base_params.option_type = "put"
     res = BinomialCRR(num_steps=10).price(base_params)
     assert res.computed_price > 0
+
 
 @pytest.mark.unit
 def test_trinomial_american_call_coverage(base_params):

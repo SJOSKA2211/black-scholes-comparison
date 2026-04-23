@@ -1,13 +1,15 @@
 import pytest
+
 from src.data.validators import (
-    validate_underlying_price,
-    validate_strike_price,
-    validate_maturity,
-    validate_volatility,
-    validate_risk_free_rate,
-    validate_quote,
     ValidationError,
+    validate_maturity,
+    validate_quote,
+    validate_risk_free_rate,
+    validate_strike_price,
+    validate_underlying_price,
+    validate_volatility,
 )
+
 
 @pytest.mark.unit
 class TestValidators:

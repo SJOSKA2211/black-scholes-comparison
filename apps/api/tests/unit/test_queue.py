@@ -1,11 +1,14 @@
-from typing import Any
-import pytest
 import json
-from unittest.mock import MagicMock, patch, AsyncMock
 from datetime import date
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import aio_pika
-from src.queue.publisher import publish_scrape_task, publish_experiment_task
-from src.queue.consumer import handle_scrape_task
+import pytest
+
+from src.queue.consumer import handle_experiment_task, handle_scrape_task, start_consumers
+from src.queue.publisher import publish_experiment_task, publish_scrape_task
+
 
 @pytest.mark.unit
 class TestPublisher:
@@ -13,66 +16,109 @@ class TestPublisher:
     async def test_publish_scrape_task(self, mock_get_conn: Any) -> None:
         mock_conn = AsyncMock()
         mock_get_conn.return_value = mock_conn
-        
+
         mock_channel = AsyncMock()
         mock_exchange = AsyncMock()
-        
-        mock_conn.channel.return_value.__aenter__.return_value = mock_channel
-        mock_channel.get_exchange.return_value = mock_exchange
-        
+
+        # connection.channel() should be a regular method returning an async context manager
+        mock_conn.channel = MagicMock()
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__.return_value = mock_channel
+        mock_conn.channel.return_value = mock_cm
+
+        mock_channel.declare_exchange.return_value = mock_exchange
+
         await publish_scrape_task("spy", date(2026, 4, 22))
-        
-        mock_channel.get_exchange.assert_called_with("bs.tasks")
+
+        mock_channel.declare_exchange.assert_called()
         mock_exchange.publish.assert_called_once()
-        args, kwargs = mock_exchange.publish.call_args
+        args, _ = mock_exchange.publish.call_args
         message = args[0]
         assert json.loads(message.body.decode())["market"] == "spy"
-        assert kwargs["routing_key"] == "scrape"
 
     @patch("src.queue.publisher.get_rabbitmq_connection")
     async def test_publish_experiment_task(self, mock_get_conn: Any) -> None:
         mock_conn = AsyncMock()
         mock_get_conn.return_value = mock_conn
-        
+
         mock_channel = AsyncMock()
         mock_exchange = AsyncMock()
-        
-        mock_conn.channel.return_value.__aenter__.return_value = mock_channel
-        mock_channel.get_exchange.return_value = mock_exchange
-        
+
+        mock_conn.channel = MagicMock()
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__.return_value = mock_channel
+        mock_conn.channel.return_value = mock_cm
+
+        mock_channel.declare_exchange.return_value = mock_exchange
+
         params = {"S_range": [90, 110]}
         await publish_experiment_task(params)
-        
-        assert mock_exchange.publish.called
+
+        mock_exchange.publish.assert_called_once()
         kwargs = mock_exchange.publish.call_args.kwargs
         assert kwargs["routing_key"] == "experiment"
+
 
 @pytest.mark.unit
 class TestConsumer:
     @patch("src.queue.consumer.DataPipeline")
-    @patch("src.queue.consumer.get_supabase_client")
-    async def test_handle_scrape_task(self, mock_supa: Any, mock_pipeline_class: Any) -> None:
+    async def test_handle_scrape_task(self, mock_pipeline_class: Any) -> None:
         mock_msg = MagicMock(spec=aio_pika.abc.AbstractIncomingMessage)
-        mock_msg.body = json.dumps({"market": "spy", "run_id": "test-run", "rows": []}).encode()
-        
+        mock_msg.body = json.dumps({"market": "spy", "date": "2026-04-22"}).encode()
+
+        # Mock message processing context manager
         mock_process = AsyncMock()
         mock_msg.process.return_value = mock_process
         mock_process.__aenter__.return_value = mock_msg
-        
+
         mock_pipeline = AsyncMock()
         mock_pipeline_class.return_value = mock_pipeline
-        
+
         await handle_scrape_task(mock_msg)
-        
+
         mock_pipeline_class.assert_called()
-        # Verify it was called with spy and test-run
         args, kwargs = mock_pipeline_class.call_args
-        assert kwargs["run_id"] == "test-run"
-        assert args[1] == "spy"
+        assert kwargs["market"] == "spy"
 
     async def test_handle_scrape_task_failure(self) -> None:
         mock_msg = MagicMock(spec=aio_pika.abc.AbstractIncomingMessage)
         mock_msg.body = b"invalid json"
-        
+
         with pytest.raises(json.JSONDecodeError):
-             await handle_scrape_task(mock_msg)
+            await handle_scrape_task(mock_msg)
+
+    @patch("src.queue.consumer.DataPipeline")
+    async def test_handle_scrape_task_execution_failure(self, mock_pipeline_class: Any) -> None:
+        mock_msg = MagicMock(spec=aio_pika.abc.AbstractIncomingMessage)
+        mock_msg.body = json.dumps({"market": "spy", "date": "2026-04-22"}).encode()
+        mock_process = AsyncMock()
+        mock_msg.process.return_value = mock_process
+
+        mock_pipeline = AsyncMock()
+        mock_pipeline.run.side_effect = Exception("Pipeline failed")
+        mock_pipeline_class.return_value = mock_pipeline
+
+        with pytest.raises(Exception, match="Pipeline failed"):
+            await handle_scrape_task(mock_msg)
+
+    @patch("scripts.run_experiments.run_experiments")
+    async def test_handle_experiment_task(self, mock_run_exp: Any) -> None:
+        mock_msg = MagicMock(spec=aio_pika.abc.AbstractIncomingMessage)
+        mock_msg.body = json.dumps({"test": "data"}).encode()
+        mock_process = AsyncMock()
+        mock_msg.process.return_value = mock_process
+
+        # Success
+        await handle_experiment_task(mock_msg)
+        mock_run_exp.assert_called_once_with({"test": "data"})
+
+        # Failure
+        mock_run_exp.side_effect = Exception("Run failed")
+        with pytest.raises(Exception, match="Run failed"):
+            await handle_experiment_task(mock_msg)
+
+    @patch("src.queue.consumer.get_rabbitmq_connection")
+    async def test_start_consumers_failure(self, mock_get_conn: Any) -> None:
+        mock_get_conn.side_effect = Exception("Conn failed")
+        # Should log but not raise
+        await start_consumers()

@@ -1,9 +1,12 @@
 from typing import Any
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from src.config import get_settings
 from src.exceptions import BlackScholesError, NumericalMethodError
-from src.metrics import PRICE_DURATION_SECONDS, EXPERIMENT_PROGRESS
+from src.metrics import EXPERIMENT_PROGRESS, PRICE_DURATION_SECONDS
+
 
 @pytest.mark.unit
 class TestInfrastructure:
@@ -17,7 +20,7 @@ class TestInfrastructure:
     def test_exceptions(self) -> None:
         ex = BlackScholesError(message="test")
         assert ex.message == "test"
-        
+
         ex2 = NumericalMethodError("math error")
         assert "math error" in str(ex2)
 
@@ -28,4 +31,5 @@ class TestInfrastructure:
     @patch("src.metrics.Counter")
     def test_metrics_logging(self, mock_counter: Any) -> None:
         from src.metrics import PRICE_COMPUTATIONS_TOTAL
+
         assert PRICE_COMPUTATIONS_TOTAL is not None

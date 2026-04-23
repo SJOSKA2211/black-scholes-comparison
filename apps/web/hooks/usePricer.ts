@@ -2,7 +2,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useApi } from "./useApi";
 import type { PriceRequest, PriceResponse } from "@/types";
- 
+
 /** Prices an option with all requested methods. Used in Live Pricer page.
  *  Every slider change calls mutate() — results update in < 500ms.
  */

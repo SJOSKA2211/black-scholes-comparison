@@ -11,10 +11,7 @@ type ScrollAreaProps = React.HTMLAttributes<HTMLDivElement>;
  */
 export function ScrollArea({ className, children, ...props }: ScrollAreaProps) {
   return (
-    <div
-      className={cn("relative overflow-hidden", className)}
-      {...props}
-    >
+    <div className={cn("relative overflow-hidden", className)} {...props}>
       <div className="h-full w-full overflow-auto scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
         {children}
       </div>

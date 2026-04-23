@@ -14,15 +14,17 @@ export function Badge({ children, variant = "slate", className }: BadgeProps) {
     warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     error: "bg-red-500/10 text-red-400 border-red-500/20",
     slate: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-    outline: "bg-transparent text-slate-400 border-slate-700"
+    outline: "bg-transparent text-slate-400 border-slate-700",
   };
 
   return (
-    <span className={cn(
-      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
-      variants[variant],
-      className
-    )}>
+    <span
+      className={cn(
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border",
+        variants[variant],
+        className,
+      )}
+    >
       {children}
     </span>
   );

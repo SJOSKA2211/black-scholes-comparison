@@ -1,7 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable react-hooks/immutability */
 "use client";
-
 import { useEffect, useRef, useCallback, useState } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
 
@@ -12,15 +9,20 @@ interface UseWebSocketOptions<T> {
   onMessage: (data: T) => void;
 }
 
-const supabase = createBrowserClient();
-
 /**
  * Connects to FastAPI WebSocket at /ws/{channel}?token={jwt}.
  * Automatically reconnects on close/error with exponential backoff.
+ * The JWT is fetched from the active Supabase session.
  */
-export function useWebSocket<T>({ channel, onMessage }: UseWebSocketOptions<T>) {
+export function useWebSocket<T>({
+  channel,
+  onMessage,
+}: UseWebSocketOptions<T>) {
   const wsRef = useRef<WebSocket | null>(null);
-  const [status, setStatus] = useState<"connecting" | "open" | "closed">("connecting");
+  const supabase = createBrowserClient();
+  const [status, setStatus] = useState<"connecting" | "open" | "closed">(
+    "connecting",
+  );
   const retryDelay = useRef(1000);
   const onMessageRef = useRef(onMessage);
 
@@ -28,8 +30,8 @@ export function useWebSocket<T>({ channel, onMessage }: UseWebSocketOptions<T>) 
     onMessageRef.current = onMessage;
   }, [onMessage]);
 
-  const connect = useCallback(async () => {
-    try {
+  const connect = useCallback(
+    async function connectImpl() {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) return;
@@ -45,41 +47,32 @@ export function useWebSocket<T>({ channel, onMessage }: UseWebSocketOptions<T>) 
         retryDelay.current = 1000;
       };
 
-      ws.onmessage = (e) => {
+      ws.onmessage = (event) => {
         try {
-          const parsed = JSON.parse(e.data);
-          onMessageRef.current(parsed as T);
-        } catch (err) {
-          console.error("WS Parse Error", err);
+          const parsedData = JSON.parse(event.data);
+          onMessageRef.current(parsedData as T);
+        } catch (error) {
+          console.error("WebSocket message parsing failed", error);
         }
       };
 
       ws.onclose = () => {
         setStatus("closed");
-        // Reconnect via a separate trigger to avoid circular dependency
-        const timer = setTimeout(() => {
+        setTimeout(() => {
           retryDelay.current = Math.min(retryDelay.current * 2, 30000);
-          // Use a flag or ref to trigger reconnect
-          setReconnectTrigger(prev => prev + 1);
+          void connectImpl();
         }, retryDelay.current);
-        return () => clearTimeout(timer);
       };
 
       ws.onerror = () => ws.close();
-    } catch (err) {
-      console.error("WS Connect Error", err);
-      setStatus("closed");
-    }
-  }, [channel]);
-
-  const [reconnectTrigger, setReconnectTrigger] = useState(0);
+    },
+    [channel, supabase],
+  );
 
   useEffect(() => {
     connect();
-    return () => {
-      wsRef.current?.close();
-    };
-  }, [connect, reconnectTrigger]);
+    return () => wsRef.current?.close();
+  }, [connect]);
 
   return { status };
 }

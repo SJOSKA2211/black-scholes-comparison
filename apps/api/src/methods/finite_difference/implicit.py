@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import numpy as np
 
@@ -23,8 +24,11 @@ class ImplicitFDM:
 
     @staticmethod
     def thomas_algorithm(
-        lower: np.ndarray, main: np.ndarray, upper: np.ndarray, rhs: np.ndarray
-    ) -> np.ndarray:
+        lower: np.ndarray[Any, Any],
+        main: np.ndarray[Any, Any],
+        upper: np.ndarray[Any, Any],
+        rhs: np.ndarray[Any, Any],
+    ) -> np.ndarray[Any, Any]:
         """
         Solve a tridiagonal system Ax = rhs.
         lower: lower diagonal [1:num_elements]
@@ -59,7 +63,7 @@ class ImplicitFDM:
         """Compute the option price and Greeks using Implicit FDM."""
         start_time = time.time()
 
-        def _solve(p: OptionParams) -> tuple[np.ndarray, np.ndarray, float]:
+        def _solve(p: OptionParams) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any], float]:
             max_p = p.strike_price * 3.0
             dt = p.maturity_years / self.num_time_steps
             ds = max_p / self.num_price_steps

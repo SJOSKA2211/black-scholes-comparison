@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from typing import Any
 
 import numpy as np
 
@@ -26,9 +27,9 @@ class StandardMC:
 
         # Pre-generate Gaussian samples for Common Random Numbers (CRN)
         z = np.random.standard_normal(self.num_simulations)
-        discount_factor = np.exp(-params.risk_free_rate * params.maturity_years)
+        np.exp(-params.risk_free_rate * params.maturity_years)
 
-        def _solve_with_z(p: OptionParams, samples: np.ndarray) -> float:
+        def _solve_with_z(p: OptionParams, samples: np.ndarray[Any, Any]) -> float:
             drift = (p.risk_free_rate - 0.5 * p.volatility**2) * p.maturity_years
             diffusion = p.volatility * np.sqrt(p.maturity_years)
             s_t = p.underlying_price * np.exp(drift + diffusion * samples)

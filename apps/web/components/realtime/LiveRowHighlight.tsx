@@ -24,9 +24,12 @@ export function LiveRowHighlight({
 
   useEffect(() => {
     if (trigger) {
-      setIsHighlighted(true);
-      const timer = setTimeout(() => setIsHighlighted(false), 2000);
-      return () => clearTimeout(timer);
+      const hTimer = setTimeout(() => setIsHighlighted(true), 0);
+      const rTimer = setTimeout(() => setIsHighlighted(false), 2000);
+      return () => {
+        clearTimeout(hTimer);
+        clearTimeout(rTimer);
+      };
     }
   }, [trigger, id]);
 

@@ -1,0 +1,281 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0 -- /home/kamau/black-scholes-comparison/apps/api/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, cov-7.1.0, ddtrace-4.7.1, asyncio-1.3.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 190 items / 4 deselected / 186 selected
+
+tests/unit/test_all_routers.py::TestAllRouters::test_market_data_router PASSED [  0%]
+tests/unit/test_all_routers.py::TestAllRouters::test_scrapers_router_trigger PASSED [  1%]
+tests/unit/test_all_routers.py::TestAllRouters::test_scrapers_router_runs PASSED [  1%]
+tests/unit/test_all_routers.py::TestAllRouters::test_experiments_router_run PASSED [  2%]
+tests/unit/test_all_routers.py::TestAllRouters::test_experiments_router_results PASSED [  2%]
+tests/unit/test_all_routers.py::TestAllRouters::test_notifications_router PASSED [  3%]
+tests/unit/test_all_routers.py::TestAllRouters::test_downloads_router PASSED [  3%]
+tests/unit/test_analysis_final.py::TestAnalysis::test_analyze_convergence_order PASSED [  4%]
+tests/unit/test_analysis_final.py::TestAnalysis::test_compute_mape PASSED [  4%]
+tests/unit/test_analysis_final.py::TestAnalysis::test_get_convergence_metrics PASSED [  5%]
+tests/unit/test_api.py::TestAPI::test_pricing_endpoint_full PASSED       [  5%]
+tests/unit/test_api.py::TestAPI::test_get_methods PASSED                 [  6%]
+tests/unit/test_api.py::TestAPI::test_health_check_fail_branches PASSED  [  6%]
+tests/unit/test_api.py::TestAPI::test_market_data_fail PASSED            [  7%]
+tests/unit/test_api.py::TestAPI::test_notifications_branches PASSED      [  8%]
+tests/unit/test_api.py::TestAPI::test_scrapers_branches PASSED           [  8%]
+tests/unit/test_api.py::TestAPI::test_experiments_branches PASSED        [  9%]
+tests/unit/test_api.py::TestAPI::test_download_branches PASSED           [  9%]
+tests/unit/test_api.py::TestAPI::test_websocket_branches PASSED          [ 10%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_upsert_option_parameters_error PASSED [ 10%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_get_experiments_branches PASSED [ 11%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_get_market_data_branches PASSED [ 11%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_get_notifications_unread_branch PASSED [ 12%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_supabase_client_direct PASSED [ 12%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_rabbitmq_client_direct PASSED [ 13%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_startup_event PASSED [ 13%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_websocket_endpoint_direct PASSED [ 14%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_scrapers_router_branches PASSED [ 15%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_auth_dependencies_errors PASSED [ 15%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_oauth_errors PASSED [ 16%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_sync_user_profile PASSED [ 16%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_websocket_manager_exit_loop PASSED [ 17%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_pipeline_empty_market_data_branch PASSED [ 17%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_cors_preflight PASSED [ 18%]
+tests/unit/test_backend_final_coverage.py::TestBackendFinalCoverage::test_nse_scraper_branches PASSED [ 18%]
+tests/unit/test_cache.py::TestCache::test_get_redis_init PASSED          [ 19%]
+tests/unit/test_cache.py::TestCache::test_cache_decorator_hit PASSED     [ 19%]
+tests/unit/test_cache.py::TestCache::test_cache_decorator_miss PASSED    [ 20%]
+tests/unit/test_cache.py::TestCache::test_cache_decorator_error PASSED   [ 20%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_handle_scrape_task_empty PASSED [ 21%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_handle_experiment_task PASSED [ 22%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_start_consumers_success PASSED [ 22%]
+tests/unit/test_consumer_final.py::TestConsumerFinal::test_start_consumers_failure PASSED [ 23%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_serialize_formats PASSED [ 23%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_success PASSED [ 24%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_fetch_data_logic PASSED [ 24%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_empty PASSED [ 25%]
+tests/unit/test_downloads_final.py::TestDownloadsFinal::test_download_resource_failure PASSED [ 25%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_run_experiment_exception PASSED [ 26%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_get_results_by_method PASSED [ 26%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_get_results_exception PASSED [ 27%]
+tests/unit/test_experiments_router_coverage.py::TestExperimentsRouterCoverage::test_get_result_detail_flow PASSED [ 27%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_settings_load PASSED [ 28%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_exceptions PASSED [ 29%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_metrics_definitions PASSED [ 29%]
+tests/unit/test_infrastructure.py::TestInfrastructure::test_metrics_logging PASSED [ 30%]
+tests/unit/test_logging_config.py::test_configure_logging PASSED         [ 30%]
+tests/unit/test_methods.py::test_all_methods_call PASSED                 [ 31%]
+tests/unit/test_methods.py::test_all_methods_put PASSED                  [ 31%]
+tests/unit/test_methods.py::test_american_call PASSED                    [ 32%]
+tests/unit/test_methods.py::test_american_put PASSED                     [ 32%]
+tests/unit/test_methods.py::test_analytical_extras PASSED                [ 33%]
+tests/unit/test_methods.py::test_implied_volatility_logic PASSED         [ 33%]
+tests/unit/test_methods.py::test_explicit_fdm_cfl_violation PASSED       [ 34%]
+tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_binomial_crr_richardson_logic PASSED [ 34%]
+tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_binomial_crr_richardson_wrapper PASSED [ 35%]
+tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_richardson_none_greek FAILED [ 36%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_explicit_fdm_cfl_violation PASSED [ 36%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_standard_mc_put PASSED [ 37%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_antithetic_mc_put PASSED [ 37%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_quasi_mc_put PASSED [ 38%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_control_variate_put PASSED [ 38%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_binomial_put PASSED [ 39%]
+tests/unit/test_methods_edge.py::TestMethodsEdgeCases::test_trinomial_put PASSED [ 39%]
+tests/unit/test_methods_final.py::test_binomial_american_put_coverage PASSED [ 40%]
+tests/unit/test_methods_final.py::test_trinomial_american_call_coverage PASSED [ 40%]
+tests/unit/test_modules_v4.py::TestDataTransformers::test_transform_market_row_success PASSED [ 41%]
+tests/unit/test_modules_v4.py::TestAnalysis::test_compute_mape PASSED    [ 41%]
+tests/unit/test_modules_v4.py::TestScraperFactory::test_get_scraper PASSED [ 42%]
+tests/unit/test_modules_v4.py::TestStorage::test_upload_export PASSED    [ 43%]
+tests/unit/test_modules_v4.py::TestAuthDeps::test_verify_ws_token_success PASSED [ 43%]
+tests/unit/test_modules_v4.py::TestAuthDeps::test_verify_ws_token_missing PASSED [ 44%]
+tests/unit/test_modules_v4.py::TestWebSocketManager::test_connect_disconnect PASSED [ 44%]
+tests/unit/test_modules_v4.py::TestNotifications::test_notify_user PASSED [ 45%]
+tests/unit/test_notifications.py::TestNotifications::test_notify_user_hierarchy_success PASSED [ 45%]
+tests/unit/test_notifications.py::TestNotifications::test_notify_user_hierarchy_failure PASSED [ 46%]
+tests/unit/test_notifications.py::TestNotifications::test_email_service_success PASSED [ 46%]
+tests/unit/test_notifications.py::TestNotifications::test_email_service_no_key PASSED [ 47%]
+tests/unit/test_notifications.py::TestNotifications::test_email_service_failure PASSED [ 47%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_success PASSED [ 48%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_partial_failure PASSED [ 48%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_no_subs PASSED [ 49%]
+tests/unit/test_notifications.py::TestNotifications::test_push_service_failure PASSED [ 50%]
+tests/unit/test_notifications_router_coverage.py::TestNotificationsRouterCoverage::test_get_notifications_exception PASSED [ 50%]
+tests/unit/test_notifications_router_coverage.py::TestNotificationsRouterCoverage::test_acknowledge_notification_exception PASSED [ 51%]
+tests/unit/test_notifications_router_coverage.py::TestNotificationsRouterCoverage::test_acknowledge_all_notifications_exception PASSED [ 51%]
+tests/unit/test_nse_scraper_coverage.py::TestNSEScraperCoverage::test_scrape_edge_cases PASSED [ 52%]
+tests/unit/test_nse_scraper_coverage.py::TestNSEScraperCoverage::test_run_method PASSED [ 52%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_github_user_success PASSED [ 53%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_github_user_fail PASSED [ 53%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_google_user_success PASSED [ 54%]
+tests/unit/test_oauth_final.py::TestOAuth::test_get_google_user_fail PASSED [ 54%]
+tests/unit/test_pipeline.py::test_get_pipeline_factory PASSED            [ 55%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_get_method_instance_all_branches PASSED [ 55%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_calculate_price_persist PASSED [ 56%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_compare_methods_without_analytical PASSED [ 56%]
+tests/unit/test_pricing_router_coverage.py::TestPricingRouterCoverage::test_compare_methods_exception PASSED [ 57%]
+tests/unit/test_queue.py::TestPublisher::test_publish_scrape_task PASSED [ 58%]
+tests/unit/test_queue.py::TestPublisher::test_publish_experiment_task PASSED [ 58%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task PASSED   [ 59%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_failure PASSED [ 59%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_execution_failure PASSED [ 60%]
+tests/unit/test_queue.py::TestConsumer::test_handle_experiment_task PASSED [ 60%]
+tests/unit/test_queue.py::TestConsumer::test_start_consumers_failure PASSED [ 61%]
+tests/unit/test_rabbitmq_client_coverage.py::test_get_rabbitmq_connection_reuse PASSED [ 61%]
+tests/unit/test_rabbitmq_client_coverage.py::test_close_rabbitmq_connection_flow PASSED [ 62%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_insert_method_result_with_user_id PASSED [ 62%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_price_result PASSED [ 63%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_check_db_health_flow PASSED [ 63%]
+tests/unit/test_repository_coverage.py::TestRepositoryCoverage::test_upsert_option_parameters_exception PASSED [ 64%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_option_parameters_existing PASSED [ 65%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_option_parameters_new PASSED [ 65%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_method_result PASSED [ 66%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments PASSED [ 66%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_notification PASSED [ 67%]
+tests/unit/test_repository_final.py::TestRepository::test_get_user_profile PASSED [ 67%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_user_profile PASSED [ 68%]
+tests/unit/test_repository_final.py::TestRepository::test_get_market_data PASSED [ 68%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_market_data PASSED [ 69%]
+tests/unit/test_repository_final.py::TestRepository::test_get_validation_summary PASSED [ 69%]
+tests/unit/test_repository_final.py::TestRepository::test_create_scrape_run PASSED [ 70%]
+tests/unit/test_repository_final.py::TestRepository::test_update_scrape_run PASSED [ 70%]
+tests/unit/test_repository_final.py::TestRepository::test_get_scrape_runs PASSED [ 71%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_notification_read PASSED [ 72%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_all_notifications_read PASSED [ 72%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiment_by_id PASSED [ 73%]
+tests/unit/test_repository_final.py::TestRepository::test_get_push_subscriptions PASSED [ 73%]
+tests/unit/test_repository_final.py::TestRepository::test_delete_push_subscription PASSED [ 74%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments_by_method PASSED [ 74%]
+tests/unit/test_repository_final.py::TestRepository::test_get_notifications PASSED [ 75%]
+tests/unit/test_repository_final.py::TestRepository::test_create_audit_log PASSED [ 75%]
+tests/unit/test_repository_final.py::TestRepository::test_get_push_subscriptions_error PASSED [ 76%]
+tests/unit/test_repository_final.py::TestRepository::test_delete_push_subscription_error PASSED [ 76%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_notification_read_error PASSED [ 77%]
+tests/unit/test_repository_final.py::TestRepository::test_mark_all_notifications_read_error PASSED [ 77%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiment_by_id_error PASSED [ 78%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments_by_method_error PASSED [ 79%]
+tests/unit/test_repository_final.py::TestRepository::test_get_scrape_runs_error PASSED [ 79%]
+tests/unit/test_repository_final.py::TestRepository::test_update_scrape_run_error PASSED [ 80%]
+tests/unit/test_repository_final.py::TestRepository::test_create_scrape_run_error PASSED [ 80%]
+tests/unit/test_repository_final.py::TestRepository::test_get_validation_summary_error PASSED [ 81%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_market_data_error PASSED [ 81%]
+tests/unit/test_repository_final.py::TestRepository::test_get_market_data_error PASSED [ 82%]
+tests/unit/test_repository_final.py::TestRepository::test_upsert_user_profile_error PASSED [ 82%]
+tests/unit/test_repository_final.py::TestRepository::test_get_user_profile_error PASSED [ 83%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_notification_error PASSED [ 83%]
+tests/unit/test_repository_final.py::TestRepository::test_get_experiments_error PASSED [ 84%]
+tests/unit/test_repository_final.py::TestRepository::test_insert_method_result_error PASSED [ 84%]
+tests/unit/test_routers.py::TestRouters::test_root_endpoint PASSED       [ 85%]
+tests/unit/test_routers.py::TestRouters::test_health_check PASSED        [ 86%]
+tests/unit/test_routers.py::TestRouters::test_pricing_endpoint PASSED    [ 86%]
+tests/unit/test_routers.py::TestRouters::test_methods_list PASSED        [ 87%]
+tests/unit/test_routers.py::TestRouters::test_docs_reachability PASSED   [ 87%]
+tests/unit/test_scrapers.py::TestScrapers::test_spy_scraper_success PASSED [ 88%]
+tests/unit/test_scrapers.py::TestScrapers::test_spy_scraper_failure PASSED [ 88%]
+tests/unit/test_scrapers.py::TestScrapers::test_nse_scraper_success PASSED [ 89%]
+tests/unit/test_scrapers.py::TestScrapers::test_scraper_factory PASSED   [ 89%]
+tests/unit/test_spy_scraper_coverage.py::TestSPYScraperCoverage::test_scrape_edge_cases PASSED [ 90%]
+tests/unit/test_spy_scraper_coverage.py::TestSPYScraperCoverage::test_run_method PASSED [ 90%]
+tests/unit/test_storage.py::TestStorage::test_get_minio_init PASSED      [ 91%]
+tests/unit/test_storage.py::TestStorage::test_get_minio_s3_error PASSED  [ 91%]
+tests/unit/test_storage.py::TestStorage::test_upload_export PASSED       [ 92%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_market_row_success PASSED [ 93%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_market_row_failure PASSED [ 93%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_batch_df_success PASSED [ 94%]
+tests/unit/test_transformers.py::TestTransformers::test_transform_batch_df_partial_failure PASSED [ 94%]
+tests/unit/test_validators.py::TestValidators::test_numeric_validators_success PASSED [ 95%]
+tests/unit/test_validators.py::TestValidators::test_numeric_validators_failure PASSED [ 95%]
+tests/unit/test_validators.py::TestValidators::test_validate_quote_success PASSED [ 96%]
+tests/unit/test_validators.py::TestValidators::test_validate_quote_missing_keys PASSED [ 96%]
+tests/unit/test_validators.py::TestValidators::test_validate_quote_invalid_values PASSED [ 97%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_connect_disconnect PASSED [ 97%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_broadcast PASSED [ 98%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_redis_listener_flow PASSED [ 98%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_redis_listener_error PASSED [ 99%]
+tests/unit/test_websocket.py::TestWebSocketManager::test_channels_import PASSED [100%]
+ERROR: Coverage failure: total of 97 is less than fail-under=100
+
+
+=================================== FAILURES ===================================
+________________ TestMethodsCoverage.test_richardson_none_greek ________________
+tests/unit/test_methods_coverage.py:66: in test_richardson_none_greek
+    with patch("src.methods.tree_methods.binomial_crr.BinomialCRR.price") as mock_price:
+         ^^^^^
+E   NameError: name 'patch' is not defined
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.14.4-final-0 ________________
+
+Name                                              Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------------------------------------------------
+src/__init__.py                                       0      0      0      0   100%
+src/analysis/__init__.py                              0      0      0      0   100%
+src/analysis/convergence.py                          25      1     12      4    86%   35->45, 42->45, 47->24, 52
+src/analysis/statistics.py                           14      0      4      0   100%
+src/auth/__init__.py                                  0      0      0      0   100%
+src/auth/dependencies.py                             33      0      6      0   100%
+src/auth/oauth.py                                    46      0     14      0   100%
+src/cache/__init__.py                                 0      0      0      0   100%
+src/cache/decorators.py                              32      0      2      0   100%
+src/cache/redis_client.py                            12      0      0      0   100%
+src/config.py                                        46      1      2      1    96%   49
+src/data/__init__.py                                  0      0      0      0   100%
+src/data/pipeline.py                                 65     17      8      4    71%   50-79, 83, 93, 95->98, 134-139
+src/data/transformers.py                             21      0      2      0   100%
+src/data/validators.py                              105      0     22      0   100%
+src/database/__init__.py                              0      0      0      0   100%
+src/database/repository.py                          315      0     18      0   100%
+src/database/supabase_client.py                       7      0      0      0   100%
+src/exceptions.py                                    21      0      0      0   100%
+src/logging_config.py                                 5      0      0      0   100%
+src/main.py                                          48      2      0      0    96%   52-53
+src/methods/__init__.py                               0      0      0      0   100%
+src/methods/analytical.py                            71      2      6      0    97%   98-99
+src/methods/base.py                                  26      0      2      1    96%   63->exit
+src/methods/finite_difference/__init__.py             4      0      0      0   100%
+src/methods/finite_difference/crank_nicolson.py      51      2      8      1    95%   75-80
+src/methods/finite_difference/explicit.py            55      2      6      0    97%   90-91
+src/methods/finite_difference/implicit.py            66      2     12      1    96%   103-108
+src/methods/monte_carlo/__init__.py                   5      0      0      0   100%
+src/methods/monte_carlo/antithetic.py                44      1      4      1    96%   77
+src/methods/monte_carlo/control_variates.py          55      1      4      1    97%   94
+src/methods/monte_carlo/quasi_mc.py                  40      1      4      1    95%   68
+src/methods/monte_carlo/standard.py                  35      1      2      1    95%   64
+src/methods/tree_methods/__init__.py                  4      0      0      0   100%
+src/methods/tree_methods/binomial_crr.py             55      0     14      0   100%
+src/methods/tree_methods/richardson.py               41      2      4      2    91%   34, 75
+src/methods/tree_methods/trinomial.py                50      1     10      1    97%   66
+src/metrics.py                                       20      0      0      0   100%
+src/notifications/__init__.py                         0      0      0      0   100%
+src/notifications/email.py                           24      0      2      0   100%
+src/notifications/hierarchy.py                       25      0      4      0   100%
+src/notifications/push.py                            23      0      6      0   100%
+src/queue/__init__.py                                 0      0      0      0   100%
+src/queue/consumer.py                                46      0      0      0   100%
+src/queue/publisher.py                               29      0      0      0   100%
+src/queue/rabbitmq_client.py                         16      0      4      0   100%
+src/routers/__init__.py                               0      0      0      0   100%
+src/routers/downloads.py                             48      0     12      0   100%
+src/routers/experiments.py                           41      0      4      0   100%
+src/routers/health.py                                41      0      2      0   100%
+src/routers/market_data.py                           16      0      0      0   100%
+src/routers/notifications.py                         32      0      0      0   100%
+src/routers/pricing.py                               83      0     30      1    99%   204->207
+src/routers/scrapers.py                              29      3      2      0    90%   52-54
+src/routers/websocket.py                             25      0      4      0   100%
+src/scrapers/__init__.py                              0      0      0      0   100%
+src/scrapers/base_scraper.py                          7      0      0      0   100%
+src/scrapers/nse_next_scraper.py                     66      2     12      0    97%   71-72
+src/scrapers/scraper_factory.py                      13      0      2      0   100%
+src/scrapers/spy_scraper.py                          66      0     14      0   100%
+src/storage/__init__.py                               0      0      0      0   100%
+src/storage/minio_client.py                          18      0      4      0   100%
+src/storage/storage_service.py                       14      0      0      0   100%
+src/websocket/__init__.py                             0      0      0      0   100%
+src/websocket/channels.py                             2      0      0      0   100%
+src/websocket/manager.py                             57      0     18      0   100%
+---------------------------------------------------------------------------------------------
+TOTAL                                              2138     41    286     20    97%
+FAIL Required test coverage of 100.0% not reached. Total coverage: 97.48%
+=========================== short test summary info ============================
+FAILED tests/unit/test_methods_coverage.py::TestMethodsCoverage::test_richardson_none_greek
+================= 1 failed, 185 passed, 4 deselected in 21.44s =================

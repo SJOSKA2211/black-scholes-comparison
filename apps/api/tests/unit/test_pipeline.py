@@ -1,12 +1,25 @@
-from typing import Any
-import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
 from datetime import date
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pandas as pd
-from src.data.pipeline import DataPipeline
+import pytest
+
+from src.data.pipeline import DataPipeline, get_pipeline
 
 
 @pytest.mark.unit
+def test_get_pipeline_factory() -> None:
+    """Test the factory function for DataPipeline."""
+    p1 = get_pipeline("spy", run_id="fixed-id")
+    assert p1.market == "spy"
+    assert p1.run_id == "fixed-id"
+
+    p2 = get_pipeline("nse")
+    assert p2.market == "nse"
+    assert p2.run_id is not None  # Generated UUID
+
+
 class TestDataPipeline:
     @patch("src.data.pipeline.ScraperFactory")
     @patch("src.data.pipeline.upsert_option_parameters", new_callable=AsyncMock)
@@ -43,7 +56,7 @@ class TestDataPipeline:
         mock_factory.get_scraper.return_value = mock_scraper
         mock_upsert.return_value = "opt-123"
 
-        pipeline = DataPipeline("run-123", "spy")
+        pipeline = DataPipeline("run-123", market="spy")
         result = await pipeline.run(None)
 
         assert result["status"] == "success"
@@ -51,8 +64,8 @@ class TestDataPipeline:
 
     async def test_pipeline_no_market(self) -> None:
         with pytest.raises(ValueError, match="Market must be specified"):
-            # run_id is positional, market is positional
-            DataPipeline("run-123", None)  # type: ignore
+            # run_id is positional, market is keyword
+            await DataPipeline("run-123").run()
 
     @patch("src.data.pipeline.ScraperFactory")
     @patch("src.data.pipeline.create_audit_log", new_callable=AsyncMock)
@@ -64,7 +77,7 @@ class TestDataPipeline:
         mock_scraper.scrape = AsyncMock(side_effect=Exception("Scrape failed"))
         mock_factory.get_scraper.return_value = mock_scraper
 
-        pipeline = DataPipeline("run-fail", "spy")
+        pipeline = DataPipeline("run-fail", market="spy")
         result = await pipeline.run(date.today())
 
         assert result["status"] == "failed"
@@ -112,7 +125,7 @@ class TestDataPipeline:
         mock_factory.get_scraper.return_value = mock_scraper
         mock_upsert.side_effect = ["opt-good", Exception("Internal error")]
 
-        pipeline = DataPipeline("run-mixed", "spy")
+        pipeline = DataPipeline("run-mixed", market="spy")
         result = await pipeline.run(date.today())
 
         assert result["status"] == "success"

@@ -42,7 +42,10 @@ export function LiveFeed() {
           <Terminal className="h-4 w-4 text-primary" />
           Real-time Event Stream
         </h3>
-        <Badge variant="outline" className="text-[10px] uppercase animate-pulse border-emerald-500/50 text-emerald-500">
+        <Badge
+          variant="outline"
+          className="text-[10px] uppercase animate-pulse border-emerald-500/50 text-emerald-500"
+        >
           Live
         </Badge>
       </div>
@@ -63,13 +66,17 @@ export function LiveFeed() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex gap-3 border-b border-muted pb-2 last:border-0"
                 >
-                  <span className="text-muted-foreground shrink-0">[{item.timestamp}]</span>
+                  <span className="text-muted-foreground shrink-0">
+                    [{item.timestamp}]
+                  </span>
                   <div className="flex flex-col gap-1">
                     <span className="font-bold flex items-center gap-1">
                       <Zap className="h-3 w-3 text-yellow-500" />
                       {item.type.toUpperCase()}
                     </span>
-                    <span className="text-foreground/80 leading-relaxed">{item.message}</span>
+                    <span className="text-foreground/80 leading-relaxed">
+                      {item.message}
+                    </span>
                   </div>
                 </motion.div>
               ))}

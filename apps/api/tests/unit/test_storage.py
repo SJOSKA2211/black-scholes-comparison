@@ -1,9 +1,12 @@
 from typing import Any
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+from minio.error import S3Error
+
 from src.storage.minio_client import get_minio
 from src.storage.storage_service import upload_export
-from minio.error import S3Error
+
 
 @pytest.mark.unit
 class TestStorage:
@@ -16,12 +19,19 @@ class TestStorage:
         mock_settings.return_value.minio_secret_key = "minio123"
         mock_settings.return_value.minio_bucket_exports = "bs-exports"
         mock_settings.return_value.minio_bucket_market_data = "bs-market-data"
-        
+
         mock_client = mock_minio_class.return_value
         mock_client.bucket_exists.side_effect = [False, False]
         client = get_minio()
         assert client == mock_client
         assert mock_client.make_bucket.call_count == 2
+
+        # Test reuse (exists)
+        get_minio.cache_clear()
+        mock_client.bucket_exists.side_effect = [True, True]
+        mock_client.make_bucket.reset_mock()
+        client = get_minio()
+        assert mock_client.make_bucket.call_count == 0
 
     @patch("src.storage.minio_client.Minio")
     @patch("src.storage.minio_client.get_settings")

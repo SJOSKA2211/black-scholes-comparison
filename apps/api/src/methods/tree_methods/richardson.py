@@ -26,19 +26,24 @@ class BinomialCRRRichardson:
         res_f = pricer_full.price(params)
         res_d = pricer_double.price(params)
 
-        def extrap(v_f, v_d):
+        def extrap(v_f: float, v_d: float) -> float:
             return 2 * v_d - v_f
+
+        def extrap_g(v1: float | None, v2: float | None) -> float | None:
+            if v1 is None or v2 is None:
+                return None
+            return 2 * v2 - v1
 
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type=self.method_type,
             computed_price=extrap(res_f.computed_price, res_d.computed_price),
             exec_seconds=exec_seconds,
-            delta=extrap(res_f.delta, res_d.delta) if res_f.delta is not None else None,
-            gamma=extrap(res_f.gamma, res_d.gamma) if res_f.gamma is not None else None,
-            vega=extrap(res_f.vega, res_d.vega) if res_f.vega is not None else None,
-            theta=extrap(res_f.theta, res_d.theta) if res_f.theta is not None else None,
-            rho=extrap(res_f.rho, res_d.rho) if res_f.rho is not None else None,
+            delta=extrap_g(res_f.delta, res_d.delta),
+            gamma=extrap_g(res_f.gamma, res_d.gamma),
+            vega=extrap_g(res_f.vega, res_d.vega),
+            theta=extrap_g(res_f.theta, res_d.theta),
+            rho=extrap_g(res_f.rho, res_d.rho),
             parameter_set={
                 "num_steps_base": self.num_steps,
             },
@@ -62,19 +67,24 @@ class TrinomialRichardson:
         res_f = pricer_full.price(params)
         res_d = pricer_double.price(params)
 
-        def extrap(v_f, v_d):
+        def extrap(v_f: float, v_d: float) -> float:
             return 2 * v_d - v_f
+
+        def extrap_g(v1: float | None, v2: float | None) -> float | None:
+            if v1 is None or v2 is None:
+                return None
+            return 2 * v2 - v1
 
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type=self.method_type,
             computed_price=extrap(res_f.computed_price, res_d.computed_price),
             exec_seconds=exec_seconds,
-            delta=extrap(res_f.delta, res_d.delta) if res_f.delta is not None else None,
-            gamma=extrap(res_f.gamma, res_d.gamma) if res_f.gamma is not None else None,
-            vega=extrap(res_f.vega, res_d.vega) if res_f.vega is not None else None,
-            theta=extrap(res_f.theta, res_d.theta) if res_f.theta is not None else None,
-            rho=extrap(res_f.rho, res_d.rho) if res_f.rho is not None else None,
+            delta=extrap_g(res_f.delta, res_d.delta),
+            gamma=extrap_g(res_f.gamma, res_d.gamma),
+            vega=extrap_g(res_f.vega, res_d.vega),
+            theta=extrap_g(res_f.theta, res_d.theta),
+            rho=extrap_g(res_f.rho, res_d.rho),
             parameter_set={
                 "num_steps_base": self.num_steps,
             },

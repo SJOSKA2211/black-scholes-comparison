@@ -6,7 +6,7 @@ import asyncio
 from typing import Any, cast
 
 import structlog
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed  # type: ignore
 
 from src.database import repository
 from src.methods.analytical import BlackScholesAnalytical
@@ -126,12 +126,11 @@ async def run_experiments(payload: dict[str, Any]) -> None:
         # res is PriceResult or dict (on error)
         if isinstance(res, PriceResult):
             try:
-                p_res = cast("PriceResult", res)
                 # Ensure the parameters that created this result are stored
-                option_id = await repository.upsert_option_parameters(p_res.parameter_set)
+                option_id = await repository.upsert_option_parameters(res.parameter_set)
                 # Persist to Supabase (Section 2.1)
                 # This now handles real-time broadcasting internally
-                await repository.upsert_price_result(option_id, p_res, user_id=user_id)
+                await repository.upsert_price_result(option_id, res, user_id=user_id)
                 success_count += 1
             except Exception as db_error:
                 logger.error("persistence_failed", error=str(db_error))

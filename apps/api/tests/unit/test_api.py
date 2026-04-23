@@ -1,12 +1,14 @@
 from typing import Any, Generator
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
-from src.main import app
-from unittest.mock import MagicMock, AsyncMock, patch
-from src.auth.dependencies import get_current_user
-from src.methods.base import PriceResult
-import pandas as pd
+
 import src.routers.pricing
+from src.auth.dependencies import get_current_user
+from src.main import app
+from src.methods.base import PriceResult
 
 client = TestClient(app)
 
@@ -194,8 +196,9 @@ class TestAPI:
     @patch("src.routers.websocket.ws_manager", new_callable=AsyncMock)
     @patch("src.routers.websocket.verify_ws_token", new_callable=AsyncMock)
     async def test_websocket_branches(self, mock_verify: Any, mock_ws_manager: Any) -> None:
-        from src.routers.websocket import websocket_endpoint
         from starlette.websockets import WebSocketDisconnect
+
+        from src.routers.websocket import websocket_endpoint
 
         mock_ws = AsyncMock()
         mock_ws.close = AsyncMock()
