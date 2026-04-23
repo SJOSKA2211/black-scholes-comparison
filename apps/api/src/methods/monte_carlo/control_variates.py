@@ -89,56 +89,95 @@ class ControlVariateMC:
         return discounted_payoffs, discounted_cv_payoffs
 
     def price(self, params: OptionParams) -> PriceResult:
-        """Compute the option price and Greeks using CV Monte Carlo."""
+        """Compute the option price and Greeks using CV Monte Carlo with CRN."""
         start_time = time.time()
 
-        discounted_payoffs, discounted_cv_payoffs = self._simulate_price(params)
-        expected_cv = self._get_geometric_asian_analytical(params)
+        # Pre-generate paths for Common Random Numbers (CRN)
+        dt = params.maturity_years / self.num_steps
+        z = np.random.standard_normal((self.num_simulations, self.num_steps))
 
-        # Optimal beta
-        cov_matrix = np.cov(discounted_payoffs, discounted_cv_payoffs)
-        beta = cov_matrix[0, 1] / cov_matrix[1, 1]
+        def _solve_with_z(p: OptionParams, samples: np.ndarray) -> float:
+            local_dt = p.maturity_years / self.num_steps
+            nudt = (p.risk_free_rate - 0.5 * p.volatility**2) * local_dt
+            vsqdtd = p.volatility * np.sqrt(local_dt)
 
-        controlled_payoffs = discounted_payoffs - beta * (discounted_cv_payoffs - expected_cv)
-        computed_price = np.mean(controlled_payoffs)
-        std_err = np.std(controlled_payoffs) / np.sqrt(self.num_simulations)
+            delta_log_s = nudt + vsqdtd * samples
+            log_s = np.cumsum(delta_log_s, axis=1)
+            log_s = np.column_stack([np.zeros(self.num_simulations), log_s])
+            paths = p.underlying_price * np.exp(log_s)
 
-        # Greek estimation via bumping (Central Differences)
-        def get_bumped_price(p: OptionParams) -> float:
-            y, x = self._simulate_price(p)
-            cv_exp = self._get_geometric_asian_analytical(p)
-            c = np.cov(y, x)
-            b = c[0, 1] / c[1, 1]
-            return float(np.mean(y - b * (x - cv_exp)))
+            # Terminal payoffs
+            terminal_prices = paths[:, -1]
+            if p.option_type == "call":
+                payoffs = np.maximum(terminal_prices - p.strike_price, 0)
+            else:
+                payoffs = np.maximum(p.strike_price - terminal_prices, 0)
 
-        # Bumping parameters
-        h_s = params.underlying_price * 0.01
-        h_v = 0.01
-        h_t = 1 / 365.0
-        h_r = 0.01
+            # Geometric means for control variate
+            geometric_means = np.exp(np.mean(np.log(paths[:, 1:]), axis=1))
+            if p.option_type == "call":
+                cv_payoffs = np.maximum(geometric_means - p.strike_price, 0)
+            else:
+                cv_payoffs = np.maximum(p.strike_price - geometric_means, 0)
+
+            df = np.exp(-p.risk_free_rate * p.maturity_years)
+            y, x = df * payoffs, df * cv_payoffs
+            expected_cv = self._get_geometric_asian_analytical(p)
+
+            # Optimal beta
+            cov_matrix = np.cov(y, x)
+            beta = cov_matrix[0, 1] / cov_matrix[1, 1] if cov_matrix[1, 1] > 0 else 0.0
+            return float(np.mean(y - beta * (x - expected_cv)))
+
+        computed_price = _solve_with_z(params, z)
+
+        # Standard error for CI (using base simulation)
+        def _get_std_err(p: OptionParams, samples: np.ndarray) -> tuple[float, float]:
+            local_dt = p.maturity_years / self.num_steps
+            nudt = (p.risk_free_rate - 0.5 * p.volatility**2) * local_dt
+            vsqdtd = p.volatility * np.sqrt(local_dt)
+            delta_log_s = nudt + vsqdtd * samples
+            log_s = np.cumsum(delta_log_s, axis=1)
+            log_s = np.column_stack([np.zeros(self.num_simulations), log_s])
+            paths = p.underlying_price * np.exp(log_s)
+            terminal_prices = paths[:, -1]
+            payoffs = np.maximum(terminal_prices - p.strike_price, 0) if p.option_type == "call" else np.maximum(p.strike_price - terminal_prices, 0)
+            geometric_means = np.exp(np.mean(np.log(paths[:, 1:]), axis=1))
+            cv_payoffs = np.maximum(geometric_means - p.strike_price, 0) if p.option_type == "call" else np.maximum(p.strike_price - geometric_means, 0)
+            df = np.exp(-p.risk_free_rate * p.maturity_years)
+            y, x = df * payoffs, df * cv_payoffs
+            expected_cv = self._get_geometric_asian_analytical(p)
+            cov_matrix = np.cov(y, x)
+            beta = cov_matrix[0, 1] / cov_matrix[1, 1] if cov_matrix[1, 1] > 0 else 0.0
+            controlled = y - beta * (x - expected_cv)
+            return float(np.mean(controlled)), float(np.std(controlled) / np.sqrt(self.num_simulations))
+
+        _, std_err = _get_std_err(params, z)
+
+        # Bumping for Greeks using same Z (CRN)
+        h_s, h_v, h_t, h_r = params.underlying_price * 0.01, 0.01, 1 / 365.0, 0.01
 
         # Delta & Gamma
         p_up = params.model_copy(update={"underlying_price": params.underlying_price + h_s})
         p_dn = params.model_copy(update={"underlying_price": params.underlying_price - h_s})
-        price_up = get_bumped_price(p_up)
-        price_dn = get_bumped_price(p_dn)
+        price_up, price_dn = _solve_with_z(p_up, z), _solve_with_z(p_dn, z)
         delta = (price_up - price_dn) / (2 * h_s)
         gamma = (price_up - 2 * computed_price + price_dn) / (h_s**2)
 
         # Vega
         p_v_up = params.model_copy(update={"volatility": params.volatility + h_v})
-        vega = (get_bumped_price(p_v_up) - computed_price) / h_v
+        vega = (_solve_with_z(p_v_up, z) - computed_price) / h_v
 
         # Theta
         if params.maturity_years > h_t:
             p_t_dn = params.model_copy(update={"maturity_years": params.maturity_years - h_t})
-            theta = -(computed_price - get_bumped_price(p_t_dn)) / h_t
+            theta = -(computed_price - _solve_with_z(p_t_dn, z)) / h_t
         else:
             theta = 0.0
 
         # Rho
         p_r_up = params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r})
-        rho = (get_bumped_price(p_r_up) - computed_price) / h_r
+        rho = (_solve_with_z(p_r_up, z) - computed_price) / h_r
 
         return PriceResult(
             method_type=self.method_type,
@@ -149,14 +188,13 @@ class ControlVariateMC:
                 float(computed_price - 1.96 * std_err),
                 float(computed_price + 1.96 * std_err),
             ),
-            delta=delta,
-            gamma=gamma,
-            theta=theta,
-            vega=vega,
-            rho=rho,
+            delta=float(delta),
+            gamma=float(gamma),
+            theta=float(theta),
+            vega=float(vega),
+            rho=float(rho),
             parameter_set={
                 "num_simulations": self.num_simulations,
                 "num_steps": self.num_steps,
-                "beta": float(beta),
             },
         )
