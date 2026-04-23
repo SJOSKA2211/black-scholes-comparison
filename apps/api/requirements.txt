@@ -23,6 +23,7 @@ python-dotenv==1.0.1
 pywebpush==1.14.0
 pycryptodome==3.20.0
 redis==5.0.4
+types-redis==4.6.0.20240417
 aio-pika==9.4.1
 minio==7.2.7
 ruff==0.4.4

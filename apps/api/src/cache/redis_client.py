@@ -4,8 +4,15 @@ from __future__ import annotations
 
 from functools import lru_cache
 
+from typing import TYPE_CHECKING, Any
+
 import redis.asyncio as aioredis
 import structlog
+
+if TYPE_CHECKING:
+    from redis.asyncio.client import Redis
+else:
+    Redis = Any
 
 from src.config import get_settings
 
@@ -13,10 +20,10 @@ logger = structlog.get_logger(__name__)
 
 
 @lru_cache(maxsize=1)
-def get_redis() -> aioredis.Redis[str]:
+def get_redis() -> Redis[str]:
     """Return a cached async Redis client."""
     settings = get_settings()
-    client = aioredis.from_url(
+    client: Redis[str] = aioredis.from_url(
         settings.redis_url,
         password=settings.redis_password,
         encoding="utf-8",

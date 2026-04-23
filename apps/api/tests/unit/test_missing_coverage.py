@@ -18,6 +18,11 @@ from datetime import date
 
 @pytest.mark.unit
 class TestMissingCoverage:
+    def test_config_rabbitmq_override(self):
+        # src/config.py:48
+        s = Settings(RABBITMQ_URL="amqp://override")
+        assert s.rabbitmq_url == "amqp://override"
+
     def test_config_rabbitmq_no_override(self):
         s = Settings(RABBITMQ_URL=None)
         assert "amqp://" in s.rabbitmq_url
