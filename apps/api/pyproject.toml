@@ -47,6 +47,7 @@ line_length = 100
 [tool.ruff]
 line-length    = 100
 target-version = "py311"
+[tool.ruff.lint]
 select = [
   "E",   # pycodestyle errors
   "W",   # pycodestyle warnings
@@ -62,16 +63,28 @@ select = [
   "TCH", # flake8-type-checking
   "RUF", # ruff-specific rules
 ]
-ignore = ["ANN101","ANN102","S101","B008","TC003","TC002","TC001"]  # allow assert in tests, Depends in routes, datetime in runtime
+ignore = ["S101","B008","TC003","TC002","TC001"]  # allow assert in tests, Depends in routes, datetime in runtime
 
 [tool.mypy]
 python_version   = "3.11"
 strict           = true
+exclude          = "scratch/"
 warn_return_any  = true
 warn_unused_configs = true
 disallow_untyped_defs  = true
 disallow_any_generics  = true
 no_implicit_optional   = true
+
+[[tool.mypy.overrides]]
+module = [
+    "scipy.*",
+    "pandas.*",
+    "playwright.*",
+    "resend.*",
+    "matplotlib.*",
+    "structlog.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
