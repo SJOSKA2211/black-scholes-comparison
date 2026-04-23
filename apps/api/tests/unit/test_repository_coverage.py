@@ -58,7 +58,7 @@ class TestRepositoryCoverage:
         mock_insert.assert_called_once()
         args, kwargs = mock_insert.call_args
         assert args[0]["option_id"] == "opt-1"
-        assert args[0]["delta"] == 0.5
+        assert args[0]["parameter_set"]["delta"] == 0.5
         assert kwargs["user_id"] == "user-1"
 
     @patch("src.database.repository.get_supabase_client")
@@ -88,3 +88,51 @@ class TestRepositoryCoverage:
 
         with pytest.raises(RepositoryError):
             await upsert_option_parameters({"S": 100})
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_insert_method_result_exception(self, mock_get_supabase) -> None:
+        """Test exception handling in insert_method_result."""
+        mock_supabase = MagicMock()
+        mock_get_supabase.return_value = mock_supabase
+        # Trigger exception on execute()
+        mock_supabase.table.return_value.insert.return_value.execute.side_effect = Exception("Insert error")
+
+        from src.database.repository import insert_method_result, RepositoryError
+        with pytest.raises(RepositoryError):
+            await insert_method_result({"data": "test"})
+
+
+    @patch("src.database.repository.insert_method_result")
+    async def test_upsert_price_result_none_greeks(self, mock_insert) -> None:
+        """Test upsert_price_result with some None greeks."""
+        mock_insert.return_value = [{"id": "res-1"}]
+        res = PriceResult(
+            method_type="analytical",
+            computed_price=10.0,
+            exec_seconds=0.1,
+            parameter_set={"S": 100},
+            delta=None,
+            gamma=None,
+            theta=None,
+            vega=None,
+            rho=None,
+        )
+
+        from src.database.repository import upsert_price_result
+        await upsert_price_result("opt-1", res)
+        args, _ = mock_insert.call_args
+        assert "delta" not in args[0]["parameter_set"]
+
+    @patch("src.database.repository.get_supabase_client")
+    async def test_create_scrape_run_with_triggered_by(self, mock_get_supabase) -> None:
+        """Test create_scrape_run with triggered_by parameter."""
+        mock_supabase = MagicMock()
+        mock_get_supabase.return_value = mock_supabase
+        mock_supabase.table.return_value.insert.return_value.execute.return_value.data = [{"id": "run-1"}]
+
+        from src.database.repository import create_scrape_run
+        res = await create_scrape_run("SPY", triggered_by="user-1")
+        assert res == "run-1"
+        args, _ = mock_supabase.table.return_value.insert.call_args
+        assert args[0]["triggered_by"] == "user-1"
+

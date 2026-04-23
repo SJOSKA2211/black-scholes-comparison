@@ -27,7 +27,7 @@ logger = structlog.get_logger(__name__)
 
 
 @router.get("/methods", response_model=list[MethodMetadata])
-async def list_methods() -> list[MethodMetadata]:
+async def list_methods(user: dict[str, Any] = Depends(get_current_user)) -> list[MethodMetadata]:
     """Returns metadata for all supported numerical methods."""
     return [
         MethodMetadata(

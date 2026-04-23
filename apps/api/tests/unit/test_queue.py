@@ -6,13 +6,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aio_pika
 import pytest
 
-from src.queue.consumer import handle_experiment_task, handle_scrape_task, start_consumers
-from src.queue.publisher import publish_experiment_task, publish_scrape_task
+from src.task_queues.consumer import handle_experiment_task, handle_scrape_task, start_consumers
+from src.task_queues.publisher import publish_experiment_task, publish_scrape_task
 
 
 @pytest.mark.unit
 class TestPublisher:
-    @patch("src.queue.publisher.get_rabbitmq_connection")
+    @patch("src.task_queues.publisher.get_rabbitmq_connection")
     async def test_publish_scrape_task(self, mock_get_conn: Any) -> None:
         mock_conn = AsyncMock()
         mock_get_conn.return_value = mock_conn
@@ -36,7 +36,7 @@ class TestPublisher:
         message = args[0]
         assert json.loads(message.body.decode())["market"] == "spy"
 
-    @patch("src.queue.publisher.get_rabbitmq_connection")
+    @patch("src.task_queues.publisher.get_rabbitmq_connection")
     async def test_publish_experiment_task(self, mock_get_conn: Any) -> None:
         mock_conn = AsyncMock()
         mock_get_conn.return_value = mock_conn
@@ -61,7 +61,7 @@ class TestPublisher:
 
 @pytest.mark.unit
 class TestConsumer:
-    @patch("src.queue.consumer.DataPipeline")
+    @patch("src.task_queues.consumer.DataPipeline")
     async def test_handle_scrape_task(self, mock_pipeline_class: Any) -> None:
         mock_msg = MagicMock(spec=aio_pika.abc.AbstractIncomingMessage)
         mock_msg.body = json.dumps({"market": "spy", "date": "2026-04-22"}).encode()
@@ -87,7 +87,7 @@ class TestConsumer:
         with pytest.raises(json.JSONDecodeError):
             await handle_scrape_task(mock_msg)
 
-    @patch("src.queue.consumer.DataPipeline")
+    @patch("src.task_queues.consumer.DataPipeline")
     async def test_handle_scrape_task_execution_failure(self, mock_pipeline_class: Any) -> None:
         mock_msg = MagicMock(spec=aio_pika.abc.AbstractIncomingMessage)
         mock_msg.body = json.dumps({"market": "spy", "date": "2026-04-22"}).encode()
@@ -117,7 +117,7 @@ class TestConsumer:
         with pytest.raises(Exception, match="Run failed"):
             await handle_experiment_task(mock_msg)
 
-    @patch("src.queue.consumer.get_rabbitmq_connection")
+    @patch("src.task_queues.consumer.get_rabbitmq_connection")
     async def test_start_consumers_failure(self, mock_get_conn: Any) -> None:
         mock_get_conn.side_effect = Exception("Conn failed")
         # Should log but not raise

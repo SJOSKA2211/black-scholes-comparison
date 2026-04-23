@@ -13,7 +13,7 @@ router = APIRouter(prefix="/ws", tags=["WebSockets"])
 logger = structlog.get_logger(__name__)
 
 
-@router.websocket("/ws/{channel}")
+@router.websocket("/{channel}")
 async def websocket_endpoint(
     websocket: WebSocket, channel: str, token: str | None = Query(None)
 ) -> None:

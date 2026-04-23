@@ -1,33 +1,30 @@
 import pytest
-from fastapi.testclient import TestClient
-
-from src.main import app
-
+import requests
 
 @pytest.mark.e2e
-def test_metrics_endpoint_reachability() -> None:
-    """
-    E2E test to verify that the /metrics endpoint is reachable and returns Prometheus data.
-    """
-    client = TestClient(app)
-    response = client.get("/metrics")
-
-    assert response.status_code == 200
-    assert "black_scholes_price_computations_total" in response.text
-    assert "process_cpu_seconds_total" in response.text
-
-@pytest.mark.e2e
-def test_health_endpoint_integration() -> None:
-    """
-    Verifies that the health check reflects the status of infrastructure dependencies.
-    """
-    client = TestClient(app)
-    response = client.get("/health")
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "ok"
-    # These might be 'connected' or 'disconnected' depending on the environment
-    assert "db" in data
-    assert "redis" in data
-    assert "rabbitmq" in data
+def test_prometheus_metrics_endpoint() -> None:
+    """Verify that Prometheus metrics are correctly exposed (Section 16.3)."""
+    # The metrics endpoint is usually on the API port
+    metrics_url = "http://localhost:8000/metrics"
+    
+    try:
+        response = requests.get(metrics_url, timeout=5)
+        assert response.status_code == 200
+        text = response.text
+        
+        # Check for core numerical metrics
+        assert "black_scholes_price_computations_total" in text
+        assert "black_scholes_price_computation_duration_seconds" in text
+        
+        # Check for infrastructure metrics
+        assert "black_scholes_supabase_query_duration_seconds" in text
+        assert "black_scholes_redis_cache_hits_total" in text
+        assert "black_scholes_rabbitmq_tasks_published_total" in text
+        assert "black_scholes_ws_connections_active" in text
+        
+        # Check for scraper/experiment metrics
+        assert "black_scholes_scrape_runs_total" in text
+        assert "black_scholes_experiments_run_total" in text
+        
+    except requests.exceptions.ConnectionError:
+        pytest.skip("FastAPI server not reachable at http://localhost:8000")

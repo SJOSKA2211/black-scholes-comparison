@@ -94,6 +94,9 @@ markers = [
   "unit: pure unit tests — no network, no DB",
   "integration: tests against real Supabase, Redis, RabbitMQ, MinIO",
   "e2e: Playwright browser tests against running stack",
+  "redis: tests requiring a running Redis instance",
+  "rabbitmq: tests requiring a running RabbitMQ instance",
+  "minio: tests requiring a running MinIO instance",
 ]
 
 [tool.coverage.run]

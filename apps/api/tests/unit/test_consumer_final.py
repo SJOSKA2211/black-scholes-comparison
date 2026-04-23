@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.queue.consumer import handle_experiment_task, handle_scrape_task, start_consumers
+from src.task_queues.consumer import handle_experiment_task, handle_scrape_task, start_consumers
 
 
 @pytest.mark.unit
@@ -16,9 +16,9 @@ class TestConsumerFinal:
         process_mock.__aexit__ = AsyncMock()
         message.process = MagicMock(return_value=process_mock)
 
-        message.body = json.dumps({"run_id": "1", "market": "spy"}).encode()
+        message.body = json.dumps({"run_id": "1", "market": "spy", "date": "2024-01-01"}).encode()
 
-        with patch("src.queue.consumer.DataPipeline") as mock_pipeline:
+        with patch("src.task_queues.consumer.DataPipeline") as mock_pipeline:
             await handle_scrape_task(message)
             assert not mock_pipeline.return_value.process_rows.called
 
@@ -36,7 +36,7 @@ class TestConsumerFinal:
         assert message.process.called
         assert mock_run.called
 
-    @patch("src.queue.consumer.get_rabbitmq_connection")
+    @patch("src.task_queues.consumer.get_rabbitmq_connection")
     async def test_start_consumers_success(self, mock_get_conn):
         mock_conn = AsyncMock()
         mock_get_conn.return_value = mock_conn
@@ -47,7 +47,7 @@ class TestConsumerFinal:
         assert mock_channel.set_qos.called
         assert mock_channel.declare_queue.called
 
-    @patch("src.queue.consumer.get_rabbitmq_connection")
+    @patch("src.task_queues.consumer.get_rabbitmq_connection")
     async def test_start_consumers_failure(self, mock_get_conn):
         mock_get_conn.side_effect = Exception("RMQ Fail")
         await start_consumers()

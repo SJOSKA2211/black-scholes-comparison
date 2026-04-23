@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/black-scholes-comparison/apps/api/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, timeout-2.3.1, mock-3.14.0, cov-5.0.0, asyncio-0.23.6
+asyncio: mode=Mode.AUTO
+collecting ... collected 16 items
+
+tests/integration/test_pipeline.py::test_pipeline_run_spy FAILED         [  6%]
+tests/integration/test_pipeline.py::test_pipeline_invalid_data FAILED    [ 12%]
+tests/integration/test_repository.py::test_repository_full_lifecycle FAILED [ 18%]
+tests/integration/test_repository.py::test_repository_error_handling PASSED [ 25%]
+tests/integration/test_routers.py::test_health_router FAILED             [ 31%]
+tests/integration/test_routers.py::test_pricing_router 

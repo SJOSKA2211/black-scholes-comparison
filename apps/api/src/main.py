@@ -12,7 +12,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import get_settings
 from src.logging_config import configure_logging
-from src.queue.consumer import start_consumers
+from src.task_queues.consumer import start_consumers
 from src.routers import (
     downloads,
     experiments,
@@ -47,8 +47,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 2. Start RabbitMQ consumers (Section 8.4)
     # Background workers consume tasks from bs.scrape and bs.experiment
     try:
-        await start_consumers()
+        import asyncio
+        # Wait at most 5 seconds for consumers to start
+        await asyncio.wait_for(start_consumers(), timeout=5.0)
         logger.info("consumers_started", step="init")
+    except asyncio.TimeoutError:
+        logger.warning("consumers_start_timeout", step="init")
     except Exception as error:
         logger.error("consumers_start_failed", error=str(error), step="init")
 

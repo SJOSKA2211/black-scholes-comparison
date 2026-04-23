@@ -9,7 +9,7 @@ import structlog
 from aio_pika.abc import AbstractIncomingMessage
 
 from src.data.pipeline import DataPipeline
-from src.queue.rabbitmq_client import get_rabbitmq_connection
+from src.task_queues.rabbitmq_client import get_rabbitmq_connection
 
 logger = structlog.get_logger(__name__)
 

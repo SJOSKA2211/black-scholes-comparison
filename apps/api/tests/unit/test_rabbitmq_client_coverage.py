@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import src.queue.rabbitmq_client as rabbitmq_client
-from src.queue.rabbitmq_client import close_rabbitmq_connection, get_rabbitmq_connection
+import src.task_queues.rabbitmq_client as rabbitmq_client
+from src.task_queues.rabbitmq_client import close_rabbitmq_connection, get_rabbitmq_connection
 
 
 @pytest.mark.unit

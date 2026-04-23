@@ -1,0 +1,3 @@
+docker: Error response from daemon: failed to create task for container: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: error during container init: error mounting "/home/kamau/black-scholes-comparison/apps/api/apps/api/pyproject.toml" to rootfs at "/app/pyproject.toml": mount src=/home/kamau/black-scholes-comparison/apps/api/apps/api/pyproject.toml, dst=/app/pyproject.toml, dstFd=/proc/thread-self/fd/11, flags=MS_BIND|MS_REC: not a directory: Are you trying to mount a directory onto a file (or vice-versa)? Check if the specified host path exists and is the expected type
+
+Run 'docker run --help' for more information

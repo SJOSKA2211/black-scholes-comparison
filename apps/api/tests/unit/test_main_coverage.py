@@ -7,7 +7,21 @@ from fastapi import FastAPI
 @pytest.mark.unit
 class TestMainCoverage:
     @patch("src.main.get_settings")
-    @patch("src.main.start_consumers")
+    @patch("src.main.start_consumers", new_callable=AsyncMock)
+    @patch("src.cache.redis_client.get_redis")
+    @patch("src.storage.minio_client.get_minio")
+    async def test_lifespan_timeout(self, mock_minio, mock_redis, mock_consumers, mock_settings) -> None:
+        """Test timeout handling in lifespan startup."""
+        import asyncio
+        mock_consumers.side_effect = asyncio.TimeoutError()
+        
+        async with lifespan(app):
+            pass
+            
+        mock_consumers.assert_called_once()
+
+    @patch("src.main.get_settings")
+    @patch("src.main.start_consumers", new_callable=AsyncMock)
     @patch("src.cache.redis_client.get_redis")
     @patch("src.storage.minio_client.get_minio")
     async def test_lifespan_exception(self, mock_minio, mock_redis, mock_consumers, mock_settings) -> None:

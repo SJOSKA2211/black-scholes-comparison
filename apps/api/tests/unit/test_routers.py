@@ -77,9 +77,15 @@ class TestRouters:
         assert response.json()["computed_price"] == 10.45
 
     def test_methods_list(self) -> None:
-        response = client.get("/api/v1/pricing/methods")
-        assert response.status_code == 200
-        assert len(response.json()) >= 12
+        from src.auth.dependencies import get_current_user
+        app.dependency_overrides[get_current_user] = lambda: {"id": "test", "role": "researcher"}
+        try:
+            response = client.get("/api/v1/pricing/methods")
+            assert response.status_code == 200
+            assert len(response.json()) >= 12
+        finally:
+            app.dependency_overrides.clear()
+
 
     def test_docs_reachability(self) -> None:
         assert client.get("/api/docs").status_code == 200

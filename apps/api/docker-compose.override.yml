@@ -14,3 +14,17 @@ services:
       - --host=0.0.0.0
       - --port=8000
       - --reload          # Watches mounted /app/src for changes
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"

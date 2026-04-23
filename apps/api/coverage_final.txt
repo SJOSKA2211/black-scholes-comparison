@@ -249,10 +249,10 @@ src/notifications/__init__.py                         0      0      0      0   1
 src/notifications/email.py                           24      0      2      0   100%
 src/notifications/hierarchy.py                       25      0      4      0   100%
 src/notifications/push.py                            23      0      6      0   100%
-src/queue/__init__.py                                 0      0      0      0   100%
-src/queue/consumer.py                                46      0      0      0   100%
-src/queue/publisher.py                               29      0      0      0   100%
-src/queue/rabbitmq_client.py                         16      0      4      0   100%
+src.task_queues/__init__.py                                 0      0      0      0   100%
+src.task_queues/consumer.py                                46      0      0      0   100%
+src.task_queues/publisher.py                               29      0      0      0   100%
+src.task_queues/rabbitmq_client.py                         16      0      4      0   100%
 src/routers/__init__.py                               0      0      0      0   100%
 src/routers/downloads.py                             48      0     12      0   100%
 src/routers/experiments.py                           41      0      4      0   100%

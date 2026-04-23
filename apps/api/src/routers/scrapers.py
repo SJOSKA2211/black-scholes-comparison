@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
 from src.database.repository import get_scrape_runs
-from src.queue.publisher import publish_scrape_task
+from src.task_queues.publisher import publish_scrape_task
 
 router = APIRouter(prefix="/scrapers", tags=["Scrapers"])
 logger = structlog.get_logger(__name__)

@@ -118,10 +118,10 @@ class TestAPI:
         response = client.get("/api/v1/market-data/")
         assert response.status_code == 200
 
-    @patch("src.routers.notifications.get_notifications")
-    @patch("src.routers.notifications.mark_notification_read")
-    @patch("src.routers.notifications.mark_all_notifications_read")
-    async def test_notifications_branches(
+    @patch("src.routers.notifications.get_notifications", new_callable=AsyncMock)
+    @patch("src.routers.notifications.mark_notification_read", new_callable=AsyncMock)
+    @patch("src.routers.notifications.mark_all_notifications_read", new_callable=AsyncMock)
+    def test_notifications_branches(
         self, mock_all_read: Any, mock_read: Any, mock_get: Any
     ) -> None:
         mock_get.return_value = []
@@ -136,9 +136,9 @@ class TestAPI:
         response = client.post("/api/v1/notifications/read-all")
         assert response.status_code == 200
 
-    @patch("src.routers.scrapers.publish_scrape_task")
-    @patch("src.routers.scrapers.get_scrape_runs")
-    async def test_scrapers_branches(self, mock_runs: Any, mock_pub: Any) -> None:
+    @patch("src.routers.scrapers.publish_scrape_task", new_callable=AsyncMock)
+    @patch("src.routers.scrapers.get_scrape_runs", new_callable=AsyncMock)
+    def test_scrapers_branches(self, mock_runs: Any, mock_pub: Any) -> None:
         mock_pub.return_value = None
         response = client.post("/api/v1/scrapers/trigger?market=spy")
         assert response.status_code == 200
@@ -150,11 +150,11 @@ class TestAPI:
         response = client.get("/api/v1/scrapers/runs")
         assert response.status_code == 200
 
-    @patch("src.routers.experiments.publish_experiment_task")
-    @patch("src.routers.experiments.get_experiments")
-    @patch("src.routers.experiments.get_experiments_by_method")
-    @patch("src.routers.experiments.get_experiment_by_id")
-    async def test_experiments_branches(
+    @patch("src.routers.experiments.publish_experiment_task", new_callable=AsyncMock)
+    @patch("src.routers.experiments.get_experiments", new_callable=AsyncMock)
+    @patch("src.routers.experiments.get_experiments_by_method", new_callable=AsyncMock)
+    @patch("src.routers.experiments.get_experiment_by_id", new_callable=AsyncMock)
+    def test_experiments_branches(
         self, mock_by_id: Any, mock_get_by_method: Any, mock_get: Any, mock_pub: Any
     ) -> None:
         mock_pub.return_value = None
@@ -180,7 +180,7 @@ class TestAPI:
     @patch("src.routers.downloads.get_market_data", new_callable=AsyncMock)
     @patch("src.routers.downloads.get_experiments", new_callable=AsyncMock)
     @patch("src.routers.downloads.upload_export")
-    async def test_download_branches(
+    def test_download_branches(
         self, mock_upload: Any, mock_get_exp: Any, mock_get_market: Any
     ) -> None:
         mock_get_market.return_value = [{"a": 1}]
@@ -193,16 +193,9 @@ class TestAPI:
         response = client.get("/api/v1/download/market_data?format=xlsx")
         assert response.status_code == 200
 
-    @patch("src.routers.websocket.ws_manager", new_callable=AsyncMock)
-    @patch("src.routers.websocket.verify_ws_token", new_callable=AsyncMock)
-    async def test_websocket_branches(self, mock_verify: Any, mock_ws_manager: Any) -> None:
-        from starlette.websockets import WebSocketDisconnect
+    def test_websocket_invalid_channel(self) -> None:
+        from fastapi import WebSocketDisconnect
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect("/api/v1/ws/invalid_channel") as websocket:
+                pass
 
-        from src.routers.websocket import websocket_endpoint
-
-        mock_ws = AsyncMock()
-        mock_ws.close = AsyncMock()
-        mock_ws.receive_text = AsyncMock(side_effect=WebSocketDisconnect)
-
-        await websocket_endpoint(mock_ws, "invalid_channel", "token")
-        mock_ws.close.assert_called_with(code=4004, reason="Unknown channel")

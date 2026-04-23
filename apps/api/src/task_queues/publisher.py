@@ -9,7 +9,7 @@ from typing import Any
 import aio_pika
 import structlog
 
-from src.queue.rabbitmq_client import get_rabbitmq_connection
+from src.task_queues.rabbitmq_client import get_rabbitmq_connection
 
 logger = structlog.get_logger(__name__)
 

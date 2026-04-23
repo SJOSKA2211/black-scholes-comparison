@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import json
 import time
@@ -62,13 +63,16 @@ async def insert_method_result(
         SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
 
         # Publish to Redis for WebSocket real-time push (Section 2.3)
-        from src.cache.redis_client import get_redis
-
-        redis = get_redis()
-        broadcast_payload = json.dumps(response.data[0])
-        await redis.publish("ws:experiments", broadcast_payload)
-        if user_id:
-            await redis.publish(f"ws:user_{user_id}", broadcast_payload)
+        try:
+            from src.cache.redis_client import get_redis
+            redis = get_redis()
+            broadcast_payload = json.dumps(response.data[0])
+            # Use asyncio.wait_for to prevent hanging if Redis is down
+            await asyncio.wait_for(redis.publish("ws:experiments", broadcast_payload), timeout=1.0)
+            if user_id:
+                await asyncio.wait_for(redis.publish(f"ws:user_{user_id}", broadcast_payload), timeout=1.0)
+        except Exception as redis_error:
+            logger.warning("redis_publish_failed", error=str(redis_error), step="repository")
 
         return cast("list[dict[str, Any]]", response.data)
     except Exception as error:
@@ -80,18 +84,23 @@ async def insert_method_result(
 async def upsert_price_result(
     option_id: str, result: PriceResult, user_id: str | None = None
 ) -> dict[str, Any]:
-    """Wraps insert_method_result with canonical result mapping."""
+    """Wraps insert_method_result with canonical result mapping.
+    Greeks are moved into parameter_set to handle schema variations gracefully.
+    """
+    parameter_set = result.parameter_set.copy()
+    for greek in ["delta", "gamma", "theta", "vega", "rho"]:
+        val = getattr(result, greek)
+        if val is not None:
+            parameter_set[greek] = val
+
     data = {
         "option_id": option_id,
         "method_type": result.method_type,
         "computed_price": result.computed_price,
         "exec_seconds": result.exec_seconds,
-        "parameter_set": result.parameter_set,
-        "delta": result.delta,
-        "gamma": result.gamma,
-        "theta": result.theta,
-        "vega": result.vega,
-        "rho": result.rho,
+        "parameter_set": parameter_set,
+        "converged": result.converged,
+        "replications": result.replications,
     }
     res_list = await insert_method_result(data, user_id=user_id)
     return res_list[0]
@@ -267,7 +276,9 @@ async def create_scrape_run(market: str, triggered_by: str | None = None) -> str
     op = "insert"
     start = time.time()
     try:
-        data = {"market": market, "status": "running", "triggered_by": triggered_by}
+        data = {"market": market, "status": "running"}
+        if triggered_by:
+            data["triggered_by"] = triggered_by
         response = supabase.table(table).insert(data).execute()
         SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
         data_list = cast("list[dict[str, Any]]", response.data)
@@ -294,28 +305,25 @@ async def update_scrape_run(run_id: str, data: dict[str, Any]) -> dict[str, Any]
 
 
 async def create_audit_log(
-    pipeline_run_id: str,
-    step_name: str,
+    run_id: str,
+    step: str,
     status: str,
-    rows_affected: int = 0,
     message: str | None = None,
+    rows_affected: int = 0,
 ) -> None:
+    """Inserts a record into the audit_log table for process tracking."""
     supabase = get_supabase_client()
-    table = "audit_log"
-    op = "insert"
-    start = time.time()
     try:
-        data: dict[str, Any] = {
-            "pipeline_run_id": pipeline_run_id,
-            "step_name": step_name,
-            "status": status,
-            "rows_affected": rows_affected,
-            "message": message,
-        }
-        supabase.table(table).insert(data).execute()
-        SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
+        supabase.table("audit_log").insert(
+            {
+                "pipeline_run_id": run_id,
+                "module_name": step,
+                "message": message or status,
+                "rows_affected": rows_affected,
+            }
+        ).execute()
     except Exception as error:
-        SUPABASE_ERRORS.labels(table=table, operation=op).inc()
+        SUPABASE_ERRORS.labels(table="audit_log", operation="insert").inc()
         logger.error("repository_error", operation="create_audit_log", error=str(error))
 
 

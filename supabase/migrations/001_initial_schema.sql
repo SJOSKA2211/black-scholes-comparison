@@ -37,6 +37,11 @@ CREATE TABLE IF NOT EXISTS method_results (
     parameter_set JSONB DEFAULT '{}',
     parameter_hash TEXT,
     computed_price FLOAT8,
+    delta FLOAT8,
+    gamma FLOAT8,
+    theta FLOAT8,
+    vega FLOAT8,
+    rho FLOAT8,
     exec_seconds FLOAT8 CHECK (exec_seconds >= 0),
     converged BOOL DEFAULT TRUE,
     replications INT4 DEFAULT 1 CHECK (replications >= 1),
@@ -46,6 +51,11 @@ CREATE TABLE IF NOT EXISTS method_results (
 );
 
 -- Robust migration: Ensure columns exist if table was created in an older version
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS delta FLOAT8;
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS gamma FLOAT8;
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS theta FLOAT8;
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS vega FLOAT8;
+ALTER TABLE method_results ADD COLUMN IF NOT EXISTS rho FLOAT8;
 ALTER TABLE method_results ADD COLUMN IF NOT EXISTS run_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE method_results ADD COLUMN IF NOT EXISTS replications INT4 DEFAULT 1;
 
