@@ -21,11 +21,11 @@ export default async function DashboardLayout({
   }
 
   // Mock user if skipping auth
-  const user = session?.user || {
+  const user = (session?.user || {
     id: "00000000-0000-0000-0000-000000000000",
     email: "test@example.com",
     user_metadata: { full_name: "Test User" },
-  };
+  }) as any;
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">
