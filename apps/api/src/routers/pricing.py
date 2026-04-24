@@ -5,6 +5,7 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from src.auth.dependencies import get_current_user
 from src.cache.decorators import cache_response
@@ -21,7 +22,6 @@ from src.methods.monte_carlo.standard import StandardMC
 from src.methods.tree_methods.binomial_crr import BinomialCRR
 from src.methods.tree_methods.richardson import BinomialCRRRichardson, TrinomialRichardson
 from src.methods.tree_methods.trinomial import TrinomialTree
-from pydantic import BaseModel
 
 router = APIRouter(prefix="/pricing", tags=["Pricing"])
 logger = structlog.get_logger(__name__)
@@ -214,23 +214,23 @@ async def compare_methods(
     try:
         import time
         start_time = time.perf_counter()
-        
+
         tasks = []
         for m_type in methods:
             method = get_method_instance(m_type)
             tasks.append(asyncio.to_thread(method.price, params))
 
         results_list = await asyncio.gather(*tasks)
-        
+
         # Find analytical reference
         analytical_ref = 0.0
         for res in results_list:
             if res.method_type == "analytical":
                 analytical_ref = res.computed_price
                 break
-        
+
         exec_ms = (time.perf_counter() - start_time) * 1000
-        
+
         return CompareResponse(
             results=results_list,
             analytical_reference=analytical_ref,
