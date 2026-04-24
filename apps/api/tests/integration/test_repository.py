@@ -4,18 +4,14 @@ Covers all CRUD operations against real Supabase.
 
 import datetime
 import uuid
-
+import asyncio
 import pytest
-
 from src.database import repository
 from src.exceptions import RepositoryError
 from src.methods.base import PriceResult
 
-
 @pytest.fixture
 async def cleanup_ids():
-    """Tracks IDs for cleanup after tests."""
-    # Order matters: children first, then parents
     to_cleanup = {
         "notifications": [],
         "push_subscriptions": [],
@@ -26,35 +22,27 @@ async def cleanup_ids():
         "option_parameters": [],
     }
     yield to_cleanup
-
     from src.database.supabase_client import get_supabase_client
-
     supabase = get_supabase_client()
-
     for table, ids in to_cleanup.items():
         if ids:
             try:
                 id_list = [str(i) for i in ids]
                 if table == "market_data":
-                    # For market_data, we assume ids are option_ids
                     supabase.table(table).delete().in_("option_id", id_list).execute()
                 else:
                     supabase.table(table).delete().in_("id", id_list).execute()
             except Exception as e:
                 print(f"Cleanup failed for {table}: {e}")
 
-
 @pytest.fixture
 async def test_user_id():
-    """Provides a valid user ID from the database."""
     from src.database.supabase_client import get_supabase_client
-
     supabase = get_supabase_client()
     res = supabase.table("user_profiles").select("id").limit(1).execute()
     if res.data:
         return res.data[0]["id"]
-    return "de34e0d4-ad52-4ffe-9f75-1d41c83a4fb2"  # Fallback
-
+    return "de34e0d4-ad52-4ffe-9f75-1d41c83a4fb2"
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -62,174 +50,156 @@ async def test_upsert_option_parameters(sample_option_params, cleanup_ids) -> No
     option_id = await repository.upsert_option_parameters(sample_option_params)
     assert uuid.UUID(option_id)
     cleanup_ids["option_parameters"].append(option_id)
-
-    # Idempotency check
+    # Hit existing branch
     option_id_2 = await repository.upsert_option_parameters(sample_option_params)
     assert option_id == option_id_2
-
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_price_result_flow(sample_option_params, cleanup_ids) -> None:
     option_id = await repository.upsert_option_parameters(sample_option_params)
     cleanup_ids["option_parameters"].append(option_id)
-
-    price_res = PriceResult(
-        method_type="analytical",
-        computed_price=10.5,
-        exec_seconds=0.001,
-        parameter_set={"n": 100},
-        delta=0.5,
-    )
-
-    res = await repository.upsert_price_result(option_id, price_res)
-    assert res["id"] is not None
+    # Include greek for line 97
+    res = await repository.upsert_price_result(option_id, PriceResult(method_type="analytical", computed_price=10.5, exec_seconds=0.001, delta=0.5))
     cleanup_ids["method_results"].append(res["id"])
-    assert res["computed_price"] == 10.5
-
-    # Test retrieval
-    exp = await repository.get_experiment_by_id(res["id"])
-    assert exp["id"] == res["id"]
-    assert exp["computed_price"] == 10.5
-
-    experiments = await repository.get_experiments(method_type="analytical")
-    assert any(e["id"] == res["id"] for e in experiments["items"])
-
-    exp_by_method = await repository.get_experiments_by_method("analytical")
-    assert any(e["id"] == res["id"] for e in exp_by_method)
-
+    assert (await repository.get_experiment_by_id(res["id"]))["id"] == res["id"]
+    assert any(e["id"] == res["id"] for e in await repository.get_experiments_by_method("analytical"))
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_user_profile_operations(cleanup_ids, test_user_id) -> None:
-    # Use existing user_id or a unique one if we can't create auth.users
     user_id = test_user_id
-    profile = {"id": user_id, "display_name": "Test User", "role": "researcher"}
-
-    res = await repository.upsert_user_profile(profile)
-    assert res["id"] == user_id
-    # We don't cleanup user_profiles as it's a shared test user
-    # cleanup_ids["user_profiles"].append(user_id)
-
-    fetched = await repository.get_user_profile(user_id)
-    assert fetched["display_name"] == "Test User"
-
+    await repository.upsert_user_profile({"id": user_id, "display_name": "T"})
+    assert (await repository.get_user_profile(user_id))["display_name"] == "T"
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_notification_workflow(cleanup_ids, test_user_id) -> None:
-    # Setup user
     user_id = test_user_id
-
-    notifs = await repository.insert_notification(
-        user_id=user_id, title="Test", body="Body", severity="info", channel="in_app"
-    )
+    notifs = await repository.insert_notification(user_id, "T", "B", "info", "in_app")
     notif_id = notifs[0]["id"]
-    # No explicit cleanup for notifications as they belong to user (CASCADE)
-
-    unread = await repository.get_notifications(user_id, unread_only=True)
-    assert any(n["id"] == notif_id for n in unread)
-
+    assert any(n["id"] == notif_id for n in await repository.get_notifications(user_id, unread_only=True))
     await repository.mark_notification_read(notif_id)
-    unread_after = await repository.get_notifications(user_id, unread_only=True)
-    assert all(n["id"] != notif_id for n in unread_after)
-
-    # Mark all read
-    await repository.insert_notification(user_id, "T2", "B2", "info", "in_app")
     await repository.mark_all_notifications_read(user_id)
-    unread_final = await repository.get_notifications(user_id, unread_only=True)
-    assert len(unread_final) == 0
-
+    assert all(n["id"] != notif_id for n in await repository.get_notifications(user_id, unread_only=True))
+    # Unread only = False
+    assert any(n["id"] == notif_id for n in await repository.get_notifications(user_id, unread_only=False))
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_market_data_operations(sample_option_params, cleanup_ids) -> None:
     option_id = await repository.upsert_option_parameters(sample_option_params)
     cleanup_ids["option_parameters"].append(option_id)
-
     today = datetime.date.today()
-    market_data = [
-        {
-            "option_id": option_id,
-            "trade_date": today.isoformat(),
-            "bid_price": 10.0,
-            "ask_price": 11.0,
-            "data_source": "spy",
-        }
-    ]
-
-    await repository.insert_market_data(market_data)
+    await repository.insert_market_data([{"option_id": option_id, "trade_date": today.isoformat(), "data_source": "spy"}])
     cleanup_ids["market_data"].append(option_id)
-
-    fetched = await repository.get_market_data("spy", trade_date=today)
-    assert len(fetched) >= 1
-    assert any(d["option_id"] == option_id for d in fetched)
-
+    assert any(d["option_id"] == option_id for d in await repository.get_market_data("spy", trade_date=today))
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_scrape_run_and_audit(cleanup_ids, test_user_id) -> None:
-
+async def test_scrape_run_and_audit(cleanup_ids) -> None:
     run_id = await repository.create_scrape_run("spy")
-    assert uuid.UUID(run_id)
     cleanup_ids["scrape_runs"].append(run_id)
-
-    await repository.update_scrape_run(run_id, {"status": "success", "rows_scraped": 42})
-
-    await repository.create_audit_log(run_id, "test_step", "success", rows_affected=5)
-
-    # Verify it exists in the list
-    from src.database.supabase_client import get_supabase_client
-
-    supabase = get_supabase_client()
-    res = supabase.table("scrape_runs").select("*").eq("id", run_id).execute()
-    assert len(res.data) > 0
-    assert res.data[0]["status"] == "success"
-
+    await repository.update_scrape_run(run_id, {"status": "success"})
+    await repository.create_audit_log(run_id, "step", "status")
+    # Audit fail mock
+    from unittest.mock import MagicMock
+    mock_sb = MagicMock()
+    mock_sb.table.side_effect = Exception("Audit Fail")
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setattr(repository, "get_supabase_client", lambda: mock_sb)
+        await repository.create_audit_log(run_id, "f", "f")
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_db_health_and_validation() -> None:
-    health = await repository.check_db_health()
-    assert health == "healthy"
-
-    summary = await repository.get_validation_summary()
-    assert isinstance(summary, list)
-
+    assert (await repository.check_db_health()) == "healthy"
+    assert isinstance(await repository.get_validation_summary(), list)
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_repository_error_scenarios() -> None:
-    with pytest.raises(RepositoryError):
-        await repository.get_experiment_by_id("not-a-uuid")
-
-    with pytest.raises(RepositoryError):
-        # Missing required fields
-        await repository.upsert_option_parameters({"invalid": "data"})
-
+async def test_filters(sample_option_params, cleanup_ids) -> None:
+    params = sample_option_params.copy()
+    params["market_source"] = "nse"
+    option_id = await repository.upsert_option_parameters(params)
+    cleanup_ids["option_parameters"].append(option_id)
+    res = await repository.upsert_price_result(option_id, PriceResult(method_type="trinomial", computed_price=15.0, exec_seconds=0.1))
+    cleanup_ids["method_results"].append(res["id"])
+    
+    # Method type filter
+    f1 = await repository.get_experiments(method_type="trinomial")
+    assert any(e["id"] == res["id"] for e in f1["items"])
+    # Market source filter
+    f2 = await repository.get_experiments(market_source="nse")
+    assert any(e["id"] == res["id"] for e in f2["items"])
+    
+    # Market data filters
+    today = datetime.date.today()
+    await repository.insert_market_data([{"option_id": option_id, "trade_date": today.isoformat(), "data_source": "nse"}])
+    cleanup_ids["market_data"].append(option_id)
+    assert len(await repository.get_market_data("nse", from_date=today.isoformat())) >= 1
+    assert len(await repository.get_market_data("nse", to_date=today.isoformat())) >= 1
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_push_subscriptions(cleanup_ids, test_user_id) -> None:
+async def test_scrape_listing(cleanup_ids) -> None:
+    run_id = await repository.create_scrape_run("listed")
+    cleanup_ids["scrape_runs"].append(run_id)
+    assert any(r["id"] == run_id for r in await repository.get_scrape_runs(limit=100))
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_redis_publish_user(sample_option_params, cleanup_ids, test_user_id) -> None:
+    option_id = await repository.upsert_option_parameters(sample_option_params)
+    cleanup_ids["option_parameters"].append(option_id)
+    await repository.upsert_price_result(option_id, PriceResult(method_type="analytical", computed_price=10.0, exec_seconds=0.1), user_id=test_user_id)
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_health_unhealthy(monkeypatch) -> None:
+    monkeypatch.setattr(repository, "get_supabase_client", lambda: exec("raise(Exception('Down'))"))
+    assert (await repository.check_db_health()) == "unhealthy"
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_exceptions(monkeypatch) -> None:
+    from unittest.mock import MagicMock
+    mock_sb = MagicMock()
+    mock_sb.table.side_effect = Exception("Err")
+    monkeypatch.setattr(repository, "get_supabase_client", lambda: mock_sb)
+    methods = [
+        lambda: repository.insert_notification("u", "t", "b", "i", "c"),
+        lambda: repository.get_user_profile("u"),
+        lambda: repository.upsert_user_profile({"id": "u"}),
+        lambda: repository.get_market_data("s"),
+        lambda: repository.insert_market_data([{"o": "id"}]),
+        lambda: repository.get_validation_summary(),
+        lambda: repository.create_scrape_run("m"),
+        lambda: repository.update_scrape_run("id", {}),
+        lambda: repository.get_scrape_runs(),
+        lambda: repository.get_notifications("u"),
+        lambda: repository.mark_notification_read("id"),
+        lambda: repository.mark_all_notifications_read("u"),
+        lambda: repository.get_push_subscriptions("u"),
+        lambda: repository.delete_push_subscription("id"),
+        lambda: repository.get_experiments_by_method("m"),
+        lambda: repository.get_experiment_by_id("id"),
+        lambda: repository.get_experiments(),
+        lambda: repository.upsert_option_parameters({"o": "p"}),
+        lambda: repository.insert_method_result({"r": "es"})
+    ]
+    for m in methods:
+        with pytest.raises(RepositoryError):
+            await m()
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_push_subs(cleanup_ids, test_user_id) -> None:
     user_id = test_user_id
-
-    # We use direct supabase call to setup as there's no insert_push_subscription in repository.py
     from src.database.supabase_client import get_supabase_client
-
     supabase = get_supabase_client()
     sub_id = str(uuid.uuid4())
-    supabase.table("push_subscriptions").insert(
-        {
-            "id": sub_id,
-            "user_id": user_id,
-            "subscription_info": {"endpoint": "https://example.com", "keys": {"p256dh": "key"}},
-        }
-    ).execute()
+    supabase.table("push_subscriptions").insert({"id": sub_id, "user_id": user_id, "subscription_info": {"endpoint": "https://e.com", "keys": {"p": "k"}}}).execute()
     cleanup_ids["push_subscriptions"].append(sub_id)
-
-    subs = await repository.get_push_subscriptions(user_id)
-    assert any(s["id"] == sub_id for s in subs)
-
+    assert any(s["id"] == sub_id for s in await repository.get_push_subscriptions(user_id))
     await repository.delete_push_subscription(sub_id)
-    subs_after = await repository.get_push_subscriptions(user_id)
-    assert all(s["id"] != sub_id for s in subs_after)

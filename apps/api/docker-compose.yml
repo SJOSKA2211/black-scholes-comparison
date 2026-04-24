@@ -30,7 +30,8 @@ services:
   api:
     build: { context: . }
     env_file: .env
-    expose: ["8000"]
+    ports:
+      - "8000:8000"
     networks: [bs_network]
     deploy:
       resources:

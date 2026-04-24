@@ -7,22 +7,26 @@ def test_dashboard_navigation(authenticated_page: Page) -> None:
     """Verify dashboard layout and navigation (Section 16.3)."""
     page = authenticated_page
     # Assuming we can skip auth for testing UI or use a mock session
-    base_url = "http://localhost:3000"
+    base_url = "http://127.0.0.1:3000"
     page.goto(f"{base_url}/")
 
-    # Check sidebar/nav items
-    expect(page.get_by_role("link", name="Live Pricer")).to_be_visible()
-    expect(page.get_by_role("link", name="Experiments")).to_be_visible()
-    expect(page.get_by_role("link", name="Validation")).to_be_visible()
-    expect(page.get_by_role("link", name="Scrapers")).to_be_visible()
-    expect(page.get_by_role("link", name="Methods")).to_be_visible()
+    # Check sidebar/nav items and click them
+    nav_items = ["Live Pricer", "Experiments", "Validation", "Scrapers", "Methods"]
+    for item in nav_items:
+        link = page.get_by_role("link", name=item)
+        expect(link).to_be_visible()
+        link.click()
+        # Verify URL path contains the lower-cased item name
+        path = item.lower().replace(" ", "")
+        if path == "livepricer": path = "pricer"
+        page.wait_for_url(f"**/{path}*")
 
 
 @pytest.mark.e2e
 def test_live_pricer_interactivity(authenticated_page: Page) -> None:
     """Verify Live Pricer inputs and chart rendering."""
     page = authenticated_page
-    base_url = "http://localhost:3000"
+    base_url = "http://127.0.0.1:3000"
     # In a real E2E run, we'd need to handle auth or have a dev bypass
     page.goto(f"{base_url}/pricer")
     
@@ -43,16 +47,12 @@ def test_live_pricer_interactivity(authenticated_page: Page) -> None:
     # Underlying Price input value should be updated
     expect(page.get_by_label("Underlying Price")).to_have_value("150")
 
-    # Check for chart container (usually a div with a specific class or child canvas)
-    # The frontend uses Recharts usually, which renders SVG
-    expect(page.locator("svg.recharts-surface")).to_be_visible()
+    # Check for chart container
+    # Recharts uses .recharts-surface for the SVG
+    expect(page.locator(".recharts-surface").first).to_be_visible(timeout=10000)
 
     # Section 16.3: all 12 method bars in chart
-    # We can check for the number of rectangles (bars) in the chart
-    # Or check for the legend/labels if available
-    bars = page.locator("svg.recharts-surface .recharts-bar-rectangle")
-    # Note: In initial load, there might be 0 until a calculation is run.
-    # But the mandate says "after slider change... all 12 method bars in chart"
-    # So we might need to wait for calculation.
+    bars = page.locator(".recharts-bar-rectangle")
+    # Wait for computation and animation
     page.wait_for_timeout(2000)
-    expect(bars).to_have_count(12)
+    expect(bars).to_have_count(12, timeout=10000)

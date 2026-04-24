@@ -6,7 +6,7 @@ import requests
 def test_prometheus_metrics_endpoint() -> None:
     """Verify that Prometheus metrics are correctly exposed (Section 16.3)."""
     # The metrics endpoint is usually on the API port
-    metrics_url = "http://localhost:8000/metrics"
+    metrics_url = "http://127.0.0.1:8000/metrics"
 
     try:
         response = requests.get(metrics_url, timeout=5)
@@ -25,6 +25,7 @@ def test_prometheus_metrics_endpoint() -> None:
 
         # Check for scraper/experiment metrics
         assert "black_scholes_scrape_runs_total" in text
+        assert "black_scholes_scrape_rows_inserted" in text
         assert "black_scholes_experiments_run_total" in text
 
     except requests.exceptions.ConnectionError:

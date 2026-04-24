@@ -38,6 +38,16 @@ class BlackScholesAnalytical:
         res = self.price(params)
         return float(res.vega) if res.vega is not None else 0.0
 
+    def theta(self, params: OptionParams) -> float:
+        """Analytical Theta."""
+        res = self.price(params)
+        return float(res.theta) if res.theta is not None else 0.0
+
+    def rho(self, params: OptionParams) -> float:
+        """Analytical Rho."""
+        res = self.price(params)
+        return float(res.rho) if res.rho is not None else 0.0
+
     def geometric_asian_price(self, params: OptionParams, num_steps: int = 100) -> PriceResult:
         """
         Analytical solution for Geometric Asian Option (Discrete Monitoring).

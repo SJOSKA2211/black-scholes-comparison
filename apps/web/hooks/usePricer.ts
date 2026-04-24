@@ -10,6 +10,6 @@ export function usePricer() {
   const { post } = useApi();
   return useMutation({
     mutationFn: (req: PriceRequest) =>
-      post<PriceResponse>("/api/v1/price", req),
+      post<PriceResponse>("/api/v1/pricing/price", req),
   });
 }

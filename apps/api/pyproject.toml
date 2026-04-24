@@ -83,6 +83,10 @@ module = [
     "resend.*",
     "matplotlib.*",
     "structlog.*",
+    "httpx.*",
+    "pydantic_settings.*",
+    "yaml.*",
+    "pygments.*",
 ]
 ignore_missing_imports = true
 

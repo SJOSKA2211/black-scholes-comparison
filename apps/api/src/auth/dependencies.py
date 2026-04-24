@@ -5,10 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import Depends, HTTPException, WebSocket, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
-from src.database.supabase_client import get_supabase_client
+from fastapi import WebSocket
+from fastapi.security import HTTPBearer
 
 logger = structlog.get_logger(__name__)
 security = HTTPBearer()

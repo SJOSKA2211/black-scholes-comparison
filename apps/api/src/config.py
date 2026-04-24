@@ -25,7 +25,16 @@ class Settings(BaseSettings):
     # 2. API
     api_url: str = Field("http://localhost:8000", alias="NEXT_PUBLIC_API_URL")
     environment: str = Field("production", alias="ENVIRONMENT")
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "https://localhost",
+        "https://black-scholes-comparison.vercel.app",
+        "https://*.vercel.app",
+        "https://*.railway.app",
+    ]
 
     @property
     def env(self) -> str:
@@ -44,9 +53,9 @@ class Settings(BaseSettings):
     @property
     def rabbitmq_url(self) -> str:
         """Construct the AMQP connection string, allowing override."""
-        if self.rabbitmq_url_override:  # pragma: no cover
+        if self.rabbitmq_url_override:
             return self.rabbitmq_url_override
-        # pragma: no cover
+        # Default to service name 'rabbitmq' for Docker/Railway
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
 
     # 5. Object Storage (MinIO / S3)
@@ -64,12 +73,6 @@ class Settings(BaseSettings):
 
     # 7. Notifications
     resend_api_key: str | None = Field(None, alias="RESEND_API_KEY")
-
-    # 8. OAuth (Mandate requested GH_ prefix)
-    gh_client_id: str | None = Field(None, alias="GH_CLIENT_ID")
-    gh_client_secret: str | None = Field(None, alias="GH_CLIENT_SECRET")
-    google_client_id: str | None = Field(None, alias="GOOGLE_CLIENT_ID")
-    google_client_secret: str | None = Field(None, alias="GOOGLE_CLIENT_SECRET")
 
     # 9. Vercel
     vercel_deploy_hook: str | None = Field(None, alias="VERCEL_DEPLOY_HOOK")

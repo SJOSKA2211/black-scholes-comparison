@@ -79,7 +79,7 @@ jobs:
           cd apps/api
           PYTHONPATH=. pytest tests/integration/ -m integration \
             --cov=src --cov-branch --cov-append \
-            --cov-fail-under=25 -v
+            --cov-fail-under=100 -v
  
   # ── Job 5: E2E smoke (Playwright reachability) ───────────────────
   e2e-smoke:
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
-      - run: pip install playwright && playwright install chromium --with-deps
+      - run: pip install playwright && sudo apt-get update && python -m playwright install --with-deps chromium
       - run: |
           python -c "
           import asyncio

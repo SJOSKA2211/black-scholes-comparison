@@ -8,6 +8,7 @@ import { Calculator, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatCurrency, cn } from "@/lib/utils";
 import { PricerForm } from "@/components/forms/PricerForm";
+import { PriceBarChart } from "@/components/charts/PriceBarChart";
 
 const ALL_METHODS = [
   "analytical",
@@ -71,7 +72,15 @@ export default function PricerPage() {
             </div>
             {isPending && <Badge variant="warning">Computing...</Badge>}
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            {data && (
+              <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/50">
+                <PriceBarChart 
+                  data={data.results.map(r => ({ method: r.method_type.replace(/_/g, " "), price: r.computed_price }))}
+                  analyticalPrice={data.analytical_reference}
+                />
+              </div>
+            )}
             <div className="space-y-3">
               {data?.results.map((res: PriceResult, i: number) => (
                 <motion.div

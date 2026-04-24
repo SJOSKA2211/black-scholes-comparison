@@ -1,78 +1,105 @@
-from unittest.mock import AsyncMock, MagicMock, patch
-
+import json
 import pytest
-
-from src.cache.decorators import cache_response
+from unittest.mock import AsyncMock, MagicMock, patch
 from src.cache.redis_client import get_redis
-
+from src.cache.decorators import cache_response
 
 @pytest.mark.unit
-class TestCache:
+class TestRedisClient:
     @patch("src.cache.redis_client.aioredis.from_url")
     @patch("src.cache.redis_client.get_settings")
-    def test_get_redis_init(self, mock_settings, mock_from_url) -> None:
+    def test_get_redis_init(self, mock_settings, mock_from_url):
         get_redis.cache_clear()
         mock_settings.return_value.redis_url = "redis://localhost"
         mock_settings.return_value.redis_password = "pass"
-
+        
         mock_client = MagicMock()
         mock_from_url.return_value = mock_client
-
+        
         client = get_redis()
         assert client == mock_client
         mock_from_url.assert_called_once()
 
+@pytest.mark.unit
+class TestCacheDecorator:
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
-    async def test_cache_decorator_hit(self, mock_get_redis) -> None:
-        mock_r = MagicMock()
-        mock_r.get = AsyncMock(return_value='{"res": "cached"}')
+    async def test_cache_hit(self, mock_get_redis):
+        mock_r = AsyncMock()
+        mock_r.get.return_value = json.dumps({"res": "cached"})
         mock_get_redis.return_value = mock_r
-
+        
         call_count = 0
-
-        @cache_response(key_prefix="test", ttl_seconds=60)
-        async def slow_func(x):
+        @cache_response(key_prefix="test")
+        async def mock_func(x):
             nonlocal call_count
             call_count += 1
             return {"res": "real"}
-
-        res = await slow_func(1)
+            
+        res = await mock_func(1)
         assert res == {"res": "cached"}
         assert call_count == 0
 
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
-    async def test_cache_decorator_miss(self, mock_get_redis) -> None:
-        mock_r = MagicMock()
-        mock_r.get = AsyncMock(return_value=None)
-        mock_r.setex = AsyncMock()
+    async def test_cache_miss(self, mock_get_redis):
+        mock_r = AsyncMock()
+        mock_r.get.return_value = None
         mock_get_redis.return_value = mock_r
-
+        
         call_count = 0
-
-        @cache_response(key_prefix="test", ttl_seconds=60)
-        async def slow_func(x):
+        @cache_response(key_prefix="test")
+        async def mock_func(x):
             nonlocal call_count
             call_count += 1
             return {"res": "real"}
-
-        res = await slow_func(1)
+            
+        res = await mock_func(1)
         assert res == {"res": "real"}
         assert call_count == 1
         mock_r.setex.assert_called_once()
 
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
-    async def test_cache_decorator_error(self, mock_get_redis) -> None:
-        # Redis error should not break the function - wait, my implementation
-        # doesn't catch errors in the decorator yet.
-        # I should probably add try/except to the decorator.
-        mock_get_redis.side_effect = Exception("Redis Down")
+    async def test_cache_error_graceful(self, mock_get_redis):
+        # 1. Lookup failure
+        mock_r = AsyncMock()
+        mock_r.get.side_effect = Exception("Redis Get Error")
+        mock_get_redis.return_value = mock_r
+        
+        @cache_response(key_prefix="test")
+        async def fast_func(x):
+            return {"res": "real"}
+            
+        res = await fast_func(1)
+        assert res == {"res": "real"} # Should fall through to real function
 
-        @cache_response(key_prefix="test", ttl_seconds=60)
-        async def fast_func(x) -> str:
-            return "ok"
+        # 2. Store failure
+        mock_r.get.side_effect = None
+        mock_r.get.return_value = None
+        mock_r.setex.side_effect = Exception("Redis Set Error")
+        
+        res = await fast_func(1)
+        assert res == {"res": "real"} # Should still return real result
 
-        with pytest.raises(Exception):
-            await fast_func(1)
+    @pytest.mark.asyncio
+    @patch("src.cache.decorators.get_redis")
+    async def test_cache_pydantic(self, mock_get_redis):
+        mock_r = AsyncMock()
+        mock_r.get.return_value = None
+        mock_get_redis.return_value = mock_r
+        
+        from pydantic import BaseModel
+        class MockModel(BaseModel):
+            val: str
+            
+        @cache_response(key_prefix="test")
+        async def model_func():
+            return MockModel(val="ok")
+            
+        res = await model_func()
+        assert res.val == "ok"
+        mock_r.setex.assert_called_once()
+        # Verify it was dumped
+        args, kwargs = mock_r.setex.call_args
+        assert '{"val": "ok"}' in args[2]

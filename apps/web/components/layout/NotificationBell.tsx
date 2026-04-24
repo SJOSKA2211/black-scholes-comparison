@@ -12,6 +12,7 @@ export default function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Notifications"
         className="relative p-2 text-slate-400 hover:text-white transition-colors"
       >
         <Bell className="h-5 w-5" />

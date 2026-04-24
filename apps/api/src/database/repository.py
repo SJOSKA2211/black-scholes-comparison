@@ -273,15 +273,13 @@ async def get_validation_summary() -> list[dict[str, Any]]:
         raise RepositoryError(f"Database operation failed: {error!s}") from error
 
 
-async def create_scrape_run(market: str, triggered_by: str | None = None) -> str:
+async def create_scrape_run(market: str) -> str:
     supabase = get_supabase_client()
     table = "scrape_runs"
     op = "insert"
     start = time.time()
     try:
         data = {"market": market, "status": "running"}
-        if triggered_by:
-            data["triggered_by"] = triggered_by
         response = supabase.table(table).insert(data).execute()
         SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
         data_list = cast("list[dict[str, Any]]", response.data)
@@ -470,8 +468,8 @@ async def get_experiments_by_method(method_type: str) -> list[dict[str, Any]]:
 
 async def check_db_health() -> str:
     """Verifies the database connection by performing a simple query."""
-    supabase = get_supabase_client()
     try:
+        supabase = get_supabase_client()
         # A simple query that should always work if the DB is up
         supabase.table("option_parameters").select("id").limit(1).execute()
         return "healthy"

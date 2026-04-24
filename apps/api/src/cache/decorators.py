@@ -42,7 +42,13 @@ def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any
             result = await func(*args, **kwargs)
 
             try:
-                await redis.setex(cache_key, ttl_seconds, json.dumps(result, default=str))
+                # Handle Pydantic models (Section 4.1)
+                from pydantic import BaseModel
+                if isinstance(result, BaseModel):
+                    dumped = result.model_dump()
+                else:
+                    dumped = result
+                await redis.setex(cache_key, ttl_seconds, json.dumps(dumped, default=str))
                 logger.debug("cache_miss_stored", key=cache_key, step="cache")
             except Exception as error:
                 logger.warning("cache_store_failed", error=str(error), step="cache")
