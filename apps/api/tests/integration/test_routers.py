@@ -68,10 +68,6 @@ class TestPricingRouter:
         )
         assert response.status_code == 422
 
-    def test_unauthorized(self) -> None:
-        client = TestClient(app)
-        response = client.get("/api/v1/pricing/methods")
-        assert response.status_code == 403
 
 
 @pytest.mark.integration
@@ -117,11 +113,6 @@ class TestExperimentsRouter:
         response = auth_client.get("/api/v1/experiments/results")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
-
-    def test_run_experiment_unauthorized(self) -> None:
-        client = TestClient(app)
-        response = client.post("/api/v1/experiments/run", json={"test": "data"})
-        assert response.status_code == 403
 
 
 @pytest.mark.integration

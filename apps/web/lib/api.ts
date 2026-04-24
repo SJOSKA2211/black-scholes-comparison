@@ -21,11 +21,6 @@ export async function apiFetch<T>(
 
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");
-  
-  const authToken = token || (process.env.NEXT_PUBLIC_SKIP_AUTH === "true" ? "test-token" : null);
-  if (authToken) {
-    headers.set("Authorization", `Bearer ${authToken}`);
-  }
 
   const response = await fetch(url, {
     ...init,

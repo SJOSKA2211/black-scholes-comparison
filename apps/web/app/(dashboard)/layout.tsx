@@ -8,24 +8,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // Dev bypass for E2E tests (Section 16.3)
-  const skipAuth = process.env.SKIP_AUTH === "true" || process.env.NODE_ENV === "test";
-  
-  if (!session && !skipAuth) {
-    redirect("/login");
-  }
-
-  // Mock user if skipping auth
-  const user = (session?.user || {
+  // Auth stripped mode: always provide a default researcher user
+  const user = {
     id: "00000000-0000-0000-0000-000000000000",
-    email: "test@example.com",
-    user_metadata: { full_name: "Test User" },
-  }) as any;
+    email: "researcher@example.com",
+    user_metadata: { full_name: "Researcher" },
+  } as any;
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">

@@ -5,35 +5,17 @@ import { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createBrowserClient();
+  const [user, setUser] = useState<any>({
+    id: "00000000-0000-0000-0000-000000000000",
+    email: "researcher@example.com",
+    user_metadata: { role: "researcher" },
+  });
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-
-    getUser();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [supabase]);
-
   const signOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
+    // No-op in stripped auth mode
+    router.push("/");
   };
 
   return { user, loading, signOut };

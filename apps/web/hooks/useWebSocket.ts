@@ -32,13 +32,9 @@ export function useWebSocket<T>({
 
   const connect = useCallback(
     async function connectImpl() {
-      const { data } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
-      if (!token) return;
-
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const base = apiUrl.replace(/^http/, "ws");
-      const ws = new WebSocket(`${base}/ws/${channel}?token=${token}`);
+      const ws = new WebSocket(`${base}/ws/${channel}`);
 
       wsRef.current = ws;
 

@@ -14,58 +14,18 @@ logger = structlog.get_logger(__name__)
 security = HTTPBearer()
 
 
-async def get_current_user(
-    auth: HTTPAuthorizationCredentials = Depends(security),
-) -> dict[str, Any]:
-    """Validates JWT token against Supabase and returns user info."""
-    supabase = get_supabase_client()
-    # Development bypass for E2E tests
-    from src.config import settings
-
-    if settings.environment == "development" and auth.credentials == "test-token":
-        return {
-            "id": "00000000-0000-0000-0000-000000000000",
-            "email": "test@example.com",
-            "role": "researcher",
-        }
-
-    try:
-        response = supabase.auth.get_user(auth.credentials)
-        if response is None or not response.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return {
-            "id": response.user.id,
-            "email": response.user.email,
-            "role": response.user.user_metadata.get("role", "researcher"),
-        }
-    except Exception as error:
-        logger.error("auth_error", error=str(error), step="auth")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from error
+async def get_current_user() -> dict[str, Any]:
+    """Returns a default researcher user, bypassing authentication."""
+    return {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "email": "researcher@example.com",
+        "role": "researcher",
+    }
 
 
-async def verify_ws_token(websocket: WebSocket, token: str | None) -> dict[str, Any] | None:
-    """Validates WebSocket token and closes connection if invalid."""
-    if not token:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Token required")
-        return None
-
-    supabase = get_supabase_client()
-    try:
-        response = supabase.auth.get_user(token)
-        if response is None or not response.user:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid token")
-            return None
-
-        return {"id": response.user.id, "email": response.user.email}
-    except Exception as error:
-        logger.error("ws_auth_error", error=str(error), step="auth")
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Auth failed")
-        return None
+async def verify_ws_token(websocket: WebSocket, token: str | None = None) -> dict[str, Any]:
+    """Bypasses WebSocket token validation."""
+    return {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "email": "researcher@example.com",
+    }
