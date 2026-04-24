@@ -43,7 +43,8 @@ export function useRealtime<T extends object>({
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [table, event, filter, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [table, event, filter]);
 
   return { connected };
 }

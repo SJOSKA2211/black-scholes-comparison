@@ -1,5 +1,4 @@
-import { createServerClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+// Auth stripped mode
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
 

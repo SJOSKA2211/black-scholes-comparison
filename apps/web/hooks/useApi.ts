@@ -1,6 +1,5 @@
 "use client";
 import { useCallback } from "react";
-import { createBrowserClient } from "@/lib/supabase/client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 

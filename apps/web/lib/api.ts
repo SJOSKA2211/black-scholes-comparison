@@ -15,7 +15,6 @@ export interface ApiError {
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
-  token?: string | null,
 ): Promise<T> {
   const url = `${API_BASE}${path.startsWith("/") ? path : "/" + path}`;
 
@@ -43,15 +42,15 @@ export async function apiFetch<T>(
  * Type-safe API methods.
  */
 export const api = {
-  get: <T>(path: string, token?: string | null) =>
-    apiFetch<T>(path, { method: "GET" }, token),
+  get: <T>(path: string) =>
+    apiFetch<T>(path, { method: "GET" }),
 
-  post: <T>(path: string, body: unknown, token?: string | null) =>
-    apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }, token),
+  post: <T>(path: string, body: unknown) =>
+    apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }),
 
-  patch: <T>(path: string, body: unknown, token?: string | null) =>
-    apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }, token),
+  patch: <T>(path: string, body: unknown) =>
+    apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
 
-  delete: <T>(path: string, token?: string | null) =>
-    apiFetch<T>(path, { method: "DELETE" }, token),
+  delete: <T>(path: string) =>
+    apiFetch<T>(path, { method: "DELETE" }),
 };
