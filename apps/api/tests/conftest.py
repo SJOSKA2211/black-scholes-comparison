@@ -11,39 +11,33 @@ from minio import Minio
 # Load environment variables (Section 1.2)
 load_dotenv()
 
+def _patch_env_for_host() -> None:
+    """If running on host (not in docker), map docker hostnames to localhost."""
+    import os
+    is_docker = os.path.exists("/.dockerenv")
+    if not is_docker:
+        
+        # Redis
+        redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+        if "redis:6379" in redis_url:
+            os.environ["REDIS_URL"] = redis_url.replace("redis:6379", "127.0.0.1:6379")
+        # MinIO
+        minio_endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
+        if minio_endpoint == "minio:9000":
+            os.environ["MINIO_ENDPOINT"] = "127.0.0.1:9000"
+        # RabbitMQ
+        rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://rabbitmq_user:JKmaish2025@rabbitmq:5672/")
+        if "rabbitmq:5672" in rabbitmq_url:
+            os.environ["RABBITMQ_URL"] = rabbitmq_url.replace("rabbitmq:5672", "127.0.0.1:5672")
+
+_patch_env_for_host()
+
 from src.cache.redis_client import get_redis
 from src.database.supabase_client import get_supabase_client
 from src.main import app
 from src.storage.minio_client import get_minio
 from src.task_queues.rabbitmq_client import get_rabbitmq_connection
 from src.config import get_settings
-
-def _patch_env_for_host() -> None:
-    """If running on host (not in docker), map docker hostnames to localhost."""
-    is_docker = os.path.exists("/.dockerenv")
-    if not is_docker:
-        # Import inside to avoid circular deps
-        from src.config import get_settings
-        from src.storage.minio_client import get_minio
-        from src.cache.redis_client import get_redis
-        
-        settings = get_settings()
-        # Redis
-        if "redis:6379" in settings.redis_url:
-            os.environ["REDIS_URL"] = settings.redis_url.replace("redis:6379", "127.0.0.1:6379")
-        # MinIO
-        if settings.minio_endpoint == "minio:9000":
-            os.environ["MINIO_ENDPOINT"] = "127.0.0.1:9000"
-        # RabbitMQ
-        if "rabbitmq:5672" in settings.rabbitmq_url:
-            os.environ["RABBITMQ_URL"] = settings.rabbitmq_url.replace("rabbitmq:5672", "127.0.0.1:5672")
-        
-        # Reload settings and clients if already cached
-        get_settings.cache_clear()
-        get_minio.cache_clear()
-        get_redis.cache_clear()
-
-_patch_env_for_host()
 
 
 @pytest.fixture(scope="session")
