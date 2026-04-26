@@ -30,22 +30,23 @@ from src.metrics import (
 logger = structlog.get_logger(__name__)
 
 
-def compute_single_experiment(method_name: str, params: OptionParams) -> Any:
+def compute_single_experiment(method_name: str, params: OptionParams) -> tuple[Any, OptionParams]:
     """
     Worker function for parallel execution.
-    Instantiates the appropriate pricer family and executes the specific method.
+    Returns (PriceResult or error_dict, OptionParams).
     """
     try:
         if method_name == "analytical":
             res = BlackScholesAnalytical().price(params)
         elif method_name == "explicit_fdm":
-            res = ExplicitFDM().price(params)
+            # Set high time steps to satisfy CFL condition for most grid points
+            res = ExplicitFDM(num_time_steps=2000, num_price_steps=100).price(params)
         elif method_name == "implicit_fdm":
             res = ImplicitFDM().price(params)
         elif method_name == "crank_nicolson":
             res = CrankNicolsonFDM().price(params)
         elif method_name == "standard_mc":
-            res = StandardMC().price(params)
+            res = StandardMC(num_simulations=200000).price(params)
         elif method_name == "antithetic_mc":
             res = AntitheticMC().price(params)
         elif method_name == "control_variate_mc":
@@ -64,12 +65,12 @@ def compute_single_experiment(method_name: str, params: OptionParams) -> Any:
             raise ValueError(f"Unknown method type: {method_name}")
 
         EXPERIMENTS_TOTAL.labels(method_type=method_name, market_source=params.market_source).inc()
-        return res
+        return res, params
     except Exception as error:
         logger.warning("worker_task_failed", method=method_name, error=str(error))
         EXPER_ERROR_TYPE = type(error).__name__
         EXPERIMENT_ERRORS.labels(method_type=method_name, error_type=EXPER_ERROR_TYPE).inc()
-        return {"method": method_name, "error": str(error), "params": params.__dict__}
+        return {"method": method_name, "error": str(error), "params": params.model_dump()}, params
 
 
 async def run_experiments(payload: dict[str, Any]) -> None:
@@ -108,9 +109,8 @@ async def run_experiments(payload: dict[str, Any]) -> None:
     total_tasks = len(tasks)
     EXPERIMENT_PROGRESS.set(0.0)
 
-    # Run in parallel across all CPU cores
-    # Note: Joblib handles the process pool
-    results = Parallel(n_jobs=-1)(
+    # Run in parallel across CPU cores using threading backend to avoid pickling errors
+    results = Parallel(n_jobs=4, backend="threading")(
         delayed(compute_single_experiment)(method_key, params) for method_key, params in tasks
     )
 
@@ -122,14 +122,16 @@ async def run_experiments(payload: dict[str, Any]) -> None:
     user_id = payload.get("user_id")
 
     success_count = 0
-    for res in results:
+    for i, (res, orig_params) in enumerate(results):
+        if i % 20 == 0:
+            logger.info("persistence_progress", current=i, total=total_tasks)
+        
         # res is PriceResult or dict (on error)
         if isinstance(res, PriceResult):
             try:
                 # Ensure the parameters that created this result are stored
-                option_id = await repository.upsert_option_parameters(res.parameter_set)
+                option_id = await repository.upsert_option_parameters(orig_params.model_dump())
                 # Persist to Supabase (Section 2.1)
-                # This now handles real-time broadcasting internally
                 await repository.upsert_price_result(option_id, res, user_id=user_id)
                 success_count += 1
             except Exception as db_error:

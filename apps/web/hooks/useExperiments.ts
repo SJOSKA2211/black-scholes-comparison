@@ -31,7 +31,7 @@ export function useExperiments(options: UseExperimentsOptions = {}) {
       params.append("page_size", pageSize.toString());
 
       return get<PaginatedResponse<Experiment>>(
-        `/api/v1/experiments?${params.toString()}`,
+        `/api/v1/experiments/results?${params.toString()}`,
       );
     },
   });

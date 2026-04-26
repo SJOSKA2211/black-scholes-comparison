@@ -246,7 +246,7 @@ async def compare_methods(
             option_id = await upsert_option_parameters(params.model_dump())
             # Save each result in the experiments table
             for res in results_list:
-                await upsert_price_result(option_id, res)
+                await upsert_price_result(option_id, res, user_id=user.get("id"))
 
         return CompareResponse(
             results=results_list, analytical_reference=analytical_ref, exec_ms=exec_ms

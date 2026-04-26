@@ -35,17 +35,19 @@ async def run_experiment(
 @router.get("/results")
 async def get_results(
     method_type: str | None = Query(None),
-    limit: int = Query(50, ge=1, le=500),
+    market_source: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> list[dict[str, Any]]:
-    """Retrieves experiment results from the database."""
+) -> dict[str, Any]:
+    """Retrieves paginated experiment results from the database."""
     try:
-        if method_type:
-            results = await get_experiments_by_method(method_type)
-        else:
-            # use get_experiments
-            results_dict = await get_experiments(page_size=limit)
-            results = results_dict.get("items", [])
+        results = await get_experiments(
+            method_type=method_type,
+            market_source=market_source,
+            page=page,
+            page_size=page_size
+        )
         return results
     except Exception as error:
         logger.error("results_fetch_failed", error=str(error), step="router")
