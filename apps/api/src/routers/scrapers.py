@@ -36,7 +36,7 @@ async def trigger_scraper(
             step="router",
         )
         return {"message": f"Scraper for {market} triggered", "status": "queued"}
-    except Exception as error:  # pragma: no cover
+    except Exception as error:
         logger.error("scraper_trigger_failed", error=str(error), market=market, step="router")
         raise HTTPException(status_code=500, detail="Failed to trigger scraper") from error
 
@@ -49,6 +49,6 @@ async def get_runs(
     try:
         runs = await get_scrape_runs(limit=limit)
         return runs
-    except Exception as error:  # pragma: no cover
+    except Exception as error:
         logger.error("scraper_runs_fetch_failed", error=str(error), step="router")
         raise HTTPException(status_code=500, detail="Failed to fetch scraper runs") from error

@@ -19,7 +19,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: pip }
       - run: pip install -r apps/api/requirements.txt
-      - run: sudo apt-get update && python -m playwright install --with-deps chromium
+      - run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium || (sudo apt-get update && sudo apt-get install -y libasound2t64 && python -m playwright install --with-deps chromium)
       - id: date
         run: |
           D="${{ github.event.inputs.date }}"

@@ -4,9 +4,8 @@ from playwright.sync_api import Page, expect
 
 
 @pytest.mark.e2e
-def test_realtime_notifications(page: Page) -> None:
+def test_realtime_notifications(page: Page, base_url: str) -> None:
     """Verify real-time notification updates in the UI (Section 16.3)."""
-    base_url = "http://127.0.0.1:3000"
     page.goto(f"{base_url}/")
 
     # Check for notification bell

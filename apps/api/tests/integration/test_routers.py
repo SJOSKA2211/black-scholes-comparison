@@ -46,10 +46,13 @@ class TestPricingRouter:
     def test_pricing_persist(self, auth_client, sample_option_params) -> None:
         assert auth_client.post("/api/v1/pricing/calculate?method_type=analytical&persist=true", json=sample_option_params).status_code == 200
 
-    def test_compare_methods(self, auth_client, sample_option_params) -> None:
+    def test_compare_methods(self, auth_client, sample_option_params, monkeypatch) -> None:
+        # Force cache miss by patching the cached Redis get to always return None
+        monkeypatch.setattr("src.cache.decorators.get_redis", lambda: AsyncMock(get=AsyncMock(return_value=None), setex=AsyncMock()))
+
         response = auth_client.post("/api/v1/pricing/compare?methods=analytical&methods=explicit_fdm", json=sample_option_params)
         assert response.status_code == 200
-        # Analytical automatically added branch (line 212)
+        # Analytical automatically added branch (line 212) — only explicit_fdm passed
         assert auth_client.post("/api/v1/pricing/compare?methods=explicit_fdm", json=sample_option_params).status_code == 200
 
     def test_pricing_fail_mock(self, auth_client, sample_option_params, monkeypatch) -> None:
@@ -87,6 +90,8 @@ class TestScrapersRouter:
     def test_trigger_scraper(self, auth_client, monkeypatch) -> None:
         monkeypatch.setattr("src.routers.scrapers.publish_scrape_task", AsyncMock())
         assert auth_client.post("/api/v1/scrapers/trigger?market=spy").status_code == 200
+        # With explicit trade_date (branch 26->29)
+        assert auth_client.post("/api/v1/scrapers/trigger?market=spy&trade_date=2026-01-15").status_code == 200
         monkeypatch.setattr("src.routers.scrapers.publish_scrape_task", AsyncMock(side_effect=Exception("Err")))
         assert auth_client.post("/api/v1/scrapers/trigger?market=spy").status_code == 500
     def test_get_runs(self, auth_client, monkeypatch) -> None:
@@ -111,6 +116,13 @@ class TestNotificationsRouter:
         monkeypatch.setattr("src.routers.notifications.get_notifications", AsyncMock(side_effect=Exception("Err")))
         assert auth_client.get("/api/v1/notifications/").status_code == 500
 
+    def test_notification_error_paths(self, auth_client, monkeypatch) -> None:
+        """Cover error branches for PATCH and POST read-all."""
+        monkeypatch.setattr("src.routers.notifications.mark_notification_read", AsyncMock(side_effect=Exception("DB")))
+        assert auth_client.patch(f"/api/v1/notifications/{uuid.uuid4()}/read").status_code == 500
+        monkeypatch.setattr("src.routers.notifications.mark_all_notifications_read", AsyncMock(side_effect=Exception("DB")))
+        assert auth_client.post("/api/v1/notifications/read-all").status_code == 500
+
 @pytest.mark.integration
 class TestDownloadsRouter:
     @pytest.mark.asyncio
@@ -124,6 +136,13 @@ class TestDownloadsRouter:
         assert auth_client.get("/api/v1/download/market_data").status_code == 200
         monkeypatch.setattr("src.routers.downloads.get_experiments", AsyncMock(return_value={"items": []}))
         assert auth_client.get("/api/v1/download/experiments").status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_export_upload_failure(self, auth_client, monkeypatch) -> None:
+        """Cover generic Exception path in download_resource."""
+        monkeypatch.setattr("src.routers.downloads.get_experiments", AsyncMock(return_value={"items": [{"id": 1}]}))
+        monkeypatch.setattr("src.routers.downloads.upload_export", MagicMock(side_effect=Exception("MinIO down")))
+        assert auth_client.get("/api/v1/download/experiments?format=json").status_code == 500
 
     @pytest.mark.asyncio
     async def test_internal_logic(self) -> None:

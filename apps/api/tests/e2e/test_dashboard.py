@@ -3,11 +3,10 @@ from playwright.sync_api import Page, expect
 
 
 @pytest.mark.e2e
-def test_dashboard_navigation(authenticated_page: Page) -> None:
+def test_dashboard_navigation(authenticated_page: Page, base_url: str) -> None:
     """Verify dashboard layout and navigation (Section 16.3)."""
     page = authenticated_page
     # Assuming we can skip auth for testing UI or use a mock session
-    base_url = "http://127.0.0.1:3000"
     page.goto(f"{base_url}/")
 
     # Check sidebar/nav items and click them
@@ -23,10 +22,9 @@ def test_dashboard_navigation(authenticated_page: Page) -> None:
 
 
 @pytest.mark.e2e
-def test_live_pricer_interactivity(authenticated_page: Page) -> None:
+def test_live_pricer_interactivity(authenticated_page: Page, base_url: str) -> None:
     """Verify Live Pricer inputs and chart rendering."""
     page = authenticated_page
-    base_url = "http://127.0.0.1:3000"
     # In a real E2E run, we'd need to handle auth or have a dev bypass
     page.goto(f"{base_url}/pricer")
     

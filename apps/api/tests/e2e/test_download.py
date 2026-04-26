@@ -4,9 +4,8 @@ from playwright.sync_api import Page
 
 
 @pytest.mark.e2e
-def test_download_button_functionality(page: Page) -> None:
+def test_download_button_functionality(page: Page, base_url: str) -> None:
     """Verify that the download button triggers a file download (Section 16.3)."""
-    base_url = "http://127.0.0.1:3000"
     page.goto(f"{base_url}/experiments")
 
     # Wait for data to load if any
