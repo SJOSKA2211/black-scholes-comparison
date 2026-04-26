@@ -12,6 +12,8 @@ from src.notifications.hierarchy import notify_user
 from src.scrapers.nse_next_scraper import NSEScraper
 from src.scrapers.spy_scraper import SPYScraper
 from src.websocket.manager import WebSocketManager
+from src.database.supabase_client import get_supabase_client
+from src.main import app as fastapi_app
 
 pytestmark = pytest.mark.unit
 
@@ -599,3 +601,194 @@ class TestPricingRouterGaps:
             # Call the unwrapped function to bypass decorator logic and get the model directly
             res = await compare_methods.__wrapped__(request)
             assert res.analytical_reference == 0.0
+
+@pytest.mark.unit
+class TestSupabaseGaps:
+    def test_get_supabase_client_missing_env(self, monkeypatch):
+        from src.database.supabase_client import get_supabase_client
+        # Clear lru_cache for testing
+        get_supabase_client.cache_clear()
+        monkeypatch.setenv("SUPABASE_URL", "")
+        monkeypatch.setenv("SUPABASE_KEY", "")
+        # Reset settings
+        from src.config import get_settings
+        get_settings.cache_clear()
+        
+        with pytest.raises(ValueError, match="SUPABASE_URL and SUPABASE_KEY must be set."):
+            get_supabase_client()
+        
+        # Cleanup
+        get_settings.cache_clear()
+        get_supabase_client.cache_clear()
+
+@pytest.mark.unit
+class TestMainGaps:
+    @pytest.mark.asyncio
+    async def test_root_endpoint(self):
+        from fastapi.testclient import TestClient
+        client = TestClient(fastapi_app)
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "Production Stable" in response.json()["message"]
+
+    @pytest.mark.asyncio
+    async def test_lifespan_success(self, monkeypatch):
+        from src.main import lifespan
+        mock_app = MagicMock()
+        # Mock dependencies to avoid real infra
+        monkeypatch.setattr("src.cache.redis_client.get_redis", MagicMock())
+        monkeypatch.setattr("src.storage.minio_client.get_minio", MagicMock())
+        
+        with patch("src.main.start_consumers", new_callable=AsyncMock) as mock_start:
+            async with lifespan(mock_app):
+                pass
+            mock_start.assert_called_once()
+
+@pytest.mark.unit
+class TestRouterErrors:
+    """Cover error paths in routers (raising 404, 500, etc)."""
+    
+    @pytest.mark.asyncio
+    async def test_health_error(self, monkeypatch):
+        from src.routers.health import health_check
+        # Patch BOTH DB and Redis to ensure error status
+        with patch("src.database.repository.check_db_health", return_value="unhealthy"):
+            mock_redis = MagicMock()
+            mock_redis.ping.return_value = False
+            with patch("src.routers.health.get_redis", return_value=mock_redis):
+                res = await health_check()
+                assert res["status"] == "error"
+                assert res["services"]["database"] == "unhealthy"
+
+    @pytest.mark.asyncio
+    async def test_experiments_detail_missing(self, monkeypatch):
+        from src.routers.experiments import get_result_detail
+        from src.exceptions import RepositoryError
+        # Code raises 500 for generic Exception/RepositoryError
+        with patch("src.database.repository.get_experiment_by_id", side_effect=RepositoryError("Not found")):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as exc:
+                await get_result_detail("fake-id")
+            assert exc.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_notifications_read_error(self, monkeypatch):
+        from src.routers.notifications import acknowledge_notification
+        from src.exceptions import RepositoryError
+        with patch("src.database.repository.mark_notification_read", side_effect=RepositoryError("DB Fail")):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as exc:
+                await acknowledge_notification("fake-id")
+            assert exc.value.status_code == 500
+
+@pytest.mark.unit
+class TestPricingErrors:
+    @pytest.mark.asyncio
+    async def test_calculate_price_error(self, monkeypatch):
+        from src.routers.pricing import calculate_price
+        from src.methods.base import OptionParams
+        params = OptionParams(underlying_price=100, strike_price=100, maturity_years=1, volatility=0.2, risk_free_rate=0.05, option_type="call")
+        with patch("src.routers.pricing.get_method_instance", side_effect=Exception("Calc Boom")):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as exc:
+                await calculate_price.__wrapped__(params, method_type="analytical")
+            assert exc.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_compare_methods_error(self, monkeypatch):
+        from src.routers.pricing import CompareRequest, compare_methods
+        from src.methods.base import OptionParams
+        params = OptionParams(underlying_price=100, strike_price=100, maturity_years=1, volatility=0.2, risk_free_rate=0.05, option_type="call")
+        req = CompareRequest(params=params, methods=["analytical"])
+        with patch("src.routers.pricing.get_method_instance", side_effect=Exception("Comp Boom")):
+            from fastapi import HTTPException
+            with pytest.raises(HTTPException) as exc:
+                await compare_methods.__wrapped__(req)
+            assert exc.value.status_code == 500
+
+@pytest.mark.unit
+class TestWebSocketGaps:
+    @pytest.mark.asyncio
+    async def test_websocket_endpoint_invalid_channel(self):
+        from src.routers.websocket import websocket_endpoint
+        mock_ws = AsyncMock()
+        # Mock receive_text to avoid hanging
+        mock_ws.receive_text = AsyncMock(return_value="{}")
+        from fastapi import HTTPException
+        # We need to call the endpoint without the router validation if we are testing internal logic
+        # But here we want to test the channel check
+        with pytest.raises(HTTPException) as exc:
+            await websocket_endpoint(mock_ws, "invalid_channel_name")
+        assert exc.value.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_websocket_endpoint_disconnect(self):
+        from src.routers.websocket import websocket_endpoint
+        from fastapi import WebSocketDisconnect
+        mock_ws = AsyncMock()
+        mock_ws.accept = AsyncMock()
+        mock_ws.receive_text = AsyncMock(side_effect=[WebSocketDisconnect()])
+        await websocket_endpoint(mock_ws, "experiments")
+        mock_ws.accept.assert_called_once()
+
+@pytest.mark.unit
+class TestPipelineGaps:
+    @pytest.mark.asyncio
+    async def test_pipeline_run_no_date(self, monkeypatch):
+        from src.data.pipeline import get_pipeline
+        # Mocking repository methods that pipeline calls
+        with patch("src.database.repository.update_scrape_run", new_callable=AsyncMock):
+            with patch("src.database.repository.create_audit_log", new_callable=AsyncMock):
+                pipeline = get_pipeline("spy", run_id="test-run")
+                mock_scraper = MagicMock()
+                mock_scraper.scrape = AsyncMock(return_value=[])
+                with patch("src.scrapers.scraper_factory.ScraperFactory.get_scraper", return_value=mock_scraper):
+                    res = await pipeline.run()
+                    assert res["status"] == "success"
+
+@pytest.mark.unit
+class TestPricingMethodsCoverage:
+    def test_get_method_instance_all(self):
+        from src.routers.pricing import get_method_instance
+        methods = [
+            "analytical", "explicit_fdm", "implicit_fdm", "crank_nicolson",
+            "standard_mc", "antithetic_mc", "control_variate_mc", "quasi_mc",
+            "binomial_crr", "binomial_crr_richardson", "trinomial", "trinomial_richardson"
+        ]
+        for m in methods:
+            assert get_method_instance(m) is not None
+        
+        from fastapi import HTTPException
+        with pytest.raises(HTTPException) as exc:
+            get_method_instance("invalid")
+        assert exc.value.status_code == 400
+
+@pytest.mark.unit
+class TestRepositoryErrorPaths:
+    @pytest.mark.asyncio
+    async def test_repository_exceptions(self, monkeypatch):
+        from src.database import repository
+        from src.exceptions import RepositoryError
+        
+        # Mock supabase to throw
+        mock_supabase = MagicMock()
+        mock_supabase.table.side_effect = Exception("DB Boom")
+        monkeypatch.setattr("src.database.repository.get_supabase_client", lambda: mock_supabase)
+        
+        with pytest.raises(RepositoryError):
+            await repository.get_user_profile("uid")
+        with pytest.raises(RepositoryError):
+            await repository.upsert_user_profile({"id": "uid"})
+        with pytest.raises(RepositoryError):
+            await repository.get_market_data("spy")
+        with pytest.raises(RepositoryError):
+            await repository.get_experiments()
+        with pytest.raises(RepositoryError):
+            await repository.get_experiment_by_id("eid")
+        with pytest.raises(RepositoryError):
+            await repository.get_push_subscriptions("uid")
+        with pytest.raises(RepositoryError):
+            await repository.delete_push_subscription("sid")
+        with pytest.raises(RepositoryError):
+            await repository.get_experiments_by_method("analytical")
+

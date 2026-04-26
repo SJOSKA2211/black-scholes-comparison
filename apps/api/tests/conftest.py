@@ -4,6 +4,16 @@ from collections.abc import Generator
 
 import pytest
 import pytest_asyncio
+from unittest.mock import patch, MagicMock
+
+# 1. Global Bypass for Caching (Section 13.2)
+# This ensures coverage captures function bodies instead of cached results.
+def mock_cache_response(**kwargs):
+    def decorator(f):
+        return f
+    return decorator
+
+patch("src.cache.decorators.cache_response", mock_cache_response).start()
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from minio import Minio

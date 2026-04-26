@@ -41,8 +41,12 @@ def test_websocket_lifecycle() -> None:
 
             # Manager should receive from Redis and broadcast to WS
             # Use a timeout on receive
-            data = websocket.receive_json()
-            assert data == test_msg
+            try:
+                data = websocket.receive_json()
+                assert data == test_msg
+            except Exception as e:
+                # If it times out or fails, we fail the test gracefully
+                pytest.fail(f"WebSocket receive failed: {e}")
     except Exception as e:
         pytest.fail(f"WebSocket lifecycle failed: {e}")
 

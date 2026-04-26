@@ -64,7 +64,7 @@ async def test_pipeline_processing_logic(cleanup_ids) -> None:
     # 4. Verify in DB
     supabase = get_supabase_client()
     # Scrape run should have audit logs
-    logs = supabase.table("audit_logs").select("*").eq("pipeline_run_id", run_id).execute()
+    logs = supabase.table("audit_log").select("*").eq("pipeline_run_id", run_id).execute()
     assert len(logs.data) >= 1
 
 @pytest.mark.integration

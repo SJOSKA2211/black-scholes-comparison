@@ -171,9 +171,9 @@ async def calculate_price(
     Compute the price of an option using the specified numerical method.
     Optionally persists the parameters and result to Supabase.
     """
-    method = get_method_instance(method_type)
-
     try:
+        method = get_method_instance(method_type)
+
         from src.metrics import PRICE_COMPUTATIONS_TOTAL, PRICE_DURATION_SECONDS
 
         start_time = asyncio.get_event_loop().time()
