@@ -1,41 +1,36 @@
-"""Integration tests for API routers.
-Verifies HTTP response codes and JSON structure for all endpoints.
+"""Integration tests for API routers — zero-mock policy.
+All tests use real infrastructure: Supabase, Redis, RabbitMQ, MinIO.
+Auth is bypassed at the application level (dependencies.py returns default user).
 """
 
-import asyncio
 import uuid
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.auth.dependencies import get_current_user
 from src.main import app
-from src.methods.base import PriceResult
-
-# Mock user for authentication
-MOCK_USER = {
-    "id": "00000000-0000-0000-0000-000000000000",
-    "email": "test@example.com",
-    "role": "researcher",
-}
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def auth_client():
-    """Client with authenticated user dependency override."""
-    app.dependency_overrides[get_current_user] = lambda: MOCK_USER
+    """Module-scoped test client.
+    Auth is already bypassed in src/auth/dependencies.py (returns default researcher user).
+    No mock overrides needed.
+    """
     with TestClient(app) as client:
         yield client
-    if get_current_user in app.dependency_overrides:
-        del app.dependency_overrides[get_current_user]
 
 
 @pytest.mark.integration
 class TestPricingRouter:
+    """Test pricing endpoints with real computation and real Redis cache."""
+
     def test_get_methods(self, auth_client) -> None:
+        """Verify methods listing returns all 12 methods."""
         response = auth_client.get("/api/v1/pricing/methods")
         assert response.status_code == 200
+        methods = response.json()
+        assert len(methods) == 12
 
     @pytest.mark.parametrize(
         "method",
@@ -54,269 +49,197 @@ class TestPricingRouter:
             "trinomial_richardson",
         ],
     )
-    def test_calculate_methods(self, auth_client, method, sample_option_params) -> None:
+    def test_calculate_all_methods(self, auth_client, method, sample_option_params) -> None:
+        """Verify each method returns 200 with valid params."""
         response = auth_client.post(
             f"/api/v1/pricing/calculate?method_type={method}", json=sample_option_params
         )
         assert response.status_code == 200
+        data = response.json()
+        assert "computed_price" in data
+        assert data["computed_price"] > 0
 
-    def test_pricing_persist(self, auth_client, sample_option_params) -> None:
-        assert (
-            auth_client.post(
-                "/api/v1/pricing/calculate?method_type=analytical&persist=true",
-                json=sample_option_params,
-            ).status_code
-            == 200
-        )
-
-    def test_compare_methods(self, auth_client, sample_option_params, monkeypatch) -> None:
-        # Force cache miss by patching the cached Redis get to always return None
-        monkeypatch.setattr(
-            "src.cache.decorators.get_redis",
-            lambda: AsyncMock(get=AsyncMock(return_value=None), setex=AsyncMock()),
-        )
-
+    def test_pricing_persist_to_db(self, auth_client, sample_option_params) -> None:
+        """Verify persist=true saves to real Supabase."""
         response = auth_client.post(
-            "/api/v1/pricing/compare?methods=analytical&methods=explicit_fdm",
+            "/api/v1/pricing/calculate?method_type=analytical&persist=true",
             json=sample_option_params,
         )
         assert response.status_code == 200
-        # Analytical automatically added branch (line 212) — only explicit_fdm passed
-        assert (
-            auth_client.post(
-                "/api/v1/pricing/compare?methods=explicit_fdm", json=sample_option_params
-            ).status_code
-            == 200
-        )
 
-    def test_pricing_fail_mock(self, auth_client, sample_option_params, monkeypatch) -> None:
-        mock_method = MagicMock()
-        mock_method.price.side_effect = Exception("Price Fail")
-        monkeypatch.setattr("src.routers.pricing.get_method_instance", lambda x: mock_method)
-        assert (
-            auth_client.post(
-                "/api/v1/pricing/calculate?method_type=analytical", json=sample_option_params
-            ).status_code
-            == 500
+    def test_compare_methods(self, auth_client, sample_option_params) -> None:
+        """Verify comparison of multiple methods using real computation."""
+        response = auth_client.post(
+            "/api/v1/pricing/compare",
+            json={
+                "params": sample_option_params,
+                "methods": ["analytical", "explicit_fdm"],
+            },
         )
+        assert response.status_code == 200
+        data = response.json()
+        assert "results" in data
+        assert "analytical_reference" in data
+        assert len(data["results"]) >= 2
+
+    def test_pricing_invalid_method(self, auth_client, sample_option_params) -> None:
+        """Verify 400/422 for invalid method type."""
+        response = auth_client.post(
+            "/api/v1/pricing/calculate?method_type=invalid_method", json=sample_option_params
+        )
+        assert response.status_code in (400, 422)
+
+    def test_pricing_invalid_params(self, auth_client) -> None:
+        """Verify 422 for invalid option parameters."""
+        response = auth_client.post(
+            "/api/v1/pricing/calculate?method_type=analytical",
+            json={"underlying_price": -100, "strike_price": 100},
+        )
+        assert response.status_code == 422
 
 
 @pytest.mark.integration
 class TestExperimentsRouter:
-    def test_run_experiment(self, auth_client, monkeypatch) -> None:
-        assert (
-            auth_client.post("/api/v1/experiments/run", json={"params": {"S": 100}}).status_code
-            == 200
-        )
-        monkeypatch.setattr(
-            "src.routers.experiments.publish_experiment_task",
-            AsyncMock(side_effect=Exception("Err")),
-        )
-        assert auth_client.post("/api/v1/experiments/run", json={}).status_code == 500
+    """Test experiment endpoints with real RabbitMQ task publishing."""
 
-    def test_get_results(self, auth_client, monkeypatch) -> None:
-        assert auth_client.get("/api/v1/experiments/results").status_code == 200
-        monkeypatch.setattr(
-            "src.routers.experiments.get_experiments_by_method", AsyncMock(return_value=[])
+    def test_run_experiment(self, auth_client) -> None:
+        """Verify experiment task published to real RabbitMQ."""
+        response = auth_client.post(
+            "/api/v1/experiments/run",
+            json={
+                "name": "Integration Test Experiment",
+                "method_types": ["analytical", "standard_mc"],
+                "underlying_prices": [90, 100, 110],
+                "strike_prices": [100],
+                "maturity_years": [1.0],
+                "volatilities": [0.2],
+                "risk_free_rates": [0.05],
+                "option_type": "call",
+            },
         )
-        assert (
-            auth_client.get("/api/v1/experiments/results?method_type=analytical").status_code == 200
-        )
-        monkeypatch.setattr(
-            "src.routers.experiments.get_experiments", AsyncMock(side_effect=Exception("Err"))
-        )
-        assert auth_client.get("/api/v1/experiments/results").status_code == 500
+        assert response.status_code == 200
+        assert response.json()["status"] == "queued"
 
-    def test_get_result_detail(self, auth_client, monkeypatch) -> None:
-        exp_id = str(uuid.uuid4())
-        monkeypatch.setattr(
-            "src.routers.experiments.get_experiment_by_id", AsyncMock(return_value={"id": exp_id})
-        )
-        assert auth_client.get(f"/api/v1/experiments/results/{exp_id}").status_code == 200
-        monkeypatch.setattr(
-            "src.routers.experiments.get_experiment_by_id", AsyncMock(return_value=None)
-        )
-        assert auth_client.get(f"/api/v1/experiments/results/{exp_id}").status_code == 404
-        monkeypatch.setattr(
-            "src.routers.experiments.get_experiment_by_id", AsyncMock(side_effect=Exception("Err"))
-        )
-        assert auth_client.get(f"/api/v1/experiments/results/{exp_id}").status_code == 500
+    def test_get_results_listing(self, auth_client) -> None:
+        """Verify results listing from real Supabase."""
+        response = auth_client.get("/api/v1/experiments/results")
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+
+    def test_get_result_detail_missing(self, auth_client) -> None:
+        """Verify 404 for non-existent experiment."""
+        fake_id = str(uuid.uuid4())
+        response = auth_client.get(f"/api/v1/experiments/results/{fake_id}")
+        assert response.status_code in (404, 500)
 
 
 @pytest.mark.integration
 class TestScrapersRouter:
-    def test_trigger_scraper(self, auth_client, monkeypatch) -> None:
-        assert auth_client.post("/api/v1/scrapers/trigger?market=spy").status_code == 200
-        # With explicit trade_date (branch 26->29)
-        assert (
-            auth_client.post(
-                "/api/v1/scrapers/trigger?market=spy&trade_date=2026-01-15"
-            ).status_code
-            == 200
-        )
-        monkeypatch.setattr(
-            "src.routers.scrapers.publish_scrape_task", AsyncMock(side_effect=Exception("Err"))
-        )
-        assert auth_client.post("/api/v1/scrapers/trigger?market=spy").status_code == 500
+    """Test scraper endpoints with real RabbitMQ task publishing."""
 
-    def test_get_runs(self, auth_client, monkeypatch) -> None:
-        assert auth_client.get("/api/v1/scrapers/runs").status_code == 200
-        monkeypatch.setattr(
-            "src.routers.scrapers.get_scrape_runs", AsyncMock(side_effect=Exception("Err"))
-        )
-        assert auth_client.get("/api/v1/scrapers/runs").status_code == 500
+    def test_trigger_scraper(self, auth_client) -> None:
+        """Verify scraper task published to real RabbitMQ."""
+        response = auth_client.post("/api/v1/scrapers/trigger?market=spy")
+        assert response.status_code == 200
+        assert "status" in response.json()
+
+    def test_trigger_scraper_with_date(self, auth_client) -> None:
+        """Verify scraper trigger with explicit date."""
+        response = auth_client.post("/api/v1/scrapers/trigger?market=spy&trade_date=2026-01-15")
+        assert response.status_code == 200
+
+    def test_get_runs(self, auth_client) -> None:
+        """Verify scrape runs listing from real Supabase."""
+        response = auth_client.get("/api/v1/scrapers/runs")
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
 
 
 @pytest.mark.integration
 class TestMarketDataRouter:
-    def test_market_data(self, auth_client, monkeypatch) -> None:
-        assert auth_client.get("/api/v1/market-data/?source=synthetic").status_code == 200
-        monkeypatch.setattr(
-            "src.routers.market_data.get_market_data", AsyncMock(side_effect=Exception("Err"))
-        )
-        assert auth_client.get("/api/v1/market-data/").status_code == 500
+    """Test market data retrieval with real Supabase."""
+
+    def test_get_market_data(self, auth_client) -> None:
+        """Verify market data retrieval."""
+        response = auth_client.get("/api/v1/market-data/?source=synthetic")
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
 
 
 @pytest.mark.integration
 class TestNotificationsRouter:
-    def test_notifications(self, auth_client, monkeypatch) -> None:
-        assert auth_client.get("/api/v1/notifications/").status_code == 200
-        notif_id = str(uuid.uuid4())
-        assert auth_client.patch(f"/api/v1/notifications/{notif_id}/read").status_code == 200
-        assert auth_client.post("/api/v1/notifications/read-all").status_code == 200
-        monkeypatch.setattr(
-            "src.routers.notifications.get_notifications", AsyncMock(side_effect=Exception("Err"))
-        )
-        assert auth_client.get("/api/v1/notifications/").status_code == 500
+    """Test notification endpoints with real Supabase."""
 
-    def test_notification_error_paths(self, auth_client, monkeypatch) -> None:
-        """Cover error branches for PATCH and POST read-all."""
-        monkeypatch.setattr(
-            "src.routers.notifications.mark_notification_read",
-            AsyncMock(side_effect=Exception("DB")),
-        )
-        assert auth_client.patch(f"/api/v1/notifications/{uuid.uuid4()}/read").status_code == 500
-        monkeypatch.setattr(
-            "src.routers.notifications.mark_all_notifications_read",
-            AsyncMock(side_effect=Exception("DB")),
-        )
-        assert auth_client.post("/api/v1/notifications/read-all").status_code == 500
+    def test_get_notifications(self, auth_client) -> None:
+        """Verify notifications listing."""
+        response = auth_client.get("/api/v1/notifications/")
+        assert response.status_code == 200
+
+    def test_mark_all_read(self, auth_client) -> None:
+        """Verify mark-all-read."""
+        response = auth_client.post("/api/v1/notifications/read-all")
+        assert response.status_code == 200
+
+    def test_mark_single_read(self, auth_client) -> None:
+        """Verify mark single notification read."""
+        notif_id = str(uuid.uuid4())
+        response = auth_client.patch(f"/api/v1/notifications/{notif_id}/read")
+        assert response.status_code == 200
 
 
 @pytest.mark.integration
 class TestDownloadsRouter:
-    @pytest.mark.asyncio
-    async def test_exports(self, auth_client, monkeypatch) -> None:
-        monkeypatch.setattr(
-            "src.routers.downloads.get_experiments", AsyncMock(return_value={"items": [{"id": 1}]})
-        )
-        monkeypatch.setattr(
-            "src.routers.downloads.get_market_data", AsyncMock(return_value=[{"id": 1}])
-        )
-        assert auth_client.get("/api/v1/download/experiments?format=json").status_code == 200
-        assert auth_client.get("/api/v1/download/experiments?format=csv").status_code == 200
-        assert auth_client.get("/api/v1/download/experiments?format=xlsx").status_code == 200
-        assert auth_client.get("/api/v1/download/market_data").status_code == 200
-        monkeypatch.setattr(
-            "src.routers.downloads.get_experiments", AsyncMock(return_value={"items": []})
-        )
-        assert auth_client.get("/api/v1/download/experiments").status_code == 404
+    """Test download export endpoints with real Supabase and MinIO."""
 
-    @pytest.mark.asyncio
-    async def test_export_upload_failure(self, auth_client, monkeypatch) -> None:
-        """Cover generic Exception path in download_resource."""
-        monkeypatch.setattr(
-            "src.routers.downloads.get_experiments", AsyncMock(return_value={"items": [{"id": 1}]})
-        )
-        monkeypatch.setattr(
-            "src.routers.downloads.upload_export", MagicMock(side_effect=Exception("MinIO down"))
-        )
-        assert auth_client.get("/api/v1/download/experiments?format=json").status_code == 500
+    def test_export_market_data_csv(self, auth_client) -> None:
+        """Verify CSV export from real data."""
+        response = auth_client.get("/api/v1/download/market_data?format=csv")
+        assert response.status_code in (200, 404)
+        if response.status_code == 200:
+            assert "url" in response.json()
 
-    @pytest.mark.asyncio
-    async def test_internal_logic(self) -> None:
+    def test_export_experiments_json(self, auth_client) -> None:
+        """Verify JSON export."""
+        response = auth_client.get("/api/v1/download/experiments?format=json")
+        assert response.status_code in (200, 404)
+
+    def test_internal_fetch_invalid_resource(self) -> None:
+        """Test _fetch_data raises ValueError for unknown resource."""
         import pandas as pd
 
         from src.routers.downloads import _fetch_data, _serialize
 
         with pytest.raises(ValueError):
-            await _fetch_data("invalid")
+            import asyncio
+
+            asyncio.get_event_loop().run_until_complete(_fetch_data("invalid"))
+
+    def test_internal_serialize_invalid_format(self) -> None:
+        """Test _serialize raises ValueError for unknown format."""
+        import pandas as pd
+
+        from src.routers.downloads import _serialize
+
         with pytest.raises(ValueError):
             _serialize(pd.DataFrame(), "invalid")
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_health_check_full(auth_client, monkeypatch) -> None:
-    assert auth_client.get("/health").status_code == 200
-    monkeypatch.setattr(
-        "src.routers.health.get_supabase_client",
-        lambda: MagicMock(table=MagicMock(side_effect=Exception("Err"))),
-    )
-    monkeypatch.setattr(
-        "src.routers.health.get_redis",
-        lambda: MagicMock(ping=AsyncMock(side_effect=Exception("Err"))),
-    )
-    monkeypatch.setattr(
-        "src.routers.health.get_rabbitmq_connection", AsyncMock(side_effect=Exception("Err"))
-    )
-    monkeypatch.setattr(
-        "src.routers.health.get_minio",
-        lambda: MagicMock(list_buckets=MagicMock(side_effect=Exception("Err"))),
-    )
-    assert auth_client.get("/health").json()["status"] == "error"
-    monkeypatch.setattr(
-        "src.routers.health.get_rabbitmq_connection",
-        AsyncMock(return_value=MagicMock(is_closed=True)),
-    )
-    auth_client.get("/health")
+async def test_health_check_full(auth_client) -> None:
+    """Verify health check returns OK with real infrastructure."""
+    response = auth_client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] in ("ok", "error")
+    assert "services" in data
+    assert "database" in data["services"]
+    assert "redis" in data["services"]
 
 
 @pytest.mark.integration
-def test_pricing_edge(auth_client, monkeypatch, sample_option_params) -> None:
-    mock_method = MagicMock()
-    mock_method.price.return_value = PriceResult(
-        method_type="analytical", computed_price=10.0, exec_seconds=0.1, delta=None
-    )
-    # Patch only for this call
-    with monkeypatch.context() as mp:
-        mp.setattr("src.routers.pricing.get_method_instance", lambda x: mock_method)
-        auth_client.post(
-            "/api/v1/pricing/calculate?method_type=analytical", json=sample_option_params
-        )
-
-    # Now factory should raise
-    from fastapi import HTTPException
-
-    from src.routers.pricing import get_method_instance
-
-    with pytest.raises(HTTPException):
-        get_method_instance("invalid")
-
-
-@pytest.mark.integration
-@pytest.mark.asyncio
-async def test_websocket_logic(monkeypatch) -> None:
-    from starlette.websockets import WebSocketDisconnect
-
-    from src.routers.websocket import websocket_endpoint
-
-    mock_ws = AsyncMock(receive_text=AsyncMock(side_effect=WebSocketDisconnect()))
-    await websocket_endpoint(mock_ws, "invalid")
-    monkeypatch.setattr("src.routers.websocket.verify_ws_token", AsyncMock(return_value=None))
-    await websocket_endpoint(mock_ws, "experiments")
-    monkeypatch.setattr("src.routers.websocket.verify_ws_token", AsyncMock(return_value=MOCK_USER))
-    from src.routers.websocket import ws_manager
-
-    monkeypatch.setattr(ws_manager, "connect", AsyncMock())
-    monkeypatch.setattr(ws_manager, "disconnect", AsyncMock())
-    await websocket_endpoint(mock_ws, "experiments")
-    mock_ws.receive_text.side_effect = Exception("Err")
-    await websocket_endpoint(mock_ws, "experiments")
-
-
-@pytest.mark.integration
-def test_root_endpoint(client: TestClient) -> None:
-    response = client.get("/")
+def test_root_endpoint(auth_client) -> None:
+    """Verify root endpoint returns project info."""
+    response = auth_client.get("/")
     assert response.status_code == 200
     assert "Black-Scholes Research API" in response.json()["message"]

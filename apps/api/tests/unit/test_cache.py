@@ -1,10 +1,14 @@
+"""Unit tests for Redis cache client and cache-aside decorator.
+Tests cover: initialization, cache hit, cache miss, TTL, error handling, Pydantic models.
+"""
+
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from src.cache.decorators import cache_response
-from src.cache.redis_client import get_redis
+from src.cache.redis_client import get_redis, reset_redis
 
 
 @pytest.mark.unit
@@ -12,7 +16,7 @@ class TestRedisClient:
     @patch("src.cache.redis_client.aioredis.from_url")
     @patch("src.cache.redis_client.get_settings")
     def test_get_redis_init(self, mock_settings, mock_from_url):
-        get_redis.cache_clear()
+        reset_redis()
         mock_settings.return_value.redis_url = "redis://localhost"
         mock_settings.return_value.redis_password = "pass"
 
@@ -22,7 +26,7 @@ class TestRedisClient:
         client = get_redis()
         assert client == mock_client
         mock_from_url.assert_called_once()
-        get_redis.cache_clear()  # Clear it so other tests get real redis
+        reset_redis()  # Clear it so other tests get real redis
 
 
 @pytest.mark.unit

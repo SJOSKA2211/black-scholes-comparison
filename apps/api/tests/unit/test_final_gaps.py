@@ -574,7 +574,7 @@ class TestPricingRouterGaps:
     async def test_compare_no_analytical_reference(self, monkeypatch):
         """Cover branch 227->232 in pricing.py where analytical result is missing."""
         from src.methods.base import OptionParams, PriceResult
-        from src.routers.pricing import compare_methods
+        from src.routers.pricing import CompareRequest, compare_methods
 
         params = OptionParams(
             underlying_price=100.0,
@@ -584,6 +584,8 @@ class TestPricingRouterGaps:
             risk_free_rate=0.05,
             option_type="call",
         )
+        request = CompareRequest(params=params, methods=["analytical"])
+
         # Mock get_method_instance to return something that returns a non-analytical method_type
         mock_method = MagicMock()
         mock_method.price.return_value = PriceResult(
@@ -595,5 +597,5 @@ class TestPricingRouterGaps:
             monkeypatch.setattr("src.routers.pricing.cache_response", lambda **kw: lambda fn: fn)
 
             # Call the unwrapped function to bypass decorator logic and get the model directly
-            res = await compare_methods.__wrapped__(params, methods=["analytical"])
+            res = await compare_methods.__wrapped__(request)
             assert res.analytical_reference == 0.0

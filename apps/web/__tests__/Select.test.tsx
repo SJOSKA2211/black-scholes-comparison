@@ -1,6 +1,12 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select";
+import {
+  Select,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+} from "@/components/ui/select";
 
 describe("Select UI Component", () => {
   it("renders and handles selection", () => {
@@ -14,11 +20,11 @@ describe("Select UI Component", () => {
           <SelectItem value="val1">Option 1</SelectItem>
           <SelectItem value="val2">Option 2</SelectItem>
         </SelectContent>
-      </Select>
+      </Select>,
     );
 
     expect(screen.getByText("Option 1")).toBeInTheDocument();
-    
+
     const option2 = screen.getByText("Option 2");
     fireEvent.click(option2);
     expect(onValueChange).toHaveBeenCalledWith("val2");
@@ -29,7 +35,7 @@ describe("Select UI Component", () => {
       <Select>
         {"Text Child"}
         <SelectItem value="val">Item</SelectItem>
-      </Select>
+      </Select>,
     );
     expect(screen.getByText("Text Child")).toBeInTheDocument();
   });

@@ -37,16 +37,17 @@ export default function PricerPage() {
     market_source: "synthetic",
   });
 
-  const { mutate, data, isPending } = usePricer();
+  const { mutate, data, isPending, error } = usePricer();
 
   // Auto-price on slider change
   useEffect(() => {
     const timer = setTimeout(() => {
+      console.log("Auto-triggering price update...", params);
       mutate({
         params,
         methods: ALL_METHODS,
       });
-    }, 400);
+    }, 1000); // Increased for stability
     return () => clearTimeout(timer);
   }, [params, mutate]);
 
@@ -61,6 +62,12 @@ export default function PricerPage() {
         </p>
       </div>
 
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm font-bold">
+          API Error: {error instanceof Error ? error.message : String(error)}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <PricerForm params={params} setParams={setParams} />
 
@@ -70,7 +77,15 @@ export default function PricerPage() {
               <Zap className="w-4 h-4 text-amber-500" />
               <h3 className="font-bold text-white">Cross-Method Results</h3>
             </div>
-            {isPending && <Badge variant="warning">Computing...</Badge>}
+            <div className="flex items-center gap-3">
+              {isPending && <Badge variant="warning">Computing...</Badge>}
+              <button 
+                onClick={() => mutate({ params, methods: ALL_METHODS })}
+                className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-slate-400 font-bold uppercase"
+              >
+                Manual Refresh
+              </button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {data && (

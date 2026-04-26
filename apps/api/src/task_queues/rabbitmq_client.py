@@ -31,6 +31,12 @@ async def get_rabbitmq_connection() -> aio_pika.abc.AbstractConnection:
     return _connection
 
 
+def reset_rabbitmq() -> None:
+    """Reset the global RabbitMQ connection (used for tests)."""
+    global _connection
+    _connection = None
+
+
 async def close_rabbitmq_connection() -> None:
     """Close the global RabbitMQ connection during shutdown."""
     global _connection

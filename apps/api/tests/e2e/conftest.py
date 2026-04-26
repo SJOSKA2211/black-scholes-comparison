@@ -4,12 +4,12 @@ import pytest
 from playwright.sync_api import BrowserContext, Page
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def base_url() -> str:
     return os.getenv("E2E_BASE_URL", "http://127.0.0.1:3000")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def api_url() -> str:
     return os.getenv("E2E_API_URL", "http://127.0.0.1:8000")
 

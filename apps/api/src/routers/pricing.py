@@ -27,6 +27,11 @@ router = APIRouter(prefix="/pricing", tags=["Pricing"])
 logger = structlog.get_logger(__name__)
 
 
+class CompareRequest(BaseModel):
+    params: OptionParams
+    methods: list[MethodType]
+
+
 class CompareResponse(BaseModel):
     results: list[PriceResult]
     analytical_reference: float
@@ -201,14 +206,16 @@ async def calculate_price(
 @router.post("/price", response_model=CompareResponse, include_in_schema=False)
 @cache_response(key_prefix="compare", ttl_seconds=3600)
 async def compare_methods(
-    params: OptionParams,
-    methods: list[MethodType] = Query(..., description="Methods to compare"),
+    request: CompareRequest,
     user: dict[str, Any] = Depends(get_current_user),
 ) -> CompareResponse:
     """
     Compute prices using multiple methods for comparison.
     Analytical method is always included as a benchmark if not requested.
     """
+    params = request.params
+    methods = request.methods
+
     if "analytical" not in methods:
         methods.append("analytical")
 

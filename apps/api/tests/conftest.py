@@ -35,12 +35,20 @@ def _patch_env_for_host() -> None:
 
 _patch_env_for_host()
 
-from src.cache.redis_client import get_redis
+from src.cache.redis_client import get_redis, reset_redis
 from src.config import get_settings
 from src.database.supabase_client import get_supabase_client
 from src.main import app
 from src.storage.minio_client import get_minio
-from src.task_queues.rabbitmq_client import get_rabbitmq_connection
+from src.task_queues.rabbitmq_client import get_rabbitmq_connection, reset_rabbitmq
+
+
+@pytest.fixture(autouse=True)
+def reset_infrastructure_globals():
+    """Reset globals between tests to avoid event loop conflicts."""
+    reset_redis()
+    reset_rabbitmq()
+    yield
 
 
 @pytest.fixture(scope="session")
