@@ -651,14 +651,17 @@ class TestRouterErrors:
     @pytest.mark.asyncio
     async def test_health_error(self, monkeypatch):
         from src.routers.health import health_check
-        # Patch BOTH DB and Redis to ensure error status
-        with patch("src.database.repository.check_db_health", return_value="unhealthy"):
+        # Patch clients to throw exceptions
+        mock_supabase = MagicMock()
+        mock_supabase.table.side_effect = Exception("DB Fail")
+        
+        with patch("src.routers.health.get_supabase_client", return_value=mock_supabase):
             mock_redis = MagicMock()
-            mock_redis.ping.return_value = False
+            mock_redis.ping = AsyncMock(side_effect=Exception("Redis Fail"))
             with patch("src.routers.health.get_redis", return_value=mock_redis):
                 res = await health_check()
                 assert res["status"] == "error"
-                assert res["services"]["database"] == "unhealthy"
+                assert "DB Fail" in res["services"]["database"]
 
     @pytest.mark.asyncio
     async def test_experiments_detail_missing(self, monkeypatch):
@@ -712,14 +715,9 @@ class TestWebSocketGaps:
     async def test_websocket_endpoint_invalid_channel(self):
         from src.routers.websocket import websocket_endpoint
         mock_ws = AsyncMock()
-        # Mock receive_text to avoid hanging
-        mock_ws.receive_text = AsyncMock(return_value="{}")
-        from fastapi import HTTPException
-        # We need to call the endpoint without the router validation if we are testing internal logic
-        # But here we want to test the channel check
-        with pytest.raises(HTTPException) as exc:
-            await websocket_endpoint(mock_ws, "invalid_channel_name")
-        assert exc.value.status_code == 400
+        # Should call close, not raise HTTPException
+        await websocket_endpoint(mock_ws, "invalid_channel_name")
+        mock_ws.close.assert_called_once_with(code=4004, reason="Unknown channel")
 
     @pytest.mark.asyncio
     async def test_websocket_endpoint_disconnect(self):
@@ -728,18 +726,23 @@ class TestWebSocketGaps:
         mock_ws = AsyncMock()
         mock_ws.accept = AsyncMock()
         mock_ws.receive_text = AsyncMock(side_effect=[WebSocketDisconnect()])
-        await websocket_endpoint(mock_ws, "experiments")
-        mock_ws.accept.assert_called_once()
+        # verify_ws_token needs to be mocked to return a user
+        with patch("src.routers.websocket.verify_ws_token", return_value={"id": "uid"}):
+            await websocket_endpoint(mock_ws, "experiments")
+        # ws_manager.connect should have been called
+        mock_ws.receive_text.assert_called()
 
 @pytest.mark.unit
 class TestPipelineGaps:
     @pytest.mark.asyncio
     async def test_pipeline_run_no_date(self, monkeypatch):
         from src.data.pipeline import get_pipeline
+        import uuid
+        valid_uuid = str(uuid.uuid4())
         # Mocking repository methods that pipeline calls
         with patch("src.database.repository.update_scrape_run", new_callable=AsyncMock):
             with patch("src.database.repository.create_audit_log", new_callable=AsyncMock):
-                pipeline = get_pipeline("spy", run_id="test-run")
+                pipeline = get_pipeline("spy", run_id=valid_uuid)
                 mock_scraper = MagicMock()
                 mock_scraper.scrape = AsyncMock(return_value=[])
                 with patch("src.scrapers.scraper_factory.ScraperFactory.get_scraper", return_value=mock_scraper):

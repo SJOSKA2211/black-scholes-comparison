@@ -47,8 +47,20 @@ jobs:
             ghcr.io/sjoska2211/black-scholes-api:${{ github.sha }}
             ghcr.io/sjoska2211/black-scholes-api:latest
  
-  deploy-frontend:
+  deploy-backend-railway:
     needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        run: railway deploy --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  deploy-frontend:
+    needs: deploy-backend-railway
     runs-on: ubuntu-latest
     steps:
       - run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
