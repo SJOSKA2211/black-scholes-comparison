@@ -739,9 +739,11 @@ class TestPipelineGaps:
         from src.data.pipeline import get_pipeline
         import uuid
         valid_uuid = str(uuid.uuid4())
-        # Mocking repository methods that pipeline calls
-        with patch("src.database.repository.update_scrape_run", new_callable=AsyncMock):
-            with patch("src.database.repository.create_audit_log", new_callable=AsyncMock):
+        
+        # Patching repository methods WHERE THEY ARE USED (in src.data.pipeline)
+        with patch("src.data.pipeline.update_scrape_run", new_callable=AsyncMock) as mock_update:
+            mock_update.return_value = {"id": valid_uuid}
+            with patch("src.data.pipeline.create_audit_log", new_callable=AsyncMock):
                 pipeline = get_pipeline("spy", run_id=valid_uuid)
                 mock_scraper = MagicMock()
                 mock_scraper.scrape = AsyncMock(return_value=[])
