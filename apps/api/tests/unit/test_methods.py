@@ -260,6 +260,8 @@ class TestAnalysis:
 
 @pytest.mark.unit
 def test_cross_method_agreement(standard_params):
+    import numpy as np
+    np.random.seed(42)
     ref = BlackScholesAnalytical().price(standard_params).computed_price
     methods = [
         CrankNicolsonFDM(num_time_steps=2000, num_price_steps=200).price,
@@ -270,4 +272,5 @@ def test_cross_method_agreement(standard_params):
     for m in methods:
         res = m(standard_params)
         mape = abs(res.computed_price - ref) / ref
+        print(f"Method: {res.method_type}, MAPE: {mape}")
         assert mape < 0.001
