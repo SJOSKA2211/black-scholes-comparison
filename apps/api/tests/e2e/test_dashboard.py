@@ -17,7 +17,8 @@ def test_dashboard_navigation(authenticated_page: Page, base_url: str) -> None:
         link.click()
         # Verify URL path contains the lower-cased item name
         path = item.lower().replace(" ", "")
-        if path == "livepricer": path = "pricer"
+        if path == "livepricer":
+            path = "pricer"
         page.wait_for_url(f"**/{path}*")
 
 
@@ -27,10 +28,10 @@ def test_live_pricer_interactivity(authenticated_page: Page, base_url: str) -> N
     page = authenticated_page
     # In a real E2E run, we'd need to handle auth or have a dev bypass
     page.goto(f"{base_url}/pricer")
-    
+
     # Reload to apply session
     page.reload()
-    
+
     # Wait for sidebar to confirm login success
     page.wait_for_selector("aside", timeout=10000)
 

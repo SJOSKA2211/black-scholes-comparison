@@ -75,8 +75,11 @@ export default function PricerPage() {
           <CardContent className="space-y-6">
             {data && (
               <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800/50">
-                <PriceBarChart 
-                  data={data.results.map(r => ({ method: r.method_type.replace(/_/g, " "), price: r.computed_price }))}
+                <PriceBarChart
+                  data={data.results.map((r) => ({
+                    method: r.method_type.replace(/_/g, " "),
+                    price: r.computed_price,
+                  }))}
                   analyticalPrice={data.analytical_reference}
                 />
               </div>

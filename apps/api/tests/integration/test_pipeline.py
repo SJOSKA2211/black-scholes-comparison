@@ -128,7 +128,7 @@ async def test_pipeline_error_handling() -> None:
     run_id = await create_scrape_run("spy")
     pipeline = get_pipeline("spy", run_id=run_id)
     pipeline.market = None
-    
+
     with pytest.raises(ValueError, match="Market must be specified"):
         await pipeline.run()
 
@@ -172,6 +172,6 @@ async def test_pipeline_error_handling() -> None:
         # Force upsert_option_parameters to throw to hit line 77-79
         with patch("src.data.pipeline.upsert_option_parameters", side_effect=Exception("DB Error")):
             result = await pipeline.run(trade_date=date.today())
-            
+
             assert result["status"] == "success"
             assert result["rows_inserted"] == 0

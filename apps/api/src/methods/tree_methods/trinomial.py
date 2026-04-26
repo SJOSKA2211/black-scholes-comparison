@@ -37,11 +37,19 @@ class TrinomialTree:
             discount = np.exp(-p.risk_free_rate * time_step_size)
 
             # Boyle probabilities
-            num_up = np.exp(p.risk_free_rate * time_step_size / 2) - np.exp(-p.volatility * np.sqrt(time_step_size / 2))
-            den = np.exp(p.volatility * np.sqrt(time_step_size / 2)) - np.exp(-p.volatility * np.sqrt(time_step_size / 2))
+            num_up = np.exp(p.risk_free_rate * time_step_size / 2) - np.exp(
+                -p.volatility * np.sqrt(time_step_size / 2)
+            )
+            den = np.exp(p.volatility * np.sqrt(time_step_size / 2)) - np.exp(
+                -p.volatility * np.sqrt(time_step_size / 2)
+            )
             prob_up = (num_up / den) ** 2
             prob_down = (
-                (np.exp(p.volatility * np.sqrt(time_step_size / 2)) - np.exp(p.risk_free_rate * time_step_size / 2)) / den
+                (
+                    np.exp(p.volatility * np.sqrt(time_step_size / 2))
+                    - np.exp(p.risk_free_rate * time_step_size / 2)
+                )
+                / den
             ) ** 2
             prob_middle = 1.0 - prob_up - prob_down
 
@@ -58,7 +66,9 @@ class TrinomialTree:
 
             # Backward induction
             for step in range(self.num_steps - 1, -1, -1):
-                values = discount * (prob_up * values[:-2] + prob_middle * values[1:-1] + prob_down * values[2:])
+                values = discount * (
+                    prob_up * values[:-2] + prob_middle * values[1:-1] + prob_down * values[2:]
+                )
                 if p.is_american:
                     step_indices = np.arange(step, -step - 1, -1)
                     s_step = p.underlying_price * (up_factor**step_indices)

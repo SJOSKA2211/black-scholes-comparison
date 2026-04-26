@@ -11,12 +11,14 @@ from minio import Minio
 # Load environment variables (Section 1.2)
 load_dotenv()
 
+
 def _patch_env_for_host() -> None:
     """If running on host (not in docker), map docker hostnames to localhost."""
     import os
+
     is_docker = os.path.exists("/.dockerenv")
     if not is_docker:
-        
+
         # Redis
         redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
         if "redis:6379" in redis_url:
@@ -30,14 +32,15 @@ def _patch_env_for_host() -> None:
         if "rabbitmq:5672" in rabbitmq_url:
             os.environ["RABBITMQ_URL"] = rabbitmq_url.replace("rabbitmq:5672", "127.0.0.1:5672")
 
+
 _patch_env_for_host()
 
 from src.cache.redis_client import get_redis
+from src.config import get_settings
 from src.database.supabase_client import get_supabase_client
 from src.main import app
 from src.storage.minio_client import get_minio
 from src.task_queues.rabbitmq_client import get_rabbitmq_connection
-from src.config import get_settings
 
 
 @pytest.fixture(scope="session")
@@ -111,7 +114,7 @@ def skip_if_no_infrastructure(request) -> None:
         if "redis" in request.keywords and not os.getenv("REDIS_URL"):
             # If not in env, check if it's default and we are on host
             if not os.path.exists("/.dockerenv"):
-                pass # Already patched in _patch_env_for_host
+                pass  # Already patched in _patch_env_for_host
             else:
                 pytest.skip("REDIS_URL not set for redis-dependent test")
 

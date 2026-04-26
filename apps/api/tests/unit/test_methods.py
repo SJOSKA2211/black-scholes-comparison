@@ -1,26 +1,34 @@
-import pytest
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-from unittest.mock import patch, MagicMock
-from src.methods.base import OptionParams, PriceResult, NumericalMethod
+import pytest
+
+from src.exceptions import CFLViolationError
 from src.methods.analytical import BlackScholesAnalytical
+from src.methods.base import NumericalMethod, OptionParams, PriceResult
+from src.methods.finite_difference.crank_nicolson import CrankNicolsonFDM
 from src.methods.finite_difference.explicit import ExplicitFDM
 from src.methods.finite_difference.implicit import ImplicitFDM
-from src.methods.finite_difference.crank_nicolson import CrankNicolsonFDM
-from src.methods.monte_carlo.standard import StandardMC
 from src.methods.monte_carlo.antithetic import AntitheticMC
 from src.methods.monte_carlo.control_variates import ControlVariateMC
 from src.methods.monte_carlo.quasi_mc import QuasiMC
+from src.methods.monte_carlo.standard import StandardMC
 from src.methods.tree_methods.binomial_crr import BinomialCRR
-from src.methods.tree_methods.trinomial import TrinomialTree
 from src.methods.tree_methods.richardson import BinomialCRRRichardson, TrinomialRichardson
-from src.exceptions import CFLViolationError
+from src.methods.tree_methods.trinomial import TrinomialTree
+
 
 @pytest.fixture
 def standard_params() -> OptionParams:
     return OptionParams(
-        underlying_price=100.0, strike_price=100.0, maturity_years=1.0,
-        volatility=0.2, risk_free_rate=0.05, option_type="call"
+        underlying_price=100.0,
+        strike_price=100.0,
+        maturity_years=1.0,
+        volatility=0.2,
+        risk_free_rate=0.05,
+        option_type="call",
     )
+
 
 @pytest.mark.unit
 class TestOptionParams:
@@ -30,21 +38,44 @@ class TestOptionParams:
 
     def test_invalid_price(self):
         with pytest.raises(ValueError):
-            OptionParams(underlying_price=-1, strike_price=100, maturity_years=1, volatility=0.2, risk_free_rate=0.05, option_type="call")
+            OptionParams(
+                underlying_price=-1,
+                strike_price=100,
+                maturity_years=1,
+                volatility=0.2,
+                risk_free_rate=0.05,
+                option_type="call",
+            )
 
     def test_invalid_volatility(self):
         with pytest.raises(ValueError):
-            OptionParams(underlying_price=100, strike_price=100, maturity_years=1, volatility=-0.1, risk_free_rate=0.05, option_type="call")
+            OptionParams(
+                underlying_price=100,
+                strike_price=100,
+                maturity_years=1,
+                volatility=-0.1,
+                risk_free_rate=0.05,
+                option_type="call",
+            )
 
     def test_invalid_type(self):
         with pytest.raises(ValueError):
-            OptionParams(underlying_price=100, strike_price=100, maturity_years=1, volatility=0.2, risk_free_rate=0.05, option_type="invalid")
+            OptionParams(
+                underlying_price=100,
+                strike_price=100,
+                maturity_years=1,
+                volatility=0.2,
+                risk_free_rate=0.05,
+                option_type="invalid",
+            )
 
     def test_methods_base_protocol(self):
         class Dummy:
             def price(self, params: OptionParams) -> PriceResult:
                 return PriceResult(method_type="dummy", computed_price=0.0, exec_seconds=0.0)
+
         assert isinstance(Dummy(), NumericalMethod)
+
 
 @pytest.mark.unit
 class TestAnalytical:
@@ -84,6 +115,7 @@ class TestAnalytical:
         res_put = bs.geometric_asian_price(standard_params)
         assert res_put.computed_price > 0
 
+
 @pytest.mark.unit
 class TestFDM:
     @pytest.mark.parametrize("method_class", [ExplicitFDM, ImplicitFDM, CrankNicolsonFDM])
@@ -100,7 +132,7 @@ class TestFDM:
         for method_class in [ExplicitFDM, ImplicitFDM, CrankNicolsonFDM]:
             res = method_class(num_time_steps=10, num_price_steps=10).price(standard_params)
             assert res is not None
-            
+
         # Test high price boundary
         standard_params.underlying_price = 500.0
         for method_class in [ExplicitFDM, ImplicitFDM, CrankNicolsonFDM]:
@@ -118,6 +150,7 @@ class TestFDM:
         res = fdm.price(standard_params)
         assert res.vega == 0.0
 
+
 @pytest.mark.unit
 class TestMonteCarlo:
     @pytest.mark.parametrize("method_class", [StandardMC, AntitheticMC, ControlVariateMC, QuasiMC])
@@ -132,6 +165,7 @@ class TestMonteCarlo:
         standard_params.maturity_years = 0.0001
         res = method_class(num_simulations=10).price(standard_params)
         assert res.theta == 0.0
+
 
 @pytest.mark.unit
 class TestTrees:
@@ -181,27 +215,34 @@ class TestTrees:
         assert res_b.method_type == "binomial_crr_richardson"
         res_t = TrinomialRichardson(num_steps=100).price(standard_params)
         assert res_t.method_type == "trinomial_richardson"
-        
+
         # Zero steps
         assert BinomialCRRRichardson(num_steps=0).price(standard_params).computed_price == 0.0
         assert TrinomialRichardson(num_steps=0).price(standard_params).computed_price == 0.0
 
     def test_richardson_none_greeks(self, standard_params):
-        mock_res = PriceResult(method_type="binomial_crr", computed_price=10.0, exec_seconds=0.1, delta=None)
+        mock_res = PriceResult(
+            method_type="binomial_crr", computed_price=10.0, exec_seconds=0.1, delta=None
+        )
         with patch("src.methods.tree_methods.richardson.BinomialCRR.price", return_value=mock_res):
             assert BinomialCRRRichardson(num_steps=10).price(standard_params).delta is None
-        with patch("src.methods.tree_methods.richardson.TrinomialTree.price", return_value=mock_res):
+        with patch(
+            "src.methods.tree_methods.richardson.TrinomialTree.price", return_value=mock_res
+        ):
             assert TrinomialRichardson(num_steps=10).price(standard_params).delta is None
+
 
 @pytest.mark.unit
 class TestAnalysis:
     def test_channels(self):
         from src.websocket.channels import ALLOWED_CHANNELS
+
         assert "experiments" in ALLOWED_CHANNELS
         assert "scrapers" in ALLOWED_CHANNELS
 
     def test_compute_mape(self):
         from src.analysis.statistics import compute_mape
+
         results = [{"computed_price": 110}]
         assert compute_mape(results, 100) == 10.0
         assert compute_mape([], 100) == 0.0
@@ -209,22 +250,24 @@ class TestAnalysis:
 
     def test_get_convergence_metrics(self):
         from src.analysis.statistics import get_convergence_metrics
+
         results = [{"computed_price": 100}, {"computed_price": 110}]
         metrics = get_convergence_metrics(results)
         assert metrics["count"] == 2
         assert metrics["mean_price"] == 105.0
         assert get_convergence_metrics([]) == {}
 
+
 @pytest.mark.unit
 def test_cross_method_agreement(standard_params):
     ref = BlackScholesAnalytical().price(standard_params).computed_price
     methods = [
         CrankNicolsonFDM(num_time_steps=2000, num_price_steps=200).price,
-        ControlVariateMC(num_simulations=20000).price,
+        ControlVariateMC(num_simulations=50000).price,
         BinomialCRRRichardson(num_steps=2000).price,
-        TrinomialRichardson(num_steps=1000).price
+        TrinomialRichardson(num_steps=1000).price,
     ]
     for m in methods:
         res = m(standard_params)
         mape = abs(res.computed_price - ref) / ref
-        assert mape < 0.01
+        assert mape < 0.001

@@ -1,8 +1,11 @@
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from src.cache.redis_client import get_redis
+
+import pytest
+
 from src.cache.decorators import cache_response
+from src.cache.redis_client import get_redis
+
 
 @pytest.mark.unit
 class TestRedisClient:
@@ -12,14 +15,15 @@ class TestRedisClient:
         get_redis.cache_clear()
         mock_settings.return_value.redis_url = "redis://localhost"
         mock_settings.return_value.redis_password = "pass"
-        
+
         mock_client = MagicMock()
         mock_from_url.return_value = mock_client
-        
+
         client = get_redis()
         assert client == mock_client
         mock_from_url.assert_called_once()
-        get_redis.cache_clear() # Clear it so other tests get real redis
+        get_redis.cache_clear()  # Clear it so other tests get real redis
+
 
 @pytest.mark.unit
 class TestCacheDecorator:
@@ -29,14 +33,15 @@ class TestCacheDecorator:
         mock_r = AsyncMock()
         mock_r.get.return_value = json.dumps({"res": "cached"})
         mock_get_redis.return_value = mock_r
-        
+
         call_count = 0
+
         @cache_response(key_prefix="test")
         async def mock_func(x):
             nonlocal call_count
             call_count += 1
             return {"res": "real"}
-            
+
         res = await mock_func(1)
         assert res == {"res": "cached"}
         assert call_count == 0
@@ -47,14 +52,15 @@ class TestCacheDecorator:
         mock_r = AsyncMock()
         mock_r.get.return_value = None
         mock_get_redis.return_value = mock_r
-        
+
         call_count = 0
+
         @cache_response(key_prefix="test")
         async def mock_func(x):
             nonlocal call_count
             call_count += 1
             return {"res": "real"}
-            
+
         res = await mock_func(1)
         assert res == {"res": "real"}
         assert call_count == 1
@@ -67,21 +73,21 @@ class TestCacheDecorator:
         mock_r = AsyncMock()
         mock_r.get.side_effect = Exception("Redis Get Error")
         mock_get_redis.return_value = mock_r
-        
+
         @cache_response(key_prefix="test")
         async def fast_func(x):
             return {"res": "real"}
-            
+
         res = await fast_func(1)
-        assert res == {"res": "real"} # Should fall through to real function
+        assert res == {"res": "real"}  # Should fall through to real function
 
         # 2. Store failure
         mock_r.get.side_effect = None
         mock_r.get.return_value = None
         mock_r.setex.side_effect = Exception("Redis Set Error")
-        
+
         res = await fast_func(1)
-        assert res == {"res": "real"} # Should still return real result
+        assert res == {"res": "real"}  # Should still return real result
 
     @pytest.mark.asyncio
     @patch("src.cache.decorators.get_redis")
@@ -89,15 +95,16 @@ class TestCacheDecorator:
         mock_r = AsyncMock()
         mock_r.get.return_value = None
         mock_get_redis.return_value = mock_r
-        
+
         from pydantic import BaseModel
+
         class MockModel(BaseModel):
             val: str
-            
+
         @cache_response(key_prefix="test")
         async def model_func():
             return MockModel(val="ok")
-            
+
         res = await model_func()
         assert res.val == "ok"
         mock_r.setex.assert_called_once()

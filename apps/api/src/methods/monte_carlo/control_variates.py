@@ -50,7 +50,9 @@ class ControlVariateMC:
             # Optimal beta
             cov_matrix = np.cov(undiscounted_payoff.flatten(), discounted_terminal_price.flatten())
             beta = cov_matrix[0, 1] / cov_matrix[1, 1] if cov_matrix[1, 1] > 0 else 0.0
-            return float(np.mean(undiscounted_payoff - beta * (discounted_terminal_price - expected_cv)))
+            return float(
+                np.mean(undiscounted_payoff - beta * (discounted_terminal_price - expected_cv))
+            )
 
         computed_price = _solve_with_z(params, standard_normal_samples)
 
@@ -74,12 +76,19 @@ class ControlVariateMC:
         standard_error = _get_std_err(params, standard_normal_samples)
 
         # Bumping for Greeks using same Z (CRN)
-        spot_bump, vol_bump, time_bump, rate_bump = params.underlying_price * 0.01, 0.01, 1 / 365.0, 0.01
+        spot_bump, vol_bump, time_bump, rate_bump = (
+            params.underlying_price * 0.01,
+            0.01,
+            1 / 365.0,
+            0.01,
+        )
 
         # Delta & Gamma
         p_up = params.model_copy(update={"underlying_price": params.underlying_price + spot_bump})
         p_dn = params.model_copy(update={"underlying_price": params.underlying_price - spot_bump})
-        price_up, price_dn = _solve_with_z(p_up, standard_normal_samples), _solve_with_z(p_dn, standard_normal_samples)
+        price_up, price_dn = _solve_with_z(p_up, standard_normal_samples), _solve_with_z(
+            p_dn, standard_normal_samples
+        )
         delta = (price_up - price_dn) / (2 * spot_bump)
         gamma = (price_up - 2 * computed_price + price_dn) / (spot_bump**2)
 

@@ -29,7 +29,9 @@ class BinomialCRRRichardson:
         def extrapolate(value_base: float, value_refined: float) -> float:
             return 2 * value_refined - value_base
 
-        def extrapolate_greek(greek_base: float | None, greek_refined: float | None) -> float | None:
+        def extrapolate_greek(
+            greek_base: float | None, greek_refined: float | None
+        ) -> float | None:
             if greek_base is None or greek_refined is None:
                 return None
             return 2 * greek_refined - greek_base
@@ -70,7 +72,9 @@ class TrinomialRichardson:
         def extrapolate(value_base: float, value_refined: float) -> float:
             return 2 * value_refined - value_base
 
-        def extrapolate_greek(greek_base: float | None, greek_refined: float | None) -> float | None:
+        def extrapolate_greek(
+            greek_base: float | None, greek_refined: float | None
+        ) -> float | None:
             if greek_base is None or greek_refined is None:
                 return None
             return 2 * greek_refined - greek_base

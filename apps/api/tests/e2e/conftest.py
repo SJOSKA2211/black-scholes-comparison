@@ -1,14 +1,18 @@
-import pytest
-from playwright.sync_api import Page, BrowserContext
 import os
+
+import pytest
+from playwright.sync_api import BrowserContext, Page
+
 
 @pytest.fixture
 def base_url() -> str:
     return os.getenv("E2E_BASE_URL", "http://127.0.0.1:3000")
 
+
 @pytest.fixture
 def api_url() -> str:
     return os.getenv("E2E_API_URL", "http://127.0.0.1:8000")
+
 
 @pytest.fixture
 def authenticated_page(page: Page, context: BrowserContext, base_url: str) -> Page:
@@ -21,5 +25,5 @@ def authenticated_page(page: Page, context: BrowserContext, base_url: str) -> Pa
     except Exception as e:
         page.screenshot(path="dashboard_load_failure.png")
         pytest.fail(f"Dashboard failed to load at {base_url}: {str(e)}")
-        
+
     return page

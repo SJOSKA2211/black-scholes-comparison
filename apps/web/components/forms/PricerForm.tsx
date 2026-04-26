@@ -44,7 +44,10 @@ export function PricerForm({ params, setParams }: PricerFormProps) {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="underlying_price" className="text-xs text-slate-500 flex items-center gap-2">
+              <Label
+                htmlFor="underlying_price"
+                className="text-xs text-slate-500 flex items-center gap-2"
+              >
                 <Globe className="w-3 h-3" /> Underlying Price
               </Label>
               <Input
@@ -58,7 +61,10 @@ export function PricerForm({ params, setParams }: PricerFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="strike_price" className="text-xs text-slate-500 flex items-center gap-2">
+              <Label
+                htmlFor="strike_price"
+                className="text-xs text-slate-500 flex items-center gap-2"
+              >
                 <ShieldCheck className="w-3 h-3" /> Strike Price
               </Label>
               <Input
@@ -75,7 +81,10 @@ export function PricerForm({ params, setParams }: PricerFormProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="maturity_years" className="text-xs text-slate-500 flex items-center gap-2">
+              <Label
+                htmlFor="maturity_years"
+                className="text-xs text-slate-500 flex items-center gap-2"
+              >
                 <Clock className="w-3 h-3" /> Maturity (Years)
               </Label>
               <Input
@@ -90,7 +99,10 @@ export function PricerForm({ params, setParams }: PricerFormProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="volatility" className="text-xs text-slate-500 flex items-center gap-2">
+              <Label
+                htmlFor="volatility"
+                className="text-xs text-slate-500 flex items-center gap-2"
+              >
                 <TrendingUp className="w-3 h-3" /> Volatility (σ)
               </Label>
               <Input
@@ -107,7 +119,10 @@ export function PricerForm({ params, setParams }: PricerFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="risk_free_rate" className="text-xs text-slate-500 flex items-center gap-2">
+            <Label
+              htmlFor="risk_free_rate"
+              className="text-xs text-slate-500 flex items-center gap-2"
+            >
               <Percent className="w-3 h-3" /> Risk-Free Rate
             </Label>
             <Input

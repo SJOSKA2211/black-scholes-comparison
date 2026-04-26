@@ -49,19 +49,34 @@ class CrankNicolsonFDM:
             l_lhs, m_lhs, u_lhs = -coeff_lower[1:], 1 - coeff_main, -coeff_upper[:-1]
 
             for step in range(self.num_time_steps):
-                rhs = coeff_lower * option_value_grid[:-2] + (1 + coeff_main) * option_value_grid[1:-1] + coeff_upper * option_value_grid[2:]
+                rhs = (
+                    coeff_lower * option_value_grid[:-2]
+                    + (1 + coeff_main) * option_value_grid[1:-1]
+                    + coeff_upper * option_value_grid[2:]
+                )
                 if p.option_type == "call":
-                    rhs[-1] += coeff_upper[-1] * (max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * step))
+                    rhs[-1] += coeff_upper[-1] * (
+                        max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * step)
+                    )
                 else:
-                    rhs[0] += coeff_lower[0] * (p.strike_price * np.exp(-risk_free_rate * time_step_size * step))
+                    rhs[0] += coeff_lower[0] * (
+                        p.strike_price * np.exp(-risk_free_rate * time_step_size * step)
+                    )
 
                 option_value_grid[1 : self.num_price_steps] = ImplicitFDM.thomas_algorithm(
                     l_lhs, m_lhs, u_lhs, rhs
                 )
                 if p.option_type == "call":
-                    option_value_grid[0], option_value_grid[-1] = 0, max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1))
+                    option_value_grid[0], option_value_grid[-1] = (
+                        0,
+                        max_price
+                        - p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)),
+                    )
                 else:
-                    option_value_grid[0], option_value_grid[-1] = p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)), 0
+                    option_value_grid[0], option_value_grid[-1] = (
+                        p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)),
+                        0,
+                    )
 
             return spatial_grid_prices, option_value_grid, spatial_step_size
 
@@ -72,7 +87,9 @@ class CrankNicolsonFDM:
         target_index = min(target_index, self.num_price_steps)
         if 0 < target_index < self.num_price_steps:
             delta = (grid[target_index + 1] - grid[target_index - 1]) / (2 * spatial_step_size)
-            gamma = (grid[target_index + 1] - 2 * grid[target_index] + grid[target_index - 1]) / (spatial_step_size**2)
+            gamma = (grid[target_index + 1] - 2 * grid[target_index] + grid[target_index - 1]) / (
+                spatial_step_size**2
+            )
         else:
             delta = (
                 (grid[target_index + 1] - grid[target_index]) / spatial_step_size

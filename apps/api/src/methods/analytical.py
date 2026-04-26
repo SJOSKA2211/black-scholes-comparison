@@ -65,19 +65,29 @@ class BlackScholesAnalytical:
 
         # Vorst (1992) discrete adjustment
         # sig_a^2 = sig^2 * (n+1)(2n+1) / (6n^2)
-        sig_a = sigma * np.sqrt((num_discrete_steps + 1) * (2 * num_discrete_steps + 1) / (6.0 * num_discrete_steps**2))
+        sig_a = sigma * np.sqrt(
+            (num_discrete_steps + 1) * (2 * num_discrete_steps + 1) / (6.0 * num_discrete_steps**2)
+        )
 
         # mu_a = (r - 0.5*sig^2) * (n+1)/(2n) + 0.5*sig_a^2
-        mu_a = (risk_free - 0.5 * sigma**2) * (num_discrete_steps + 1) / (2.0 * num_discrete_steps) + 0.5 * sig_a**2
+        mu_a = (risk_free - 0.5 * sigma**2) * (num_discrete_steps + 1) / (
+            2.0 * num_discrete_steps
+        ) + 0.5 * sig_a**2
 
-        d1 = (np.log(underlying / strike) + (mu_a + 0.5 * sig_a**2) * maturity) / (sig_a * np.sqrt(maturity))
+        d1 = (np.log(underlying / strike) + (mu_a + 0.5 * sig_a**2) * maturity) / (
+            sig_a * np.sqrt(maturity)
+        )
         d2 = d1 - sig_a * np.sqrt(maturity)
 
         exp_rt = np.exp(-risk_free * maturity)
         if params.option_type == "call":
-            price = underlying * np.exp((mu_a - risk_free) * maturity) * norm.cdf(d1) - strike * exp_rt * norm.cdf(d2)
+            price = underlying * np.exp((mu_a - risk_free) * maturity) * norm.cdf(
+                d1
+            ) - strike * exp_rt * norm.cdf(d2)
         else:
-            price = strike * exp_rt * norm.cdf(-d2) - underlying * np.exp((mu_a - risk_free) * maturity) * norm.cdf(-d1)
+            price = strike * exp_rt * norm.cdf(-d2) - underlying * np.exp(
+                (mu_a - risk_free) * maturity
+            ) * norm.cdf(-d1)
 
         return PriceResult(
             method_type="analytical_asian",

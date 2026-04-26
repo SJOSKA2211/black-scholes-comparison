@@ -77,22 +77,41 @@ class ImplicitFDM:
             indices = np.arange(1, self.num_price_steps)
             vol_sq = p.volatility**2
             risk_free_rate = p.risk_free_rate
-            lower = -0.5 * time_step_size * (vol_sq * (indices[1:] ** 2) - risk_free_rate * indices[1:])
+            lower = (
+                -0.5 * time_step_size * (vol_sq * (indices[1:] ** 2) - risk_free_rate * indices[1:])
+            )
             main = 1 + time_step_size * (vol_sq * (indices**2) + risk_free_rate)
-            upper = -0.5 * time_step_size * (vol_sq * (indices[:-1] ** 2) + risk_free_rate * indices[:-1])
+            upper = (
+                -0.5
+                * time_step_size
+                * (vol_sq * (indices[:-1] ** 2) + risk_free_rate * indices[:-1])
+            )
 
             for step in range(self.num_time_steps):
                 rhs = option_value_grid[1 : self.num_price_steps]
                 if p.option_type == "call":
-                    rhs[-1] -= upper[-1] * (max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * step))
+                    rhs[-1] -= upper[-1] * (
+                        max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * step)
+                    )
                 else:
-                    rhs[0] -= lower[0] * (p.strike_price * np.exp(-risk_free_rate * time_step_size * step))
+                    rhs[0] -= lower[0] * (
+                        p.strike_price * np.exp(-risk_free_rate * time_step_size * step)
+                    )
 
-                option_value_grid[1 : self.num_price_steps] = self.thomas_algorithm(lower, main, upper, rhs)
+                option_value_grid[1 : self.num_price_steps] = self.thomas_algorithm(
+                    lower, main, upper, rhs
+                )
                 if p.option_type == "call":
-                    option_value_grid[0], option_value_grid[-1] = 0, max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1))
+                    option_value_grid[0], option_value_grid[-1] = (
+                        0,
+                        max_price
+                        - p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)),
+                    )
                 else:
-                    option_value_grid[0], option_value_grid[-1] = p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)), 0
+                    option_value_grid[0], option_value_grid[-1] = (
+                        p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)),
+                        0,
+                    )
 
             return spatial_grid_prices, option_value_grid, spatial_step_size
 
@@ -103,7 +122,9 @@ class ImplicitFDM:
         target_index = min(target_index, self.num_price_steps)
         if 0 < target_index < self.num_price_steps:
             delta = (grid[target_index + 1] - grid[target_index - 1]) / (2 * spatial_step_size)
-            gamma = (grid[target_index + 1] - 2 * grid[target_index] + grid[target_index - 1]) / (spatial_step_size**2)
+            gamma = (grid[target_index + 1] - 2 * grid[target_index] + grid[target_index - 1]) / (
+                spatial_step_size**2
+            )
         else:
             delta = (
                 (grid[target_index + 1] - grid[target_index]) / spatial_step_size

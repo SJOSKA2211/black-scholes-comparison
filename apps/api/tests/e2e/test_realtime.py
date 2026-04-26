@@ -1,5 +1,6 @@
-import pytest
 import re
+
+import pytest
 from playwright.sync_api import Page, expect
 
 
@@ -18,8 +19,9 @@ def test_realtime_notifications(page: Page, base_url: str) -> None:
 
     # Trigger a notification from the backend
     from src.database.supabase_client import get_supabase_client
+
     supabase = get_supabase_client()
-    
+
     # Get a valid user ID from the profiles table
     res = supabase.table("user_profiles").select("id").limit(1).execute()
     if not res.data:
@@ -27,14 +29,16 @@ def test_realtime_notifications(page: Page, base_url: str) -> None:
     user_id = res.data[0]["id"]
 
     # Use direct sync Supabase call to avoid event loop issues
-    supabase.table("notifications").insert({
-        "user_id": user_id,
-        "title": "E2E Test Notification",
-        "body": "This is a real-time test.",
-        "severity": "info",
-        "channel": "in_app",
-        "read": False
-    }).execute()
+    supabase.table("notifications").insert(
+        {
+            "user_id": user_id,
+            "title": "E2E Test Notification",
+            "body": "This is a real-time test.",
+            "severity": "info",
+            "channel": "in_app",
+            "read": False,
+        }
+    ).execute()
 
     # Verify that a notification toast or badge appears
     expect(page.get_by_text("E2E Test Notification")).to_be_visible()

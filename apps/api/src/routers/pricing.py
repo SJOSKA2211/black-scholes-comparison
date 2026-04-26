@@ -26,6 +26,7 @@ from src.methods.tree_methods.trinomial import TrinomialTree
 router = APIRouter(prefix="/pricing", tags=["Pricing"])
 logger = structlog.get_logger(__name__)
 
+
 class CompareResponse(BaseModel):
     results: list[PriceResult]
     analytical_reference: float
@@ -213,6 +214,7 @@ async def compare_methods(
 
     try:
         import time
+
         start_time = time.perf_counter()
 
         tasks = []
@@ -232,9 +234,7 @@ async def compare_methods(
         exec_ms = (time.perf_counter() - start_time) * 1000
 
         return CompareResponse(
-            results=results_list,
-            analytical_reference=analytical_ref,
-            exec_ms=exec_ms
+            results=results_list, analytical_reference=analytical_ref, exec_ms=exec_ms
         )
     except Exception as error:  # pragma: no cover
         logger.error("pricing_comparison_failed", error=str(error), step="router")

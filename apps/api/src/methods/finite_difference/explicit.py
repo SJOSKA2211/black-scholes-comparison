@@ -39,7 +39,9 @@ class ExplicitFDM:
             # CFL Stability Check
             stability_limit = 0.5 * spatial_step_size**2 / ((p.volatility**2) * (max_price**2))
             if time_step_size > stability_limit:
-                raise CFLViolationError(cfl_actual=float(time_step_size), cfl_bound=float(stability_limit))
+                raise CFLViolationError(
+                    cfl_actual=float(time_step_size), cfl_bound=float(stability_limit)
+                )
 
             spatial_values = np.linspace(0, max_price, local_nx + 1)
             option_values = (
@@ -56,28 +58,43 @@ class ExplicitFDM:
 
             for _ in range(local_nt):
                 # Central difference for delta and gamma (vectorized)
-                delta_fd = (option_values[indices + 1] - option_values[indices - 1]) / (2 * spatial_step_size)
-                gamma_fd = (option_values[indices + 1] - 2 * option_values[indices] + option_values[indices - 1]) / (spatial_step_size**2)
+                delta_fd = (option_values[indices + 1] - option_values[indices - 1]) / (
+                    2 * spatial_step_size
+                )
+                gamma_fd = (
+                    option_values[indices + 1]
+                    - 2 * option_values[indices]
+                    + option_values[indices - 1]
+                ) / (spatial_step_size**2)
 
                 drift = risk_free * spatial_inner_values * delta_fd
                 diffusion = 0.5 * vol_sq * (spatial_inner_values**2) * gamma_fd
 
                 # Update inner grid points
-                option_values[1:local_nx] = option_values[1:local_nx] + time_step_size * (diffusion + drift - risk_free * option_values[1:local_nx])
+                option_values[1:local_nx] = option_values[1:local_nx] + time_step_size * (
+                    diffusion + drift - risk_free * option_values[1:local_nx]
+                )
 
                 # Boundary conditions
                 if p.option_type == "call":
                     option_values[0] = 0
-                    option_values[local_nx] = max_price - p.strike_price * np.exp(-risk_free * time_step_size * (_ + 1))
+                    option_values[local_nx] = max_price - p.strike_price * np.exp(
+                        -risk_free * time_step_size * (_ + 1)
+                    )
                 else:
-                    option_values[0] = p.strike_price * np.exp(-risk_free * time_step_size * (_ + 1))
+                    option_values[0] = p.strike_price * np.exp(
+                        -risk_free * time_step_size * (_ + 1)
+                    )
                     option_values[local_nx] = 0
 
             idx = int(np.searchsorted(spatial_values, p.underlying_price))
             idx = max(1, min(idx, local_nx - 1))
             price = float(np.interp(p.underlying_price, spatial_values, option_values))
             delta = float((option_values[idx] - option_values[idx - 1]) / spatial_step_size)
-            gamma = float((option_values[idx + 1] - 2 * option_values[idx] + option_values[idx - 1]) / (spatial_step_size**2))
+            gamma = float(
+                (option_values[idx + 1] - 2 * option_values[idx] + option_values[idx - 1])
+                / (spatial_step_size**2)
+            )
             return price, delta, gamma
 
         price_main, delta, gamma = _solve(params, spatial_steps, time_steps)
@@ -89,7 +106,7 @@ class ExplicitFDM:
                 return res
             except CFLViolationError:
                 return price_main
-        
+
         # ... rest of sensitivities ...
         h_v, h_r, h_t = 0.01, 0.01, 1 / 365.0
         vega = (

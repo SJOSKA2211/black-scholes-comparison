@@ -38,7 +38,9 @@ class BinomialCRR:
 
         # Terminal payoffs
         indices = np.arange(steps + 1)
-        terminal_stock_prices = params.underlying_price * (up_factor**indices) * (down_factor ** (steps - indices))
+        terminal_stock_prices = (
+            params.underlying_price * (up_factor**indices) * (down_factor ** (steps - indices))
+        )
         option_values = (
             np.maximum(terminal_stock_prices - params.strike_price, 0)
             if params.option_type == "call"
@@ -49,7 +51,9 @@ class BinomialCRR:
         values_at_step_1 = np.zeros(2)
         values_at_step_2 = np.zeros(3)
         for i in range(steps - 1, -1, -1):
-            option_values = (prob_up * option_values[1:] + prob_down * option_values[:-1]) / risk_free_growth
+            option_values = (
+                prob_up * option_values[1:] + prob_down * option_values[:-1]
+            ) / risk_free_growth
             if params.is_american:
                 stock_prices_at_step = (
                     params.underlying_price
@@ -81,9 +85,10 @@ class BinomialCRR:
         spot_up_up = params.underlying_price * up_factor**2
         spot_up_down = params.underlying_price
         spot_down_down = params.underlying_price * down_factor**2
-        gamma = ((values_at_step_2[2] - values_at_step_2[1]) / (spot_up_up - spot_up_down) - (values_at_step_2[1] - values_at_step_2[0]) / (spot_up_down - spot_down_down)) / (
-            0.5 * (spot_up_up - spot_down_down)
-        )
+        gamma = (
+            (values_at_step_2[2] - values_at_step_2[1]) / (spot_up_up - spot_up_down)
+            - (values_at_step_2[1] - values_at_step_2[0]) / (spot_up_down - spot_down_down)
+        ) / (0.5 * (spot_up_up - spot_down_down))
 
         return float(option_values[0]), float(delta), float(gamma)
 

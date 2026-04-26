@@ -54,7 +54,12 @@ class AntitheticMC:
         computed_price, standard_error = _solve_with_z(params, standard_normal_samples)
 
         # Bumping for Greeks using same Z (CRN)
-        spot_bump, vol_bump, time_bump, rate_bump = params.underlying_price * 0.01, 0.01, 1 / 365.0, 0.01
+        spot_bump, vol_bump, time_bump, rate_bump = (
+            params.underlying_price * 0.01,
+            0.01,
+            1 / 365.0,
+            0.01,
+        )
 
         # Delta & Gamma
         p_up = params.model_copy(update={"underlying_price": params.underlying_price + spot_bump})

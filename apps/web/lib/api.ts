@@ -42,8 +42,7 @@ export async function apiFetch<T>(
  * Type-safe API methods.
  */
 export const api = {
-  get: <T>(path: string) =>
-    apiFetch<T>(path, { method: "GET" }),
+  get: <T>(path: string) => apiFetch<T>(path, { method: "GET" }),
 
   post: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: "POST", body: JSON.stringify(body) }),
@@ -51,6 +50,5 @@ export const api = {
   patch: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
 
-  delete: <T>(path: string) =>
-    apiFetch<T>(path, { method: "DELETE" }),
+  delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };
