@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 
 from pydantic import Field
@@ -59,7 +60,8 @@ class Settings(BaseSettings):
         """Construct the AMQP connection string, allowing override."""
         if self.rabbitmq_url_override:
             return self.rabbitmq_url_override
-        # Default to service name 'rabbitmq' for Docker/Railway
+        # On Render/Cloud, we usually expect a full URL. 
+        # If not provided, we fall back to the internal service name 'rabbitmq'.
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
 
     # 5. Object Storage (MinIO / S3)
@@ -85,7 +87,10 @@ class Settings(BaseSettings):
     playwright_headless: bool = Field(True, alias="PLAYWRIGHT_HEADLESS")
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False
+        env_file=".env" if not os.getenv("SKIP_DOTENV") else None,
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
     )
 
 

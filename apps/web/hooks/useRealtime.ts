@@ -40,7 +40,7 @@ export function useRealtime<T extends object>({
           if (payload.new) callbackRef.current(payload.new as T);
         },
       )
-      .subscribe((s) => {
+      .subscribe((s: string) => {
         console.log(`REALTIME SUBSCRIPTION STATUS (${name}):`, s);
         setConnected(s === "SUBSCRIBED");
       });
