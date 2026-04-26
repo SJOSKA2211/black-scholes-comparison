@@ -12,11 +12,15 @@ logger = structlog.get_logger(__name__)
 _redis_client: aioredis.Redis[Any] | None = None
 
 
-def get_redis() -> aioredis.Redis[Any]:
-    """Return a cached async Redis client."""
+def get_redis() -> aioredis.Redis[Any] | None:
+    """Return a cached async Redis client or None if disabled."""
     global _redis_client
     if _redis_client is None:
         settings = get_settings()
+        if not settings.redis_enabled:
+            logger.info("redis_skipped", reason="explicitly disabled or host set to none", step="init")
+            return None
+            
         _redis_client = aioredis.from_url(
             settings.redis_url,
             password=settings.redis_password,

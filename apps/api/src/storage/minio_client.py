@@ -35,23 +35,28 @@ def get_minio() -> Minio:
         http_client=http_client,
     )
     # Ensure buckets exist
+    if not settings.minio_enabled:
+        logger.info("minio_skipped", reason="explicitly disabled or host set to none", step="init")
+        return client
+
     try:
         # Check if host is resolvable to avoid long timeouts/retries on cloud platforms
         import socket
-        host = settings.minio_endpoint.split(":")[0]
+        host = settings.minio_host
         try:
-            socket.gethostbyname(host)
-        except socket.gaierror:
+            # getaddrinfo is more robust than gethostbyname
+            socket.getaddrinfo(host, settings.minio_port)
+        except (socket.gaierror, socket.timeout):
             logger.warning("minio_host_not_resolvable", host=host, step="init")
             return client
 
-        # We don't have a direct timeout for bucket_exists in minio-py,
-        # but we can assume it will fail if endpoint is wrong.
+        # Ensure buckets exist
         for bucket in [settings.minio_bucket_exports, settings.minio_bucket_scraper]:
             if not client.bucket_exists(bucket):
                 client.make_bucket(bucket)
                 logger.info("minio_bucket_created", bucket=bucket, step="init")
     except Exception as error:
+        # We catch but don't re-raise to ensure API startup continues
         logger.error("minio_bucket_check_failed", error=str(error), step="init")
 
     return client

@@ -41,21 +41,30 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.storage.minio_client import get_minio
 
     # Eager initialization
-    get_redis()
-    get_minio()
+    if settings.redis_enabled:
+        get_redis()
+    else:
+        logger.info("redis_init_skipped", step="init")
+
+    if settings.minio_enabled:
+        get_minio()
+    else:
+        logger.info("minio_init_skipped", step="init")
 
     # 2. Start RabbitMQ consumers (Section 8.4)
     # Background workers consume tasks from bs.scrape and bs.experiment
-    try:
-        import asyncio
-
-        # Wait at most 5 seconds for consumers to start
-        await asyncio.wait_for(start_consumers(), timeout=5.0)
-        logger.info("consumers_started", step="init")
-    except TimeoutError:
-        logger.warning("consumers_start_timeout", step="init")
-    except Exception as error:
-        logger.error("consumers_start_failed", error=str(error), step="init")
+    if settings.rabbitmq_enabled:
+        try:
+            import asyncio
+            # Wait at most 5 seconds for consumers to start
+            await asyncio.wait_for(start_consumers(), timeout=5.0)
+            logger.info("consumers_started", step="init")
+        except TimeoutError:
+            logger.warning("consumers_start_timeout", step="init")
+        except Exception as error:
+            logger.error("consumers_start_failed", error=str(error), step="init")
+    else:
+        logger.info("consumers_skipped", reason="explicitly disabled or host set to none", step="init")
 
     logger.info("app_ready", step="init")
 

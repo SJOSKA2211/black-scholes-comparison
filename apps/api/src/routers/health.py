@@ -34,7 +34,7 @@ async def health_check() -> dict[str, Any]:
         },
     }
 
-    # 1. Database
+    # 1. Database (Critical)
     try:
         get_supabase_client().table("option_parameters").select("id").limit(1).execute()
         health["services"]["database"] = "connected"
@@ -42,30 +42,39 @@ async def health_check() -> dict[str, Any]:
         health["services"]["database"] = f"error: {error!s}"
         health["status"] = "error"
 
-    # 2. Redis
+    # 2. Redis (Cache/PubSub)
     try:
         redis = get_redis()
         await cast("Any", redis.ping())
         health["services"]["redis"] = "connected"
     except Exception as error:
-        health["services"]["redis"] = f"error: {error!s}"
-        health["status"] = "error"
+        health["services"]["redis"] = f"unreachable: {error!s}"
+        # We don't fail the whole app for Redis if it's just a cache/pubsub
+        # especially during initialization on platforms like Render
 
-    # 3. RabbitMQ
+    # 3. RabbitMQ (Task Queue)
     try:
-        conn = await get_rabbitmq_connection()
-        if not conn.is_closed:
-            health["services"]["rabbitmq"] = "connected"
+        from src.config import get_settings
+        settings = get_settings()
+        if not settings.rabbitmq_enabled:
+            health["services"]["rabbitmq"] = "skipped"
+        else:
+            conn = await get_rabbitmq_connection()
+            if not conn.is_closed:
+                health["services"]["rabbitmq"] = "connected"
     except Exception as error:
-        health["services"]["rabbitmq"] = f"error: {error!s}"
-        health["status"] = "error"
+        health["services"]["rabbitmq"] = f"unreachable: {error!s}"
 
     # 4. Storage (MinIO)
     try:
-        get_minio().list_buckets()
-        health["services"]["storage"] = "connected"
+        from src.config import get_settings
+        settings = get_settings()
+        if not settings.minio_enabled:
+            health["services"]["storage"] = "skipped"
+        else:
+            get_minio().list_buckets()
+            health["services"]["storage"] = "connected"
     except Exception as error:
-        health["services"]["storage"] = f"error: {error!s}"
-        health["status"] = "error"
+        health["services"]["storage"] = f"unreachable: {error!s}"
 
     return health
