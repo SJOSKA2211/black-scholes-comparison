@@ -88,6 +88,18 @@ def minio_client() -> Minio:
     return get_minio()
 
 
+@pytest.fixture(scope="session")
+def base_url() -> str:
+    """Return the frontend base URL for E2E tests."""
+    return os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+
+@pytest.fixture(scope="session")
+def api_url() -> str:
+    """Return the backend API URL for E2E tests."""
+    return os.getenv("API_URL", "http://localhost:8000")
+
+
 @pytest.fixture
 def auth_headers():
     """Default auth headers for authorized requests."""

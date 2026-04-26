@@ -36,12 +36,23 @@ def upload_export(
     )
 
     # Generate a presigned URL that is accessible via Nginx proxy
-    # The URL will contain the internal hostname, but the client will access it via /minio/
-    url = client.presigned_get_object(
+    # The URL will contain the internal hostname (e.g. minio:9000), 
+    # but the client needs to access it via the public gateway /minio/
+    internal_url = client.presigned_get_object(
         bucket_name=bucket,
         object_name=object_name,
         expires=datetime.timedelta(hours=1),
     )
+
+    # Rewrite internal URL to use the public /minio proxy
+    settings = get_settings()
+    if "minio:9000" in internal_url:
+        # Replace internal endpoint with the public API URL + /minio prefix
+        # settings.api_url should be e.g. http://localhost:8000
+        api_base = settings.api_url.rstrip("/")
+        url = internal_url.replace(f"http://{settings.minio_endpoint}", f"{api_base}/minio")
+    else:
+        url = internal_url
 
     logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage", rows=1)
     return url

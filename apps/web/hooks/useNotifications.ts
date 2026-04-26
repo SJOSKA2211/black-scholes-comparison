@@ -1,8 +1,10 @@
 "use client";
+import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRealtime } from "./useRealtime";
 import { useApi } from "./useApi";
 import { useAuth } from "./useAuth";
+import { toast } from "sonner";
 import type { Notification } from "@/types";
 
 export function useNotifications() {
@@ -18,16 +20,22 @@ export function useNotifications() {
   });
 
   // Supabase Realtime: new notifications arrive without polling
-  useRealtime<Notification>({
-    table: "notifications",
-    event: "INSERT",
-    filter: user ? `user_id=eq.${user.id}` : undefined,
-    onData: (n) => {
+  const onData = useCallback(
+    (n: Notification) => {
+      toast(n.title, { description: n.body });
       qc.setQueryData<Notification[]>(["notifications", "unread"], (old) => [
         n,
         ...(old ?? []),
       ]);
     },
+    [qc],
+  );
+
+  useRealtime<Notification>({
+    table: "notifications",
+    event: "INSERT",
+    filter: undefined,
+    onData,
   });
 
   const markRead = useMutation({

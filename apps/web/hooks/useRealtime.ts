@@ -36,10 +36,14 @@ export function useRealtime<T extends object>({
         "postgres_changes",
         { event, schema: "public", table, ...(filter ? { filter } : {}) },
         (payload) => {
+          console.log("REALTIME EVENT RECEIVED:", payload);
           if (payload.new) callbackRef.current(payload.new as T);
         },
       )
-      .subscribe((s) => setConnected(s === "SUBSCRIBED"));
+      .subscribe((s) => {
+        console.log(`REALTIME SUBSCRIPTION STATUS (${name}):`, s);
+        setConnected(s === "SUBSCRIBED");
+      });
     return () => {
       supabase.removeChannel(ch);
     };

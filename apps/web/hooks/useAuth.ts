@@ -3,7 +3,7 @@ import { useState } from "react";
 
 export function useAuth() {
   const [user] = useState<any>({
-    id: "00000000-0000-0000-0000-000000000000",
+    id: "a24fb1a2-700a-4590-8d43-2930596a14f2",
     email: "researcher@example.com",
     user_metadata: { role: "researcher", full_name: "Researcher" },
   });
