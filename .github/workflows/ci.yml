@@ -66,11 +66,28 @@ jobs:
       SUPABASE_KEY:   ${{ secrets.SUPABASE_KEY }}
       REDIS_URL:      redis://localhost:6379/0
       REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD_TEST }}
+      RABBITMQ_URL:   amqp://rabbitmq_user:JKmaish2025@localhost:5672/
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_ACCESS_KEY: minio_admin
+      MINIO_SECRET_KEY: minio_password
     services:
       redis:
         image: redis:7.2-alpine
         options: --health-cmd "redis-cli ping" --health-interval 5s
         ports: ["6379:6379"]
+      rabbitmq:
+        image: rabbitmq:3.13-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: rabbitmq_user
+          RABBITMQ_DEFAULT_PASS: JKmaish2025
+        ports: ["5672:5672"]
+      minio:
+        image: minio/minio:RELEASE.2024-05-01T01-11-10Z
+        command: server /data
+        env:
+          MINIO_ROOT_USER: minio_admin
+          MINIO_ROOT_PASSWORD: minio_password
+        ports: ["9000:9000"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

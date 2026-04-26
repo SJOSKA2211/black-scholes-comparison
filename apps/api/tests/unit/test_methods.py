@@ -263,7 +263,7 @@ def test_cross_method_agreement(standard_params):
     ref = BlackScholesAnalytical().price(standard_params).computed_price
     methods = [
         CrankNicolsonFDM(num_time_steps=2000, num_price_steps=200).price,
-        ControlVariateMC(num_simulations=50000).price,
+        ControlVariateMC(num_simulations=100000).price,
         BinomialCRRRichardson(num_steps=2000).price,
         TrinomialRichardson(num_steps=1000).price,
     ]

@@ -104,7 +104,6 @@ class TestPricingRouter:
 @pytest.mark.integration
 class TestExperimentsRouter:
     def test_run_experiment(self, auth_client, monkeypatch) -> None:
-        monkeypatch.setattr("src.routers.experiments.publish_experiment_task", AsyncMock())
         assert (
             auth_client.post("/api/v1/experiments/run", json={"params": {"S": 100}}).status_code
             == 200
@@ -147,7 +146,6 @@ class TestExperimentsRouter:
 @pytest.mark.integration
 class TestScrapersRouter:
     def test_trigger_scraper(self, auth_client, monkeypatch) -> None:
-        monkeypatch.setattr("src.routers.scrapers.publish_scrape_task", AsyncMock())
         assert auth_client.post("/api/v1/scrapers/trigger?market=spy").status_code == 200
         # With explicit trade_date (branch 26->29)
         assert (
@@ -215,7 +213,6 @@ class TestDownloadsRouter:
         monkeypatch.setattr(
             "src.routers.downloads.get_market_data", AsyncMock(return_value=[{"id": 1}])
         )
-        monkeypatch.setattr("src.routers.downloads.upload_export", lambda *a: "http://url")
         assert auth_client.get("/api/v1/download/experiments?format=json").status_code == 200
         assert auth_client.get("/api/v1/download/experiments?format=csv").status_code == 200
         assert auth_client.get("/api/v1/download/experiments?format=xlsx").status_code == 200
