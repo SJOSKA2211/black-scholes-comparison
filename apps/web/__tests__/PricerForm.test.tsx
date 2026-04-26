@@ -55,17 +55,51 @@ describe("PricerForm", () => {
     );
   });
 
+  it("updates strike price correctly", () => {
+    const setParams = vi.fn();
+    render(<PricerForm params={mockParams} setParams={setParams} />);
+    const input = screen.getByLabelText(/Strike Price/i);
+    fireEvent.change(input, { target: { value: "120" } });
+    expect(setParams).toHaveBeenCalledWith(expect.objectContaining({ strike_price: 120 }));
+  });
+
+  it("updates volatility correctly", () => {
+    const setParams = vi.fn();
+    render(<PricerForm params={mockParams} setParams={setParams} />);
+    const input = screen.getByLabelText(/Volatility/i);
+    fireEvent.change(input, { target: { value: "0.3" } });
+    expect(setParams).toHaveBeenCalledWith(expect.objectContaining({ volatility: 0.3 }));
+  });
+
+  it("updates risk-free rate correctly", () => {
+    const setParams = vi.fn();
+    render(<PricerForm params={mockParams} setParams={setParams} />);
+    const input = screen.getByLabelText(/Risk-Free Rate/i);
+    fireEvent.change(input, { target: { value: "0.06" } });
+    expect(setParams).toHaveBeenCalledWith(expect.objectContaining({ risk_free_rate: 0.06 }));
+  });
+
+  it("updates option type via select", () => {
+    const setParams = vi.fn();
+    render(<PricerForm params={mockParams} setParams={setParams} />);
+    const item = screen.getByText("Put");
+    fireEvent.click(item);
+    expect(setParams).toHaveBeenCalledWith(expect.objectContaining({ option_type: "put" }));
+  });
+
+  it("updates market source via select", () => {
+    const setParams = vi.fn();
+    render(<PricerForm params={mockParams} setParams={setParams} />);
+    const item = screen.getByText("SPY (Live)");
+    fireEvent.click(item);
+    expect(setParams).toHaveBeenCalledWith(expect.objectContaining({ market_source: "spy" }));
+  });
+
   it("updates maturity years correctly", () => {
     const setParams = vi.fn();
     render(<PricerForm params={mockParams} setParams={setParams} />);
-
     const input = screen.getByLabelText(/Maturity/i);
     fireEvent.change(input, { target: { value: "2.5" } });
-
-    expect(setParams).toHaveBeenCalledWith(
-      expect.objectContaining({
-        maturity_years: 2.5,
-      }),
-    );
+    expect(setParams).toHaveBeenCalledWith(expect.objectContaining({ maturity_years: 2.5 }));
   });
 });

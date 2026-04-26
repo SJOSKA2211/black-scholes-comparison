@@ -39,27 +39,8 @@ jobs:
       - run: cd apps/web && npx eslint . --max-warnings 0
       - run: cd apps/web && npx prettier --check .
  
-  # ── Job 3: Unit tests (100% coverage) ───────────────────────────
-  unit-tests:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.11", cache: pip }
-      - run: cd apps/api && pip install -r requirements.txt -r requirements-dev.txt
-      - run: |
-          cd apps/api
-          PYTHONPATH=. pytest tests/unit/ -m unit \
-            --cov=src --cov-branch \
-            --cov-report=xml --cov-report=term-missing \
-            --cov-fail-under=100 \
-            -v
-      - uses: codecov/codecov-action@v4
-        with: { files: apps/api/coverage.xml }
- 
-  # ── Job 4: Integration tests ─────────────────────────────────────
-  integration-tests:
-    needs: unit-tests
+  # ── Job 3: Backend tests (100% unified coverage) ──────────────────
+  backend-tests:
     runs-on: ubuntu-22.04
     env:
       SUPABASE_URL:   ${{ secrets.SUPABASE_URL }}
@@ -95,13 +76,16 @@ jobs:
       - run: cd apps/api && pip install -r requirements.txt -r requirements-dev.txt
       - run: |
           cd apps/api
-          PYTHONPATH=. pytest tests/integration/ -m integration \
-            --cov=src --cov-branch --cov-append \
+          PYTHONPATH=. pytest tests/unit/ tests/integration/ \
+            --cov=src --cov-branch \
+            --cov-report=xml --cov-report=term-missing \
             --cov-fail-under=100 -v
+      - uses: codecov/codecov-action@v4
+        with: { files: apps/api/coverage.xml }
  
   # ── Job 5: E2E smoke (Playwright reachability) ───────────────────
   e2e-smoke:
-    needs: unit-tests
+    needs: backend-tests
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -126,7 +110,7 @@ jobs:
  
   # ── Job 6: Docker build ──────────────────────────────────────────
   docker-build:
-    needs: [lint-backend, unit-tests]
+    needs: [lint-backend, backend-tests]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4

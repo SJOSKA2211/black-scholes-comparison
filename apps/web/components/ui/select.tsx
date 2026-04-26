@@ -3,6 +3,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
+interface SelectContextValue {
+  value?: string;
+  onValueChange?: (value: string) => void;
+}
+
+const SelectContext = React.createContext<SelectContextValue>({});
+
 export interface SelectProps {
   children?: React.ReactNode;
   value?: string;
@@ -11,17 +18,9 @@ export interface SelectProps {
 
 export function Select({ children, value, onValueChange }: SelectProps) {
   return (
-    <div className="relative inline-block w-full">
-      {React.Children.map(children, (child: any) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, {
-            value,
-            onValueChange,
-          });
-        }
-        return child;
-      })}
-    </div>
+    <SelectContext.Provider value={{ value, onValueChange }}>
+      <div className="relative inline-block w-full">{children}</div>
+    </SelectContext.Provider>
   );
 }
 
@@ -52,7 +51,8 @@ export function SelectValue({
   placeholder?: string;
   value?: string;
 }) {
-  return <span>{value || placeholder}</span>;
+  const context = React.useContext(SelectContext);
+  return <span>{context.value || value || placeholder}</span>;
 }
 
 export function SelectContent({
@@ -77,14 +77,13 @@ export function SelectContent({
 export function SelectItem({
   children,
   value,
-  onValueChange,
   className,
 }: {
   children: React.ReactNode;
   value: string;
-  onValueChange?: (value: string) => void;
   className?: string;
 }) {
+  const { onValueChange } = React.useContext(SelectContext);
   return (
     <div
       className={cn(
