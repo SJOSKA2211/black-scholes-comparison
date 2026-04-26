@@ -177,3 +177,9 @@ async def test_websocket_logic(monkeypatch) -> None:
     await websocket_endpoint(mock_ws, "experiments")
     mock_ws.receive_text.side_effect = Exception("Err")
     await websocket_endpoint(mock_ws, "experiments")
+
+@pytest.mark.integration
+def test_root_endpoint(client: TestClient) -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Black-Scholes Research API" in response.json()["message"]

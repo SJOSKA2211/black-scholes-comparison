@@ -32,18 +32,18 @@ class TrinomialTree:
         start_time = time.time()
 
         def _solve(p: OptionParams) -> tuple[float, float, float]:
-            dt = p.maturity_years / self.num_steps
-            up_factor = np.exp(p.volatility * np.sqrt(2 * dt))
-            discount = np.exp(-p.risk_free_rate * dt)
+            time_step_size = p.maturity_years / self.num_steps
+            up_factor = np.exp(p.volatility * np.sqrt(2 * time_step_size))
+            discount = np.exp(-p.risk_free_rate * time_step_size)
 
             # Boyle probabilities
-            num_up = np.exp(p.risk_free_rate * dt / 2) - np.exp(-p.volatility * np.sqrt(dt / 2))
-            den = np.exp(p.volatility * np.sqrt(dt / 2)) - np.exp(-p.volatility * np.sqrt(dt / 2))
-            p_u = (num_up / den) ** 2
-            p_d = (
-                (np.exp(p.volatility * np.sqrt(dt / 2)) - np.exp(p.risk_free_rate * dt / 2)) / den
+            num_up = np.exp(p.risk_free_rate * time_step_size / 2) - np.exp(-p.volatility * np.sqrt(time_step_size / 2))
+            den = np.exp(p.volatility * np.sqrt(time_step_size / 2)) - np.exp(-p.volatility * np.sqrt(time_step_size / 2))
+            prob_up = (num_up / den) ** 2
+            prob_down = (
+                (np.exp(p.volatility * np.sqrt(time_step_size / 2)) - np.exp(p.risk_free_rate * time_step_size / 2)) / den
             ) ** 2
-            p_m = 1.0 - p_u - p_d
+            prob_middle = 1.0 - prob_up - prob_down
 
             # Terminal values
             indices = np.arange(self.num_steps, -self.num_steps - 1, -1)
@@ -58,7 +58,7 @@ class TrinomialTree:
 
             # Backward induction
             for step in range(self.num_steps - 1, -1, -1):
-                values = discount * (p_u * values[:-2] + p_m * values[1:-1] + p_d * values[2:])
+                values = discount * (prob_up * values[:-2] + prob_middle * values[1:-1] + prob_down * values[2:])
                 if p.is_american:
                     step_indices = np.arange(step, -step - 1, -1)
                     s_step = p.underlying_price * (up_factor**step_indices)
@@ -91,33 +91,33 @@ class TrinomialTree:
         computed_price, delta, gamma = _solve(params)
 
         # Bumping for Vega, Theta, Rho
-        h_v, h_t, h_r = 0.01, 1 / 365.0, 0.01
+        vol_bump, time_bump, rate_bump = 0.01, 1 / 365.0, 0.01
 
         def get_p(p: OptionParams) -> float:
-            v, _, _ = _solve(p)
-            return v
+            v_val, _, _ = _solve(p)
+            return v_val
 
         vega = (
-            get_p(params.model_copy(update={"volatility": params.volatility + h_v}))
+            get_p(params.model_copy(update={"volatility": params.volatility + vol_bump}))
             - computed_price
-        ) / h_v
+        ) / vol_bump
         theta = (
             -(
                 computed_price
                 - get_p(
                     params.model_copy(
-                        update={"maturity_years": max(0.0001, params.maturity_years - h_t)}
+                        update={"maturity_years": max(0.0001, params.maturity_years - time_bump)}
                     )
                 )
             )
-            / h_t
-            if params.maturity_years > h_t
+            / time_bump
+            if params.maturity_years > time_bump
             else 0.0
         )
         rho = (
-            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r}))
+            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + rate_bump}))
             - computed_price
-        ) / h_r
+        ) / rate_bump
 
         return PriceResult(
             method_type=self.method_type,

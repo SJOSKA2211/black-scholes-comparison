@@ -82,7 +82,10 @@ class WebSocketManager:
             await pubsub.subscribe(f"ws:{channel}")
             logger.info("redis_listener_started", channel=channel, step="websocket")
 
-            async for msg in pubsub.listen():
+            listener = pubsub.listen()
+            if asyncio.iscoroutine(listener):
+                listener = await listener
+            async for msg in listener:
                 if msg["type"] == "message":
                     try:
                         data = json.loads(msg["data"])

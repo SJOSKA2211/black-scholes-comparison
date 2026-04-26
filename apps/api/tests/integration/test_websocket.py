@@ -15,20 +15,19 @@ from src.websocket.manager import WebSocketManager, ws_manager
 
 
 @pytest.mark.integration
-def test_websocket_lifecycle() -> None:
+@pytest.mark.asyncio
+async def test_websocket_lifecycle() -> None:
     client = TestClient(app)
+    # TestClient.websocket_connect is a context manager, but it doesn't need to be awaited
     with client.websocket_connect("/api/v1/ws/experiments") as websocket:
         test_msg = {"event": "new_row", "data": {"id": "456"}}
         
-        async def trigger():
-            import json
-            from src.cache.redis_client import get_redis
-            redis = get_redis()
-            await redis.publish("ws:experiments", json.dumps(test_msg))
-        
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(trigger())
-        loop.close()
+        # Publish to Redis
+        import json
+        from src.cache.redis_client import get_redis
+        redis = get_redis()
+        await asyncio.sleep(0.5) # Wait for subscription
+        await redis.publish("ws:experiments", json.dumps(test_msg))
 
         data = websocket.receive_json()
         assert data == test_msg

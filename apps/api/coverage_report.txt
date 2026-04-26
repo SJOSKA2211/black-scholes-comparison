@@ -1,0 +1,291 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/.local/share/mise/installs/python/3.11.15/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: anyio-4.13.0, timeout-2.3.1, mock-3.14.0, cov-5.0.0, asyncio-0.23.6, base-url-2.1.0, playwright-0.7.2
+asyncio: mode=Mode.AUTO
+collecting ... collected 141 items
+
+tests/unit/test_cache.py::TestRedisClient::test_get_redis_init PASSED    [  0%]
+tests/unit/test_cache.py::TestCacheDecorator::test_cache_hit PASSED      [  1%]
+tests/unit/test_cache.py::TestCacheDecorator::test_cache_miss PASSED     [  2%]
+tests/unit/test_cache.py::TestCacheDecorator::test_cache_error_graceful PASSED [  2%]
+tests/unit/test_cache.py::TestCacheDecorator::test_cache_pydantic PASSED [  3%]
+tests/unit/test_final_gaps.py::TestWebsocketManagerGaps::test_broadcast_dead_connection PASSED [  4%]
+tests/unit/test_final_gaps.py::TestWebsocketManagerGaps::test_websocket_edge_cases PASSED [  4%]
+tests/unit/test_final_gaps.py::TestWebsocketManagerGaps::test_redis_listener_error PASSED [  5%]
+tests/unit/test_final_gaps.py::TestWebsocketManagerGaps::test_redis_listener_messages PASSED [  6%]
+tests/unit/test_final_gaps.py::TestNotificationsGaps::test_notify_user_variants PASSED [  7%]
+tests/unit/test_final_gaps.py::TestScrapersGaps::test_nse_scraper_failure PASSED [  7%]
+tests/unit/test_final_gaps.py::TestScrapersGaps::test_nse_scraper_parsing PASSED [  8%]
+tests/unit/test_final_gaps.py::TestScrapersGaps::test_spy_scraper_logic PASSED [  9%]
+tests/unit/test_final_gaps.py::TestMainLifespan::test_lifespan_error_handling PASSED [  9%]
+tests/unit/test_final_gaps.py::TestAuthDepsGaps::test_verify_ws_token_empty PASSED [ 10%]
+tests/unit/test_methods.py::TestOptionParams::test_valid_params PASSED   [ 11%]
+tests/unit/test_methods.py::TestOptionParams::test_invalid_price PASSED  [ 12%]
+tests/unit/test_methods.py::TestOptionParams::test_invalid_volatility PASSED [ 12%]
+tests/unit/test_methods.py::TestOptionParams::test_invalid_type PASSED   [ 13%]
+tests/unit/test_methods.py::TestOptionParams::test_methods_base_protocol PASSED [ 14%]
+tests/unit/test_methods.py::TestAnalytical::test_price_call PASSED       [ 14%]
+tests/unit/test_methods.py::TestAnalytical::test_price_put PASSED        [ 15%]
+tests/unit/test_methods.py::TestAnalytical::test_greeks PASSED           [ 16%]
+tests/unit/test_methods.py::TestAnalytical::test_implied_volatility PASSED [ 17%]
+tests/unit/test_methods.py::TestAnalytical::test_implied_volatility_failure PASSED [ 17%]
+tests/unit/test_methods.py::TestAnalytical::test_asian_option PASSED     [ 18%]
+tests/unit/test_methods.py::TestFDM::test_fdm_basic[call-ExplicitFDM] PASSED [ 19%]
+tests/unit/test_methods.py::TestFDM::test_fdm_basic[call-ImplicitFDM] PASSED [ 19%]
+tests/unit/test_methods.py::TestFDM::test_fdm_basic[call-CrankNicolsonFDM] PASSED [ 20%]
+tests/unit/test_methods.py::TestFDM::test_fdm_basic[put-ExplicitFDM] PASSED [ 21%]
+tests/unit/test_methods.py::TestFDM::test_fdm_basic[put-ImplicitFDM] PASSED [ 21%]
+tests/unit/test_methods.py::TestFDM::test_fdm_basic[put-CrankNicolsonFDM] PASSED [ 22%]
+tests/unit/test_methods.py::TestFDM::test_fdm_boundary_conditions PASSED [ 23%]
+tests/unit/test_methods.py::TestFDM::test_explicit_cfl_violation PASSED  [ 24%]
+tests/unit/test_methods.py::TestFDM::test_explicit_cfl_bumping PASSED    [ 24%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[call-StandardMC] PASSED [ 25%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[call-AntitheticMC] PASSED [ 26%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[call-ControlVariateMC] PASSED [ 26%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[call-QuasiMC] PASSED [ 27%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[put-StandardMC] PASSED [ 28%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[put-AntitheticMC] PASSED [ 29%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[put-ControlVariateMC] PASSED [ 29%]
+tests/unit/test_methods.py::TestMonteCarlo::test_mc_basic[put-QuasiMC] PASSED [ 30%]
+tests/unit/test_methods.py::TestMonteCarlo::test_small_maturity_theta[StandardMC] PASSED [ 31%]
+tests/unit/test_methods.py::TestMonteCarlo::test_small_maturity_theta[AntitheticMC] PASSED [ 31%]
+tests/unit/test_methods.py::TestMonteCarlo::test_small_maturity_theta[ControlVariateMC] PASSED [ 32%]
+tests/unit/test_methods.py::TestMonteCarlo::test_small_maturity_theta[QuasiMC] PASSED [ 33%]
+tests/unit/test_methods.py::TestTrees::test_binomial_crr_european PASSED [ 34%]
+tests/unit/test_methods.py::TestTrees::test_binomial_crr_american_put PASSED [ 34%]
+tests/unit/test_methods.py::TestTrees::test_binomial_crr_richardson_logic PASSED [ 35%]
+tests/unit/test_methods.py::TestTrees::test_trinomial_basic PASSED       [ 36%]
+tests/unit/test_methods.py::TestTrees::test_trinomial_put PASSED         [ 36%]
+tests/unit/test_methods.py::TestTrees::test_trinomial_american PASSED    [ 37%]
+tests/unit/test_methods.py::TestTrees::test_richardson_wrappers PASSED   [ 38%]
+tests/unit/test_methods.py::TestTrees::test_richardson_none_greeks PASSED [ 39%]
+tests/unit/test_methods.py::TestAnalysis::test_channels PASSED           [ 39%]
+tests/unit/test_methods.py::TestAnalysis::test_compute_mape PASSED       [ 40%]
+tests/unit/test_methods.py::TestAnalysis::test_get_convergence_metrics PASSED [ 41%]
+tests/unit/test_methods.py::test_cross_method_agreement PASSED           [ 41%]
+tests/unit/test_queue.py::TestRabbitMQClient::test_get_connection_reuse PASSED [ 42%]
+tests/unit/test_queue.py::TestRabbitMQClient::test_close_connection PASSED [ 43%]
+tests/unit/test_queue.py::TestPublisher::test_publish_scrape PASSED      [ 43%]
+tests/unit/test_queue.py::TestPublisher::test_publish_experiment PASSED  [ 44%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task PASSED   [ 45%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_failure PASSED [ 46%]
+tests/unit/test_queue.py::TestConsumer::test_handle_scrape_task_json_fail PASSED [ 46%]
+tests/unit/test_queue.py::TestConsumer::test_handle_experiment_task_success PASSED [ 47%]
+tests/unit/test_queue.py::TestConsumer::test_handle_experiment_task_failure PASSED [ 48%]
+tests/unit/test_queue.py::TestConsumer::test_start_consumers_success PASSED [ 48%]
+tests/unit/test_queue.py::TestConsumer::test_start_consumers_error PASSED [ 49%]
+tests/unit/test_queue.py::TestScrapers::test_scraper_factory PASSED      [ 50%]
+tests/unit/test_queue.py::TestWebSocket::test_manager_connect_disconnect PASSED [ 51%]
+tests/unit/test_queue.py::TestWebSocket::test_channels PASSED            [ 51%]
+tests/unit/test_storage.py::TestMinioClient::test_get_minio_init PASSED  [ 52%]
+tests/unit/test_storage.py::TestMinioClient::test_get_minio_s3_error PASSED [ 53%]
+tests/unit/test_storage.py::TestStorageService::test_upload_export_success PASSED [ 53%]
+tests/unit/test_validators.py::TestNumericValidators::test_success PASSED [ 54%]
+tests/unit/test_validators.py::TestNumericValidators::test_failure PASSED [ 55%]
+tests/unit/test_validators.py::TestQuoteValidator::test_success PASSED   [ 56%]
+tests/unit/test_validators.py::TestQuoteValidator::test_missing_keys PASSED [ 56%]
+tests/unit/test_validators.py::TestQuoteValidator::test_invalid_values PASSED [ 57%]
+tests/unit/test_validators.py::TestInputModels::test_option_params_input PASSED [ 58%]
+tests/unit/test_validators.py::TestInputModels::test_market_data_input PASSED [ 58%]
+tests/unit/test_validators.py::TestInputModels::test_scraper_run_input PASSED [ 59%]
+tests/unit/test_validators.py::TestInputModels::test_scraper_run_update PASSED [ 60%]
+tests/unit/test_validators.py::TestInputModels::test_audit_log_input PASSED [ 60%]
+tests/unit/test_validators.py::TestInputModels::test_notification_input PASSED [ 61%]
+tests/unit/test_validators.py::TestInputModels::test_validation_metrics_input PASSED [ 62%]
+tests/unit/test_validators.py::TestTransformers::test_transform_market_row PASSED [ 63%]
+tests/unit/test_validators.py::TestTransformers::test_transform_batch_df PASSED [ 63%]
+tests/unit/test_validators.py::TestAuth::test_get_current_user PASSED    [ 64%]
+tests/unit/test_validators.py::TestAuth::test_verify_ws_token PASSED     [ 65%]
+tests/unit/test_validators.py::TestConfig::test_settings_overrides PASSED [ 65%]
+tests/integration/test_pipeline.py::test_pipeline_run_spy PASSED         [ 66%]
+tests/integration/test_pipeline.py::test_pipeline_run_nse PASSED         [ 67%]
+tests/integration/test_pipeline.py::test_pipeline_invalid_data PASSED    [ 68%]
+tests/integration/test_pipeline.py::test_pipeline_no_market_data PASSED  [ 68%]
+tests/integration/test_pipeline.py::test_pipeline_error_handling PASSED  [ 69%]
+tests/integration/test_repository.py::test_upsert_option_parameters PASSED [ 70%]
+tests/integration/test_repository.py::test_price_result_flow PASSED      [ 70%]
+tests/integration/test_repository.py::test_user_profile_operations PASSED [ 71%]
+tests/integration/test_repository.py::test_notification_workflow PASSED  [ 72%]
+tests/integration/test_repository.py::test_market_data_operations PASSED [ 73%]
+tests/integration/test_repository.py::test_scrape_run_and_audit PASSED   [ 73%]
+tests/integration/test_repository.py::test_db_health_and_validation PASSED [ 74%]
+tests/integration/test_repository.py::test_filters PASSED                [ 75%]
+tests/integration/test_repository.py::test_scrape_listing PASSED         [ 75%]
+tests/integration/test_repository.py::test_redis_publish_user PASSED     [ 76%]
+tests/integration/test_repository.py::test_health_unhealthy PASSED       [ 77%]
+tests/integration/test_repository.py::test_exceptions PASSED             [ 78%]
+tests/integration/test_repository.py::test_push_subs PASSED              [ 78%]
+tests/integration/test_routers.py::TestPricingRouter::test_get_methods PASSED [ 79%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[analytical] PASSED [ 80%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[explicit_fdm] PASSED [ 80%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[implicit_fdm] PASSED [ 81%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[crank_nicolson] PASSED [ 82%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[standard_mc] PASSED [ 82%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[antithetic_mc] PASSED [ 83%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[control_variate_mc] PASSED [ 84%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[quasi_mc] PASSED [ 85%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[binomial_crr] PASSED [ 85%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[binomial_crr_richardson] PASSED [ 86%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[trinomial] PASSED [ 87%]
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[trinomial_richardson] PASSED [ 87%]
+tests/integration/test_routers.py::TestPricingRouter::test_pricing_persist PASSED [ 88%]
+tests/integration/test_routers.py::TestPricingRouter::test_compare_methods PASSED [ 89%]
+tests/integration/test_routers.py::TestPricingRouter::test_pricing_fail_mock PASSED [ 90%]
+tests/integration/test_routers.py::TestExperimentsRouter::test_run_experiment PASSED [ 90%]
+tests/integration/test_routers.py::TestExperimentsRouter::test_get_results PASSED [ 91%]
+tests/integration/test_routers.py::TestExperimentsRouter::test_get_result_detail PASSED [ 92%]
+tests/integration/test_routers.py::TestScrapersRouter::test_trigger_scraper PASSED [ 92%]
+tests/integration/test_routers.py::TestScrapersRouter::test_get_runs PASSED [ 93%]
+tests/integration/test_routers.py::TestMarketDataRouter::test_market_data PASSED [ 94%]
+tests/integration/test_routers.py::TestNotificationsRouter::test_notifications PASSED [ 95%]
+tests/integration/test_routers.py::TestDownloadsRouter::test_exports PASSED [ 95%]
+tests/integration/test_routers.py::TestDownloadsRouter::test_internal_logic PASSED [ 96%]
+tests/integration/test_routers.py::test_health_check_full PASSED         [ 97%]
+tests/integration/test_routers.py::test_pricing_edge PASSED              [ 97%]
+tests/integration/test_routers.py::test_websocket_logic PASSED           [ 98%]
+tests/integration/test_websocket.py::test_websocket_lifecycle FAILED     [ 99%]
+tests/integration/test_websocket.py::test_websocket_invalid_channels PASSED [100%]
+
+=================================== FAILURES ===================================
+___________________________ test_websocket_lifecycle ___________________________
+tests/integration/test_websocket.py:30: in test_websocket_lifecycle
+    await redis.publish("ws:experiments", json.dumps(test_msg))
+E   TypeError: object MagicMock can't be used in 'await' expression
+----------------------------- Captured stdout call -----------------------------
+{"channel": "experiments", "total": 1, "step": "websocket", "event": "ws_client_connected", "level": "info", "timestamp": "2026-04-26T10:00:43.891255Z"}
+{"error": "object MagicMock can't be used in 'await' expression", "channel": "experiments", "event": "redis_listener_failed", "level": "error", "timestamp": "2026-04-26T10:00:43.891792Z"}
+{"channel": "experiments", "total": 0, "step": "websocket", "event": "ws_client_disconnected", "level": "info", "timestamp": "2026-04-26T10:00:44.396371Z"}
+=============================== warnings summary ===============================
+../../../.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/supabase/_sync/auth_client.py:3
+  /home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/supabase/_sync/auth_client.py:3: DeprecationWarning: The `gotrue` package is deprecated, is not going to receive updates in the future. Please, use `supabase_auth` instead.
+    from gotrue import (
+
+tests/unit/test_final_gaps.py::TestScrapersGaps::test_spy_scraper_logic
+  /home/kamau/black-scholes-comparison/apps/api/src/scrapers/spy_scraper.py:69: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    if val and val.isdigit():
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/integration/test_routers.py::TestPricingRouter::test_calculate_methods[control_variate_mc]
+  /home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/_pytest/unraisableexception.py:80: PytestUnraisableExceptionWarning: Exception ignored in: <coroutine object Channel._reader at 0x7ff6b46d01d0>
+  
+  Traceback (most recent call last):
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/queues.py", line 158, in get
+      await getter
+  GeneratorExit
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/aiormq/channel.py", line 437, in _reader
+      frame = await self._get_frame()
+              ^^^^^^^^^^^^^^^^^^^^^^^
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/aiormq/channel.py", line 150, in _get_frame
+      weight, frame = await self.frames.get()
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/queues.py", line 160, in get
+      getter.cancel()  # Just in case getter is not done yet.
+      ^^^^^^^^^^^^^^^
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/base_events.py", line 762, in call_soon
+      self._check_closed()
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/base_events.py", line 520, in _check_closed
+      raise RuntimeError('Event loop is closed')
+  RuntimeError: Event loop is closed
+  
+  During handling of the above exception, another exception occurred:
+  
+  Traceback (most recent call last):
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/aiormq/channel.py", line 453, in _reader
+      await self.close(
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/aiormq/base.py", line 140, in close
+      countdown = Countdown(timeout)
+                  ^^^^^^^^^^^^^^^^^^
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/site-packages/aiormq/tools.py", line 69, in __init__
+      self.loop: asyncio.AbstractEventLoop = asyncio.get_event_loop()
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^
+    File "/home/kamau/.local/share/mise/installs/python/3.11.15/lib/python3.11/asyncio/events.py", line 681, in get_event_loop
+      raise RuntimeError('There is no current event loop in thread %r.'
+  RuntimeError: There is no current event loop in thread 'asyncio_0'.
+  
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.15-final-0 ----------
+Name                                              Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------------------------------------------------
+src/__init__.py                                       0      0      0      0   100%
+src/analysis/__init__.py                              0      0      0      0   100%
+src/analysis/convergence.py                          25     25     12      0     0%   3-63
+src/analysis/statistics.py                           14      0      4      0   100%
+src/auth/__init__.py                                  0      0      0      0   100%
+src/auth/dependencies.py                             11      0      0      0   100%
+src/cache/__init__.py                                 0      0      0      0   100%
+src/cache/decorators.py                              34      0      2      0   100%
+src/cache/redis_client.py                            13      0      0      0   100%
+src/config.py                                        42      0      2      0   100%
+src/data/__init__.py                                  0      0      0      0   100%
+src/data/pipeline.py                                 65      0      8      0   100%
+src/data/transformers.py                             21      0      2      0   100%
+src/data/validators.py                              105      0     22      0   100%
+src/database/__init__.py                              0      0      0      0   100%
+src/database/repository.py                          319      2     22      0    99%   73-74
+src/database/supabase_client.py                       7      0      0      0   100%
+src/exceptions.py                                    21      0      0      0   100%
+src/logging_config.py                                 5      0      0      0   100%
+src/main.py                                          51      5      0      0    90%   55-58, 113
+src/methods/__init__.py                               0      0      0      0   100%
+src/methods/analytical.py                            77      0      6      0   100%
+src/methods/base.py                                  35      0      0      0   100%
+src/methods/finite_difference/__init__.py             4      0      0      0   100%
+src/methods/finite_difference/crank_nicolson.py      53      0      8      0   100%
+src/methods/finite_difference/explicit.py            56      0      6      0   100%
+src/methods/finite_difference/implicit.py            68      0     12      0   100%
+src/methods/monte_carlo/__init__.py                   5      0      0      0   100%
+src/methods/monte_carlo/antithetic.py                45      0      4      0   100%
+src/methods/monte_carlo/control_variates.py          56      0      4      0   100%
+src/methods/monte_carlo/quasi_mc.py                  41      0      4      0   100%
+src/methods/monte_carlo/standard.py                  35      0      2      0   100%
+src/methods/tree_methods/__init__.py                  4      0      0      0   100%
+src/methods/tree_methods/binomial_crr.py             57      0     14      0   100%
+src/methods/tree_methods/richardson.py               41      0      4      0   100%
+src/methods/tree_methods/trinomial.py                53      0     12      0   100%
+src/metrics.py                                       20      0      0      0   100%
+src/notifications/__init__.py                         0      0      0      0   100%
+src/notifications/email.py                           24     18      2      0    23%   17-52
+src/notifications/hierarchy.py                       25      0      4      0   100%
+src/notifications/push.py                            23     18      6      0    17%   16-36
+src/routers/__init__.py                               0      0      0      0   100%
+src/routers/downloads.py                             48      2     12      0    97%   67-68
+src/routers/experiments.py                           41      0      4      0   100%
+src/routers/health.py                                41      1      2      0    98%   49
+src/routers/market_data.py                           16      0      0      0   100%
+src/routers/notifications.py                         32      6      0      0    81%   51-55, 66-73
+src/routers/pricing.py                               94      0     34      1    99%   227->232
+src/routers/scrapers.py                              23      0      2      1    96%   26->29
+src/routers/websocket.py                             25      0      4      0   100%
+src/scrapers/__init__.py                              0      0      0      0   100%
+src/scrapers/base_scraper.py                          7      0      0      0   100%
+src/scrapers/nse_next_scraper.py                     66      9     12      5    82%   61->75, 63->75, 71-72, 79, 109->126, 126->76, 143-144, 154-156, 162
+src/scrapers/scraper_factory.py                      13      0      2      0   100%
+src/scrapers/spy_scraper.py                          66     19     14      5    65%   49->61, 51->49, 56-57, 65->78, 69->78, 80-125, 135-137, 143
+src/storage/__init__.py                               0      0      0      0   100%
+src/storage/minio_client.py                          20      0      4      0   100%
+src/storage/storage_service.py                       14      0      0      0   100%
+src/task_queues/__init__.py                           0      0      0      0   100%
+src/task_queues/consumer.py                          46      0      0      0   100%
+src/task_queues/publisher.py                         29      0      0      0   100%
+src/task_queues/rabbitmq_client.py                   16      0      4      0   100%
+src/websocket/__init__.py                             0      0      0      0   100%
+src/websocket/channels.py                             2      0      0      0   100%
+src/websocket/manager.py                             60      2     20      2    95%   87, 89->88, 96
+---------------------------------------------------------------------------------------------
+TOTAL                                              2114    107    276     14    94%
+
+FAIL Required test coverage of 100.0% not reached. Total coverage: 93.85%
+=========================== short test summary info ============================
+FAILED tests/integration/test_websocket.py::test_websocket_lifecycle - TypeEr...
+================== 1 failed, 140 passed, 3 warnings in 55.66s ==================

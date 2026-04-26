@@ -19,6 +19,7 @@ class TestRedisClient:
         client = get_redis()
         assert client == mock_client
         mock_from_url.assert_called_once()
+        get_redis.cache_clear() # Clear it so other tests get real redis
 
 @pytest.mark.unit
 class TestCacheDecorator:

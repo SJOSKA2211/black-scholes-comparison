@@ -1,19 +1,17 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function useAuth() {
   const [user] = useState<any>({
     id: "00000000-0000-0000-0000-000000000000",
     email: "researcher@example.com",
-    user_metadata: { role: "researcher" },
+    user_metadata: { role: "researcher", full_name: "Researcher" },
   });
   const [loading] = useState(false);
-  const router = useRouter();
 
-  const signOut = async () => {
+  const signOut = () => {
     // No-op in stripped auth mode
-    router.push("/");
+    console.log("Sign out requested, but auth is stripped.");
   };
 
   return { user, loading, signOut };

@@ -195,6 +195,11 @@ class TestTrees:
 
 @pytest.mark.unit
 class TestAnalysis:
+    def test_channels(self):
+        from src.websocket.channels import ALLOWED_CHANNELS
+        assert "experiments" in ALLOWED_CHANNELS
+        assert "scrapers" in ALLOWED_CHANNELS
+
     def test_compute_mape(self):
         from src.analysis.statistics import compute_mape
         results = [{"computed_price": 110}]
@@ -214,10 +219,10 @@ class TestAnalysis:
 def test_cross_method_agreement(standard_params):
     ref = BlackScholesAnalytical().price(standard_params).computed_price
     methods = [
-        CrankNicolsonFDM().price,
-        ControlVariateMC(num_simulations=5000).price,
-        BinomialCRRRichardson(num_steps=500).price,
-        TrinomialRichardson(num_steps=300).price
+        CrankNicolsonFDM(num_time_steps=2000, num_price_steps=200).price,
+        ControlVariateMC(num_simulations=20000).price,
+        BinomialCRRRichardson(num_steps=2000).price,
+        TrinomialRichardson(num_steps=1000).price
     ]
     for m in methods:
         res = m(standard_params)

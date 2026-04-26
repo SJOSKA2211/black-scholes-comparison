@@ -20,30 +20,30 @@ class BinomialCRRRichardson:
         """CRR with Richardson extrapolation: 2*V(2N) - V(N)."""
         start_time = time.time()
 
-        pricer_full = BinomialCRR(num_steps=self.num_steps)
-        pricer_double = BinomialCRR(num_steps=2 * self.num_steps)
+        pricer_base = BinomialCRR(num_steps=self.num_steps)
+        pricer_refined = BinomialCRR(num_steps=2 * self.num_steps)
 
-        res_f = pricer_full.price(params)
-        res_d = pricer_double.price(params)
+        result_base = pricer_base.price(params)
+        result_refined = pricer_refined.price(params)
 
-        def extrap(v_f: float, v_d: float) -> float:
-            return 2 * v_d - v_f
+        def extrapolate(value_base: float, value_refined: float) -> float:
+            return 2 * value_refined - value_base
 
-        def extrap_g(v1: float | None, v2: float | None) -> float | None:
-            if v1 is None or v2 is None:
+        def extrapolate_greek(greek_base: float | None, greek_refined: float | None) -> float | None:
+            if greek_base is None or greek_refined is None:
                 return None
-            return 2 * v2 - v1
+            return 2 * greek_refined - greek_base
 
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type=self.method_type,
-            computed_price=extrap(res_f.computed_price, res_d.computed_price),
+            computed_price=extrapolate(result_base.computed_price, result_refined.computed_price),
             exec_seconds=exec_seconds,
-            delta=extrap_g(res_f.delta, res_d.delta),
-            gamma=extrap_g(res_f.gamma, res_d.gamma),
-            vega=extrap_g(res_f.vega, res_d.vega),
-            theta=extrap_g(res_f.theta, res_d.theta),
-            rho=extrap_g(res_f.rho, res_d.rho),
+            delta=extrapolate_greek(result_base.delta, result_refined.delta),
+            gamma=extrapolate_greek(result_base.gamma, result_refined.gamma),
+            vega=extrapolate_greek(result_base.vega, result_refined.vega),
+            theta=extrapolate_greek(result_base.theta, result_refined.theta),
+            rho=extrapolate_greek(result_base.rho, result_refined.rho),
             parameter_set={
                 "num_steps_base": self.num_steps,
             },
@@ -61,30 +61,30 @@ class TrinomialRichardson:
         """Trinomial with Richardson extrapolation: 2*V(2N) - V(N)."""
         start_time = time.time()
 
-        pricer_full = TrinomialTree(num_steps=self.num_steps)
-        pricer_double = TrinomialTree(num_steps=2 * self.num_steps)
+        pricer_base = TrinomialTree(num_steps=self.num_steps)
+        pricer_refined = TrinomialTree(num_steps=2 * self.num_steps)
 
-        res_f = pricer_full.price(params)
-        res_d = pricer_double.price(params)
+        result_base = pricer_base.price(params)
+        result_refined = pricer_refined.price(params)
 
-        def extrap(v_f: float, v_d: float) -> float:
-            return 2 * v_d - v_f
+        def extrapolate(value_base: float, value_refined: float) -> float:
+            return 2 * value_refined - value_base
 
-        def extrap_g(v1: float | None, v2: float | None) -> float | None:
-            if v1 is None or v2 is None:
+        def extrapolate_greek(greek_base: float | None, greek_refined: float | None) -> float | None:
+            if greek_base is None or greek_refined is None:
                 return None
-            return 2 * v2 - v1
+            return 2 * greek_refined - greek_base
 
         exec_seconds = time.time() - start_time
         return PriceResult(
             method_type=self.method_type,
-            computed_price=extrap(res_f.computed_price, res_d.computed_price),
+            computed_price=extrapolate(result_base.computed_price, result_refined.computed_price),
             exec_seconds=exec_seconds,
-            delta=extrap_g(res_f.delta, res_d.delta),
-            gamma=extrap_g(res_f.gamma, res_d.gamma),
-            vega=extrap_g(res_f.vega, res_d.vega),
-            theta=extrap_g(res_f.theta, res_d.theta),
-            rho=extrap_g(res_f.rho, res_d.rho),
+            delta=extrapolate_greek(result_base.delta, result_refined.delta),
+            gamma=extrapolate_greek(result_base.gamma, result_refined.gamma),
+            vega=extrapolate_greek(result_base.vega, result_refined.vega),
+            theta=extrapolate_greek(result_base.theta, result_refined.theta),
+            rho=extrapolate_greek(result_base.rho, result_refined.rho),
             parameter_set={
                 "num_steps_base": self.num_steps,
             },

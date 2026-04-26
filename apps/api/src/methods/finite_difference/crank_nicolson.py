@@ -29,85 +29,85 @@ class CrankNicolsonFDM:
         start_time = time.time()
 
         def _solve(p: OptionParams) -> tuple[np.ndarray[Any, Any], np.ndarray[Any, Any], float]:
-            max_p = p.strike_price * 3.0
-            dt = p.maturity_years / self.num_time_steps
-            ds = max_p / self.num_price_steps
-            v_prices = np.linspace(0, max_p, self.num_price_steps + 1)
-            v_grid = (
-                np.maximum(v_prices - p.strike_price, 0)
+            max_price = p.strike_price * 3.0
+            time_step_size = p.maturity_years / self.num_time_steps
+            spatial_step_size = max_price / self.num_price_steps
+            spatial_grid_prices = np.linspace(0, max_price, self.num_price_steps + 1)
+            option_value_grid = (
+                np.maximum(spatial_grid_prices - p.strike_price, 0)
                 if p.option_type == "call"
-                else np.maximum(p.strike_price - v_prices, 0)
+                else np.maximum(p.strike_price - spatial_grid_prices, 0)
             )
 
             indices = np.arange(1, self.num_price_steps)
             vol_sq = p.volatility**2
-            r = p.risk_free_rate
-            a = 0.25 * dt * (vol_sq * (indices**2) - r * indices)
-            b = -0.5 * dt * (vol_sq * (indices**2) + r)
-            c = 0.25 * dt * (vol_sq * (indices**2) + r * indices)
+            risk_free_rate = p.risk_free_rate
+            coeff_lower = 0.25 * time_step_size * (vol_sq * (indices**2) - risk_free_rate * indices)
+            coeff_main = -0.5 * time_step_size * (vol_sq * (indices**2) + risk_free_rate)
+            coeff_upper = 0.25 * time_step_size * (vol_sq * (indices**2) + risk_free_rate * indices)
 
-            l_lhs, m_lhs, u_lhs = -a[1:], 1 - b, -c[:-1]
+            l_lhs, m_lhs, u_lhs = -coeff_lower[1:], 1 - coeff_main, -coeff_upper[:-1]
 
             for step in range(self.num_time_steps):
-                rhs = a * v_grid[:-2] + (1 + b) * v_grid[1:-1] + c * v_grid[2:]
+                rhs = coeff_lower * option_value_grid[:-2] + (1 + coeff_main) * option_value_grid[1:-1] + coeff_upper * option_value_grid[2:]
                 if p.option_type == "call":
-                    rhs[-1] += c[-1] * (max_p - p.strike_price * np.exp(-r * dt * step))
+                    rhs[-1] += coeff_upper[-1] * (max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * step))
                 else:
-                    rhs[0] += a[0] * (p.strike_price * np.exp(-r * dt * step))
+                    rhs[0] += coeff_lower[0] * (p.strike_price * np.exp(-risk_free_rate * time_step_size * step))
 
-                v_grid[1 : self.num_price_steps] = ImplicitFDM.thomas_algorithm(
+                option_value_grid[1 : self.num_price_steps] = ImplicitFDM.thomas_algorithm(
                     l_lhs, m_lhs, u_lhs, rhs
                 )
                 if p.option_type == "call":
-                    v_grid[0], v_grid[-1] = 0, max_p - p.strike_price * np.exp(-r * dt * (step + 1))
+                    option_value_grid[0], option_value_grid[-1] = 0, max_price - p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1))
                 else:
-                    v_grid[0], v_grid[-1] = p.strike_price * np.exp(-r * dt * (step + 1)), 0
+                    option_value_grid[0], option_value_grid[-1] = p.strike_price * np.exp(-risk_free_rate * time_step_size * (step + 1)), 0
 
-            return v_prices, v_grid, ds
+            return spatial_grid_prices, option_value_grid, spatial_step_size
 
-        prices, grid, delta_s = _solve(params)
+        prices, grid, spatial_step_size = _solve(params)
         computed_price = float(np.interp(params.underlying_price, prices, grid))
 
-        idx = int(np.searchsorted(prices, params.underlying_price))
-        idx = min(idx, self.num_price_steps)
-        if 0 < idx < self.num_price_steps:
-            delta = (grid[idx + 1] - grid[idx - 1]) / (2 * delta_s)
-            gamma = (grid[idx + 1] - 2 * grid[idx] + grid[idx - 1]) / (delta_s**2)
+        target_index = int(np.searchsorted(prices, params.underlying_price))
+        target_index = min(target_index, self.num_price_steps)
+        if 0 < target_index < self.num_price_steps:
+            delta = (grid[target_index + 1] - grid[target_index - 1]) / (2 * spatial_step_size)
+            gamma = (grid[target_index + 1] - 2 * grid[target_index] + grid[target_index - 1]) / (spatial_step_size**2)
         else:
             delta = (
-                (grid[idx + 1] - grid[idx]) / delta_s
-                if idx < self.num_price_steps
-                else (grid[idx] - grid[idx - 1]) / delta_s
+                (grid[target_index + 1] - grid[target_index]) / spatial_step_size
+                if target_index < self.num_price_steps
+                else (grid[target_index] - grid[target_index - 1]) / spatial_step_size
             )
             gamma = 0.0
 
-        h_v, h_t, h_r = 0.01, 1 / 365.0, 0.01
+        vol_bump, time_bump, rate_bump = 0.01, 1 / 365.0, 0.01
 
         def get_p(p: OptionParams) -> float:
             _, g, _ = _solve(p)
             return float(np.interp(p.underlying_price, prices, g))
 
         vega = (
-            get_p(params.model_copy(update={"volatility": params.volatility + h_v}))
+            get_p(params.model_copy(update={"volatility": params.volatility + vol_bump}))
             - computed_price
-        ) / h_v
+        ) / vol_bump
         theta = (
             -(
                 computed_price
                 - get_p(
                     params.model_copy(
-                        update={"maturity_years": max(0.0001, params.maturity_years - h_t)}
+                        update={"maturity_years": max(0.0001, params.maturity_years - time_bump)}
                     )
                 )
             )
-            / h_t
-            if params.maturity_years > h_t
+            / time_bump
+            if params.maturity_years > time_bump
             else 0.0
         )
         rho = (
-            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r}))
+            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + rate_bump}))
             - computed_price
-        ) / h_r
+        ) / rate_bump
 
         return PriceResult(
             method_type=self.method_type,

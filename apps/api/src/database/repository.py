@@ -279,7 +279,11 @@ async def create_scrape_run(market: str) -> str:
     op = "insert"
     start = time.time()
     try:
-        data = {"market": market, "status": "running"}
+        data = {
+            "market": market,
+            "status": "running",
+            "started_at": datetime.datetime.now(datetime.UTC).isoformat(),
+        }
         response = supabase.table(table).insert(data).execute()
         SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
         data_list = cast("list[dict[str, Any]]", response.data)
@@ -335,7 +339,12 @@ async def get_scrape_runs(limit: int = 20) -> list[dict[str, Any]]:
     start = time.time()
     try:
         response = (
-            supabase.table(table).select("*").order("started_at", desc=True).limit(limit).execute()
+            supabase.table(table)
+            .select("*")
+            .not_.is_("started_at", "null")
+            .order("started_at", desc=True)
+            .limit(limit)
+            .execute()
         )
         SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
         return cast("list[dict[str, Any]]", response.data)

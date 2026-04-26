@@ -26,47 +26,46 @@ class StandardMC:
         start_time = time.time()
 
         # Pre-generate Gaussian samples for Common Random Numbers (CRN)
-        z = np.random.standard_normal(self.num_simulations)
-        np.exp(-params.risk_free_rate * params.maturity_years)
+        standard_normal_samples = np.random.standard_normal(self.num_simulations)
 
         def _solve_with_z(p: OptionParams, samples: np.ndarray[Any, Any]) -> float:
             drift = (p.risk_free_rate - 0.5 * p.volatility**2) * p.maturity_years
             diffusion = p.volatility * np.sqrt(p.maturity_years)
-            s_t = p.underlying_price * np.exp(drift + diffusion * samples)
+            terminal_prices = p.underlying_price * np.exp(drift + diffusion * samples)
             payoffs = (
-                np.maximum(s_t - p.strike_price, 0)
+                np.maximum(terminal_prices - p.strike_price, 0)
                 if p.option_type == "call"
-                else np.maximum(p.strike_price - s_t, 0)
+                else np.maximum(p.strike_price - terminal_prices, 0)
             )
-            df = np.exp(-p.risk_free_rate * p.maturity_years)
-            return float(np.mean(df * payoffs))
+            discount_factor = np.exp(-p.risk_free_rate * p.maturity_years)
+            return float(np.mean(discount_factor * payoffs))
 
-        computed_price = _solve_with_z(params, z)
+        computed_price = _solve_with_z(params, standard_normal_samples)
 
         # Bumping for Greeks using same Z (CRN)
-        h_s, h_v, h_t, h_r = params.underlying_price * 0.01, 0.01, 1 / 365.0, 0.01
+        spot_bump, vol_bump, time_bump, rate_bump = params.underlying_price * 0.01, 0.01, 1 / 365.0, 0.01
 
         # Delta & Gamma (Central Difference)
-        p_up = params.model_copy(update={"underlying_price": params.underlying_price + h_s})
-        p_dn = params.model_copy(update={"underlying_price": params.underlying_price - h_s})
-        price_up, price_dn = _solve_with_z(p_up, z), _solve_with_z(p_dn, z)
-        delta = (price_up - price_dn) / (2 * h_s)
-        gamma = (price_up - 2 * computed_price + price_dn) / (h_s**2)
+        p_up = params.model_copy(update={"underlying_price": params.underlying_price + spot_bump})
+        p_dn = params.model_copy(update={"underlying_price": params.underlying_price - spot_bump})
+        price_up, price_dn = _solve_with_z(p_up, standard_normal_samples), _solve_with_z(p_dn, standard_normal_samples)
+        delta = (price_up - price_dn) / (2 * spot_bump)
+        gamma = (price_up - 2 * computed_price + price_dn) / (spot_bump**2)
 
         # Vega
-        p_v_up = params.model_copy(update={"volatility": params.volatility + h_v})
-        vega = (_solve_with_z(p_v_up, z) - computed_price) / h_v
+        p_v_up = params.model_copy(update={"volatility": params.volatility + vol_bump})
+        vega = (_solve_with_z(p_v_up, standard_normal_samples) - computed_price) / vol_bump
 
         # Theta
-        if params.maturity_years > h_t:
-            p_t_dn = params.model_copy(update={"maturity_years": params.maturity_years - h_t})
-            theta = -(computed_price - _solve_with_z(p_t_dn, z)) / h_t
+        if params.maturity_years > time_bump:
+            p_t_dn = params.model_copy(update={"maturity_years": params.maturity_years - time_bump})
+            theta = -(computed_price - _solve_with_z(p_t_dn, standard_normal_samples)) / time_bump
         else:
             theta = 0.0
 
         # Rho
-        p_r_up = params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r})
-        rho = (_solve_with_z(p_r_up, z) - computed_price) / h_r
+        p_r_up = params.model_copy(update={"risk_free_rate": params.risk_free_rate + rate_bump})
+        rho = (_solve_with_z(p_r_up, standard_normal_samples) - computed_price) / rate_bump
 
         return PriceResult(
             method_type=self.method_type,

@@ -30,62 +30,62 @@ class BinomialCRR:
             return 0.0, 0.0, 0.0
 
         delta_t = params.maturity_years / steps
-        up = np.exp(params.volatility * np.sqrt(delta_t))
-        dn = 1.0 / up
-        q_growth = np.exp(params.risk_free_rate * delta_t)
-        p_u = (q_growth - dn) / (up - dn)
-        p_d = 1.0 - p_u
+        up_factor = np.exp(params.volatility * np.sqrt(delta_t))
+        down_factor = 1.0 / up_factor
+        risk_free_growth = np.exp(params.risk_free_rate * delta_t)
+        prob_up = (risk_free_growth - down_factor) / (up_factor - down_factor)
+        prob_down = 1.0 - prob_up
 
         # Terminal payoffs
         indices = np.arange(steps + 1)
-        st = params.underlying_price * (up**indices) * (dn ** (steps - indices))
-        v = (
-            np.maximum(st - params.strike_price, 0)
+        terminal_stock_prices = params.underlying_price * (up_factor**indices) * (down_factor ** (steps - indices))
+        option_values = (
+            np.maximum(terminal_stock_prices - params.strike_price, 0)
             if params.option_type == "call"
-            else np.maximum(params.strike_price - st, 0)
+            else np.maximum(params.strike_price - terminal_stock_prices, 0)
         )
 
         # Backward induction
-        v1 = np.zeros(2)
-        v2 = np.zeros(3)
+        values_at_step_1 = np.zeros(2)
+        values_at_step_2 = np.zeros(3)
         for i in range(steps - 1, -1, -1):
-            v = (p_u * v[1:] + p_d * v[:-1]) / q_growth
+            option_values = (prob_up * option_values[1:] + prob_down * option_values[:-1]) / risk_free_growth
             if params.is_american:
-                si = (
+                stock_prices_at_step = (
                     params.underlying_price
-                    * (up ** np.arange(i + 1))
-                    * (dn ** (i - np.arange(i + 1)))
+                    * (up_factor ** np.arange(i + 1))
+                    * (down_factor ** (i - np.arange(i + 1)))
                 )
-                v = np.maximum(
-                    v,
+                option_values = np.maximum(
+                    option_values,
                     (
-                        si - params.strike_price
+                        stock_prices_at_step - params.strike_price
                         if params.option_type == "call"
-                        else params.strike_price - si
+                        else params.strike_price - stock_prices_at_step
                     ),
                 )
 
             # Extract Delta/Gamma at step 1 and 2
             if i == 2:
-                v2 = np.copy(v)
+                values_at_step_2 = np.copy(option_values)
             if i == 1:
-                v1 = np.copy(v)
+                values_at_step_1 = np.copy(option_values)
 
         # Delta = (V_u - V_d) / (S_u - S_d)
-        s_u = params.underlying_price * up
-        s_d = params.underlying_price * dn
-        delta = (v1[1] - v1[0]) / (s_u - s_d)
+        spot_up = params.underlying_price * up_factor
+        spot_down = params.underlying_price * down_factor
+        delta = (values_at_step_1[1] - values_at_step_1[0]) / (spot_up - spot_down)
 
         # Gamma = [(V_uu - V_ud) / (S_uu - S_ud) - (V_ud - V_dd) / (S_ud - S_dd)]
         #         / [0.5 * (S_uu - S_dd)]
-        s_uu = params.underlying_price * up**2
-        s_ud = params.underlying_price
-        s_dd = params.underlying_price * dn**2
-        gamma = ((v2[2] - v2[1]) / (s_uu - s_ud) - (v2[1] - v2[0]) / (s_ud - s_dd)) / (
-            0.5 * (s_uu - s_dd)
+        spot_up_up = params.underlying_price * up_factor**2
+        spot_up_down = params.underlying_price
+        spot_down_down = params.underlying_price * down_factor**2
+        gamma = ((values_at_step_2[2] - values_at_step_2[1]) / (spot_up_up - spot_up_down) - (values_at_step_2[1] - values_at_step_2[0]) / (spot_up_down - spot_down_down)) / (
+            0.5 * (spot_up_up - spot_down_down)
         )
 
-        return float(v[0]), float(delta), float(gamma)
+        return float(option_values[0]), float(delta), float(gamma)
 
     def price(self, params: OptionParams) -> PriceResult:
         """Compute the option price and Greeks using CRR Binomial Tree."""
@@ -105,28 +105,28 @@ class BinomialCRR:
             # Delta/Gamma from full tree are usually fine
 
         # Bumping for Vega, Theta, Rho
-        h_v, h_t, h_r = 0.01, 1 / 365.0, 0.01
+        vol_bump, time_bump, rate_bump = 0.01, 1 / 365.0, 0.01
         vega = (
-            get_p(params.model_copy(update={"volatility": params.volatility + h_v}))
+            get_p(params.model_copy(update={"volatility": params.volatility + vol_bump}))
             - computed_price
-        ) / h_v
+        ) / vol_bump
         theta = (
             -(
                 computed_price
                 - get_p(
                     params.model_copy(
-                        update={"maturity_years": max(0.0001, params.maturity_years - h_t)}
+                        update={"maturity_years": max(0.0001, params.maturity_years - time_bump)}
                     )
                 )
             )
-            / h_t
-            if params.maturity_years > h_t
+            / time_bump
+            if params.maturity_years > time_bump
             else 0.0
         )
         rho = (
-            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + h_r}))
+            get_p(params.model_copy(update={"risk_free_rate": params.risk_free_rate + rate_bump}))
             - computed_price
-        ) / h_r
+        ) / rate_bump
 
         return PriceResult(
             method_type=self.method_type,

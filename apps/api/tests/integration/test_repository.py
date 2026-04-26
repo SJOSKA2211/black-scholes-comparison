@@ -143,9 +143,12 @@ async def test_filters(sample_option_params, cleanup_ids) -> None:
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_scrape_listing(cleanup_ids) -> None:
-    run_id = await repository.create_scrape_run("listed")
+    # Use a valid market name from the CHECK constraint
+    run_id = await repository.create_scrape_run("spy")
     cleanup_ids["scrape_runs"].append(run_id)
-    assert any(r["id"] == run_id for r in await repository.get_scrape_runs(limit=100))
+    
+    runs = await repository.get_scrape_runs(limit=100)
+    assert any(str(r["id"]) == str(run_id) for r in runs)
 
 @pytest.mark.integration
 @pytest.mark.asyncio

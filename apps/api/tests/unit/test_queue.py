@@ -108,20 +108,28 @@ class TestConsumer:
     async def test_handle_scrape_task_failure(self, mock_pipeline_class):
         mock_msg = MagicMock()
         mock_msg.body = json.dumps({"market": "spy", "date": "2024-01-01"}).encode()
-        mock_msg.process.return_value.__aenter__ = AsyncMock()
-        mock_msg.process.return_value.__aexit__ = AsyncMock()
+        
+        # Mock the context manager correctly
+        mock_process = MagicMock()
+        mock_process.__aenter__ = AsyncMock()
+        mock_process.__aexit__ = AsyncMock(return_value=False) # Do not suppress
+        mock_msg.process.return_value = mock_process
         
         mock_pipeline = MagicMock()
         mock_pipeline.run = AsyncMock(side_effect=Exception("Fail"))
         mock_pipeline_class.return_value = mock_pipeline
         
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="Fail"):
             await handle_scrape_task(mock_msg)
 
     @pytest.mark.asyncio
     async def test_handle_scrape_task_json_fail(self):
         mock_msg = MagicMock()
         mock_msg.body = b"invalid"
+        mock_process = MagicMock()
+        mock_process.__aenter__ = AsyncMock()
+        mock_process.__aexit__ = AsyncMock(return_value=False)
+        mock_msg.process.return_value = mock_process
         with pytest.raises(json.JSONDecodeError):
             await handle_scrape_task(mock_msg)
 
@@ -141,11 +149,14 @@ class TestConsumer:
     async def test_handle_experiment_task_failure(self, mock_run):
         mock_msg = MagicMock()
         mock_msg.body = json.dumps({"test": 1}).encode()
-        mock_msg.process.return_value.__aenter__ = AsyncMock()
-        mock_msg.process.return_value.__aexit__ = AsyncMock()
+        
+        mock_process = MagicMock()
+        mock_process.__aenter__ = AsyncMock()
+        mock_process.__aexit__ = AsyncMock(return_value=False)
+        mock_msg.process.return_value = mock_process
         
         mock_run.side_effect = Exception("Fail")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception, match="Fail"):
             await handle_experiment_task(mock_msg)
 
     @pytest.mark.asyncio
@@ -197,6 +208,6 @@ class TestWebSocket:
         assert "channel-1" not in manager._connections
 
     def test_channels(self):
-        from src.websocket.channels import AUTHORIZED_CHANNELS
-        assert "pricing" in AUTHORIZED_CHANNELS
-        assert "market" in AUTHORIZED_CHANNELS
+        from src.websocket.channels import ALLOWED_CHANNELS
+        assert "experiments" in ALLOWED_CHANNELS
+        assert "scrapers" in ALLOWED_CHANNELS
