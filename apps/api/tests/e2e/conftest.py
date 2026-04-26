@@ -6,12 +6,12 @@ from playwright.sync_api import BrowserContext, Page
 
 @pytest.fixture(scope="session")
 def base_url() -> str:
-    return os.getenv("E2E_BASE_URL", "http://localhost:3000")
+    return os.getenv("E2E_BASE_URL", "http://127.0.0.1:3002")
 
 
 @pytest.fixture(scope="session")
 def api_url() -> str:
-    return os.getenv("E2E_API_URL", "http://localhost:8000")
+    return os.getenv("E2E_API_URL", "http://127.0.0.1:8000")
 
 
 @pytest.fixture
@@ -19,9 +19,9 @@ def authenticated_page(page: Page, context: BrowserContext, base_url: str) -> Pa
     """Fixture to provide a page on the dashboard."""
     try:
         # Navigate and wait for the page to be ready (longer timeout for Next.js compilation)
-        page.goto(f"{base_url}/", wait_until="networkidle", timeout=30000)
+        page.goto(f"{base_url}/", wait_until="networkidle", timeout=60000)
         # Wait for sidebar
-        page.wait_for_selector("aside", timeout=30000)
+        page.wait_for_selector("aside", timeout=60000)
     except Exception as e:
         page.screenshot(path="dashboard_load_failure.png")
         pytest.fail(f"Dashboard failed to load at {base_url}: {str(e)}")

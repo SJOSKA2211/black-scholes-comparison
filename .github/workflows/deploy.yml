@@ -15,18 +15,37 @@ jobs:
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - run: pip install -r apps/api/requirements.txt playwright
-      - run: playwright install chromium
-      - name: Start FastAPI
-        run: uvicorn src.main:app --host 0.0.0.0 --port 8000 &
-        working-directory: apps/api
-        env: { SUPABASE_URL: "${{secrets.SUPABASE_URL}}", SUPABASE_KEY: "${{secrets.SUPABASE_KEY}}" }
-      - run: sleep 15
-      - run: cd apps/api && pytest tests/e2e/ -m e2e -v
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - name: Install dependencies
+        run: |
+          pip install -r apps/api/requirements.txt playwright pytest-playwright pytest-asyncio
+          playwright install chromium
+          cd apps/web && npm install
+      - name: Start FastAPI Backend
+        run: |
+          cd apps/api
+          PYTHONPATH=. uvicorn src.main:app --host 0.0.0.0 --port 8000 &
+        env:
+          REDIS_URL: "redis://localhost:6379/0"
+          RABBITMQ_URL: "amqp://guest:guest@localhost:5672/"
+          MINIO_ENDPOINT: "localhost:9000"
+      - name: Start Next.js Frontend
+        run: |
+          cd apps/web
+          npm run dev -- -p 3000 &
+      - name: Wait for services
+        run: sleep 30
+      - name: Run E2E Tests
+        run: |
+          cd apps/api
+          E2E_BASE_URL=http://localhost:3000 E2E_API_URL=http://localhost:8000 PYTHONPATH=. python -m pytest tests/e2e/ -v
  
   build-push:
     needs: [full-ci]
@@ -55,12 +74,22 @@ jobs:
       - name: Install Railway CLI
         run: npm install -g @railway/cli
       - name: Deploy to Railway
-        run: railway deploy --detach
+        run: |
+          cd apps/api
+          railway up --detach --service black-scholes-api
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
-  deploy-frontend:
+  deploy-frontend-railway:
     needs: deploy-backend-railway
     runs-on: ubuntu-latest
     steps:
-      - run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        run: |
+          cd apps/web
+          railway up --detach --service black-scholes-web
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

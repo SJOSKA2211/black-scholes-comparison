@@ -30,6 +30,7 @@ logger = structlog.get_logger(__name__)
 class CompareRequest(BaseModel):
     params: OptionParams
     methods: list[MethodType]
+    persist: bool = False
 
 
 class CompareResponse(BaseModel):
@@ -239,6 +240,13 @@ async def compare_methods(
                 break
 
         exec_ms = (time.perf_counter() - start_time) * 1000
+
+        if request.persist:
+            # Save parameters once
+            option_id = await upsert_option_parameters(params.model_dump())
+            # Save each result in the experiments table
+            for res in results_list:
+                await upsert_price_result(option_id, res)
 
         return CompareResponse(
             results=results_list, analytical_reference=analytical_ref, exec_ms=exec_ms

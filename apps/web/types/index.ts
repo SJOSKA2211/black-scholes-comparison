@@ -25,6 +25,7 @@ export interface PriceResult {
 export interface PriceRequest {
   params: OptionParams;
   methods: string[];
+  persist?: boolean;
 }
 
 export interface PriceResponse {

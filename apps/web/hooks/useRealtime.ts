@@ -35,7 +35,7 @@ export function useRealtime<T extends object>({
       .on(
         "postgres_changes",
         { event, schema: "public", table, ...(filter ? { filter } : {}) },
-        (payload) => {
+        (payload: any) => {
           console.log("REALTIME EVENT RECEIVED:", payload);
           if (payload.new) callbackRef.current(payload.new as T);
         },

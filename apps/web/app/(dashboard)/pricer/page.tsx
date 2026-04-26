@@ -80,10 +80,17 @@ export default function PricerPage() {
             <div className="flex items-center gap-3">
               {isPending && <Badge variant="warning">Computing...</Badge>}
               <button 
+                onClick={() => mutate({ params, methods: ALL_METHODS, persist: true })}
+                className="text-[10px] bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-white font-bold uppercase transition-all"
+                disabled={isPending}
+              >
+                Save to Lab
+              </button>
+              <button 
                 onClick={() => mutate({ params, methods: ALL_METHODS })}
                 className="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded text-slate-400 font-bold uppercase"
               >
-                Manual Refresh
+                Refresh
               </button>
             </div>
           </CardHeader>

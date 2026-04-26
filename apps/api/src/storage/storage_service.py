@@ -8,6 +8,7 @@ import io
 import structlog
 from minio import Minio
 
+from src.config import get_settings
 from src.storage.minio_client import get_minio
 
 logger = structlog.get_logger(__name__)

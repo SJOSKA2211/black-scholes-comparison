@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -111,6 +111,36 @@ def create_app() -> FastAPI:
     async def root() -> dict[str, str]:
         """Root endpoint with project identification."""
         return {"message": "Black-Scholes Research API v4. Production Stable."}
+
+    # MinIO Proxy (Replaces Nginx /minio/ for platforms like Railway)
+    @app.api_route("/minio/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+    async def minio_proxy(path: str, request: Request) -> Response:
+        """Proxies requests to the internal MinIO endpoint."""
+        import httpx
+
+        settings = get_settings()
+        target_url = f"http://{settings.minio_endpoint}/{path}"
+        
+        # Use a long timeout for file uploads/downloads
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            # Prepare headers (strip host)
+            headers = dict(request.headers)
+            headers.pop("host", None)
+            
+            # Proxy request
+            proxy_res = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                params=request.query_params,
+                content=await request.body()
+            )
+            
+            return Response(
+                content=proxy_res.content,
+                status_code=proxy_res.status_code,
+                headers=dict(proxy_res.headers)
+            )
 
     return app
 

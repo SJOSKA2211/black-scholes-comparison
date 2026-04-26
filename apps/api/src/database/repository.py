@@ -273,6 +273,28 @@ async def get_validation_summary() -> list[dict[str, Any]]:
         raise RepositoryError(f"Database operation failed: {error!s}") from error
 
 
+async def upsert_scrape_run(run_id: str, market: str, status: str = "running") -> str:
+    supabase = get_supabase_client()
+    table = "scrape_runs"
+    op = "upsert"
+    start = time.time()
+    try:
+        data = {
+            "id": run_id,
+            "market": market,
+            "status": status,
+            "started_at": datetime.datetime.now(datetime.UTC).isoformat(),
+        }
+        response = supabase.table(table).upsert(data).execute()
+        SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
+        data_list = cast("list[dict[str, Any]]", response.data)
+        return str(data_list[0]["id"])
+    except Exception as error:
+        SUPABASE_ERRORS.labels(table=table, operation=op).inc()
+        logger.error("repository_error", operation="upsert_scrape_run", error=str(error))
+        raise RepositoryError(f"Database operation failed: {error!s}") from error
+
+
 async def create_scrape_run(market: str) -> str:
     supabase = get_supabase_client()
     table = "scrape_runs"
