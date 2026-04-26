@@ -3,10 +3,10 @@ import requests
 
 
 @pytest.mark.e2e
-def test_prometheus_metrics_endpoint() -> None:
+def test_prometheus_metrics_endpoint(api_url: str) -> None:
     """Verify that Prometheus metrics are correctly exposed (Section 16.3)."""
     # The metrics endpoint is usually on the API port
-    metrics_url = "http://127.0.0.1:8000/metrics"
+    metrics_url = f"{api_url}/metrics"
 
     try:
         response = requests.get(metrics_url, timeout=5)

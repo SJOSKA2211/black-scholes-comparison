@@ -7,6 +7,10 @@ def base_url() -> str:
     return os.getenv("E2E_BASE_URL", "http://127.0.0.1:3000")
 
 @pytest.fixture
+def api_url() -> str:
+    return os.getenv("E2E_API_URL", "http://127.0.0.1:8000")
+
+@pytest.fixture
 def authenticated_page(page: Page, context: BrowserContext, base_url: str) -> Page:
     """Fixture to provide a page on the dashboard."""
     try:
