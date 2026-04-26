@@ -40,9 +40,9 @@ export function useRealtime<T extends object>({
           if (payload.new) callbackRef.current(payload.new as T);
         },
       )
-      .subscribe((s: string) => {
-        console.log(`REALTIME SUBSCRIPTION STATUS (${name}):`, s);
-        setConnected(s === "SUBSCRIBED");
+      .subscribe((status: string) => {
+        console.log(`REALTIME SUBSCRIPTION STATUS (${name}):`, status);
+        setConnected(status === "SUBSCRIBED");
       });
     return () => {
       supabase.removeChannel(ch);

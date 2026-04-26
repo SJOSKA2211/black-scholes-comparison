@@ -47,7 +47,17 @@ class Settings(BaseSettings):
         return self.environment
 
     # 3. Cache / Pub-Sub (Redis)
-    redis_url: str = Field("redis://redis:6379/0", alias="REDIS_URL")
+    redis_host: str = Field("redis", alias="REDIS_HOST")
+    redis_port: int = Field(6379, alias="REDIS_PORT")
+    redis_url_override: str | None = Field(None, alias="REDIS_URL")
+    
+    @property
+    def redis_url(self) -> str:
+        """Construct Redis URL if not overridden."""
+        if self.redis_url_override:
+            return self.redis_url_override
+        return f"redis://{self.redis_host}:{self.redis_port}/0"
+
     redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
 
     # 4. Message Queue (RabbitMQ)
@@ -60,12 +70,21 @@ class Settings(BaseSettings):
         """Construct the AMQP connection string, allowing override."""
         if self.rabbitmq_url_override:
             return self.rabbitmq_url_override
-        # On Render/Cloud, we usually expect a full URL. 
-        # If not provided, we fall back to the internal service name 'rabbitmq'.
-        return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@rabbitmq:5672/"
+        
+        host = os.getenv("RABBITMQ_HOST", "rabbitmq")
+        return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@{host}:5672/"
 
     # 5. Object Storage (MinIO / S3)
-    minio_endpoint: str = Field("minio:9000", alias="MINIO_ENDPOINT")
+    minio_host: str = Field("minio", alias="MINIO_HOST")
+    minio_port: int = Field(9000, alias="MINIO_PORT")
+    minio_endpoint_override: str | None = Field(None, alias="MINIO_ENDPOINT")
+
+    @property
+    def minio_endpoint(self) -> str:
+        """Construct MinIO endpoint if not overridden."""
+        if self.minio_endpoint_override:
+            return self.minio_endpoint_override
+        return f"{self.minio_host}:{self.minio_port}"
     minio_access_key: str = Field("minio_admin", alias="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field("minio_secret", alias="MINIO_SECRET_KEY")
     minio_bucket_exports: str = Field("bs-exports", alias="MINIO_BUCKET_EXPORTS")
