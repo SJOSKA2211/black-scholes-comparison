@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -11,6 +10,7 @@ from src.config import get_settings
 logger = structlog.get_logger(__name__)
 
 _redis_client: aioredis.Redis[Any] | None = None
+
 
 def get_redis() -> aioredis.Redis[Any]:
     """Return a cached async Redis client."""
@@ -29,6 +29,7 @@ def get_redis() -> aioredis.Redis[Any]:
         )
         logger.info("redis_client_created", url=settings.redis_url.split("@")[-1], step="init")
     return _redis_client
+
 
 def reset_redis() -> None:
     """Reset the global Redis client (used for tests)."""
