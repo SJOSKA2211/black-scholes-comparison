@@ -59,7 +59,7 @@ async function checkReachability() {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     const response = await fetch(`${apiUrl}/health`, {
       signal: controller.signal,
@@ -76,7 +76,12 @@ async function checkReachability() {
       console.warn(`   ⚠️ API returned status ${response.status}. This might cause runtime issues.`);
     }
   } catch (error) {
-    console.warn(`   ⚠️ API reachability test failed: ${error.message}`);
+    if (error.name === "AbortError") {
+      console.warn(`   ⚠️ API reachability test TIMED OUT after 15s.`);
+      console.warn("      (This often happens if the backend is waking up from a cold start on Render)");
+    } else {
+      console.warn(`   ⚠️ API reachability test failed: ${error.message}`);
+    }
     console.warn("      (This is non-fatal during build but verify connectivity in production)");
   }
 }

@@ -8,18 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ libffi-dev libssl-dev curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
-COPY requirements.txt requirements-dev.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt -r requirements-dev.txt
-
 # ── Stage 2: Final ─────────────────────────────────────────────
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies for Playwright/Chromium
-# We avoid --with-deps because it fails on Debian Trixie due to hardcoded Ubuntu package names
+# Install runtime dependencies for Playwright/Chromium and build tools needed for some python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libffi-dev libssl-dev \
     libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libdbus-1-3 libexpat1 libxcb1 libxkbcommon0 \
     libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 libxrandr2 \
@@ -28,8 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed python packages from builder
-COPY --from=builder /install /usr/local
+# Install python dependencies directly in final stage for stable PATHs
+COPY requirements.txt requirements-dev.txt .
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 
 # Install Playwright Chromium
 RUN playwright install chromium
