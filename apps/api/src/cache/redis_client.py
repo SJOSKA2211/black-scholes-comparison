@@ -17,9 +17,6 @@ def get_redis() -> aioredis.Redis[Any] | None:
     global _redis_client
     if _redis_client is None:
         settings = get_settings()
-        if not settings.redis_enabled:
-            logger.info("redis_skipped", reason="explicitly disabled or host set to none", step="init")
-            return None
             
         _redis_client = aioredis.from_url(
             settings.redis_url,

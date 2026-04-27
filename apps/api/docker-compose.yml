@@ -54,7 +54,7 @@ services:
       - --appendonly yes
     volumes: [redis_data:/data]
     networks: [bs_network]
-    expose: ["6379"]
+    ports: ["6379:6379"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD","redis-cli","-a","${REDIS_PASSWORD}","ping"]
@@ -70,8 +70,8 @@ services:
       RABBITMQ_DEFAULT_VHOST: /
     volumes: [rabbitmq_data:/var/lib/rabbitmq]
     networks: [bs_network]
-    expose: ["5672"]
     ports:
+      - "5672:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     restart: unless-stopped
     healthcheck:
@@ -88,8 +88,8 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     volumes: [minio_data:/data]
     networks: [bs_network]
-    expose: ["9000"]
     ports:
+      - "9000:9000"
       - "9001:9001"  # MinIO console (dev)
     restart: unless-stopped
     healthcheck:

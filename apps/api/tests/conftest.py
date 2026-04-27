@@ -71,18 +71,12 @@ def supabase():
 @pytest.fixture(scope="session")
 def redis():
     """Session-scoped Redis client."""
-    settings = get_settings()
-    if not settings.redis_enabled:
-        pytest.skip("Redis is disabled or unresolvable")
     return get_redis()
 
 
 @pytest_asyncio.fixture(scope="session")
 async def rabbitmq():
     """Session-scoped RabbitMQ connection."""
-    settings = get_settings()
-    if not settings.rabbitmq_enabled:
-        pytest.skip("RabbitMQ is disabled or unresolvable")
     connection = await get_rabbitmq_connection()
     yield connection
     await connection.close()
@@ -91,9 +85,6 @@ async def rabbitmq():
 @pytest.fixture(scope="session")
 def minio_client() -> Minio:
     """Session-scoped MinIO client."""
-    settings = get_settings()
-    if not settings.minio_enabled:
-        pytest.skip("MinIO is disabled or unresolvable")
     return get_minio()
 
 
@@ -131,29 +122,8 @@ def sample_option_params():
 
 
 @pytest.fixture(autouse=True)
-def skip_if_no_infrastructure(request) -> None:
-    """Skip integration and E2E tests if infrastructure is not available."""
+def ensure_infrastructure_configured(request) -> None:
+    """Ensure infrastructure is available for integration/e2e tests."""
     if "integration" in request.keywords or "e2e" in request.keywords:
-        # Check for Supabase
         if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_KEY"):
-            pytest.skip("SUPABASE_URL or SUPABASE_KEY not set")
-
-        # Specific checks for Redis/RabbitMQ/MinIO if the test is marked with those
-        # We check if we can actually connect or if the env is set
-        if "redis" in request.keywords and not os.getenv("REDIS_URL"):
-            # If not in env, check if it's default and we are on host
-            if not os.path.exists("/.dockerenv"):
-                pass  # Already patched in _patch_env_for_host
-            else:
-                pytest.skip("REDIS_URL not set for redis-dependent test")
-
-        if "minio" in request.keywords:
-            endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
-            if "minio" in endpoint and os.getenv("ENVIRONMENT") != "production":
-                # Likely docker hostname, skip if not in docker
-                import socket
-
-                try:
-                    socket.gethostbyname("minio")
-                except socket.gaierror:
-                    pytest.skip("MinIO host not resolvable")
+            pytest.fail("SUPABASE_URL and SUPABASE_KEY must be set for integration tests")

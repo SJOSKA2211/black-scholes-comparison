@@ -44,14 +44,9 @@ async def health_check() -> dict[str, Any]:
 
     # 2. Redis (Cache/PubSub)
     try:
-        from src.config import get_settings
-        settings = get_settings()
-        if not settings.redis_enabled:
-            health["services"]["redis"] = "skipped"
-        else:
-            redis = get_redis()
-            await cast("Any", redis.ping())
-            health["services"]["redis"] = "connected"
+        redis = get_redis()
+        await cast("Any", redis.ping())
+        health["services"]["redis"] = "connected"
     except Exception as error:
         health["services"]["redis"] = f"unreachable: {error!s}"
         # We don't fail the whole app for Redis if it's just a cache/pubsub
@@ -59,26 +54,16 @@ async def health_check() -> dict[str, Any]:
 
     # 3. RabbitMQ (Task Queue)
     try:
-        from src.config import get_settings
-        settings = get_settings()
-        if not settings.rabbitmq_enabled:
-            health["services"]["rabbitmq"] = "skipped"
-        else:
-            conn = await get_rabbitmq_connection()
-            if not conn.is_closed:
-                health["services"]["rabbitmq"] = "connected"
+        conn = await get_rabbitmq_connection()
+        if not conn.is_closed:
+            health["services"]["rabbitmq"] = "connected"
     except Exception as error:
         health["services"]["rabbitmq"] = f"unreachable: {error!s}"
 
     # 4. Storage (MinIO)
     try:
-        from src.config import get_settings
-        settings = get_settings()
-        if not settings.minio_enabled:
-            health["services"]["storage"] = "skipped"
-        else:
-            get_minio().list_buckets()
-            health["services"]["storage"] = "connected"
+        get_minio().list_buckets()
+        health["services"]["storage"] = "connected"
     except Exception as error:
         health["services"]["storage"] = f"unreachable: {error!s}"
 

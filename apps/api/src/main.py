@@ -53,18 +53,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # 2. Start RabbitMQ consumers (Section 8.4)
     # Background workers consume tasks from bs.scrape and bs.experiment
-    if settings.rabbitmq_enabled:
-        try:
-            import asyncio
-            # Wait at most 5 seconds for consumers to start
-            await asyncio.wait_for(start_consumers(), timeout=5.0)
-            logger.info("consumers_started", step="init")
-        except TimeoutError:
-            logger.warning("consumers_start_timeout", step="init")
-        except Exception as error:
-            logger.error("consumers_start_failed", error=str(error), step="init")
-    else:
-        logger.info("consumers_skipped", reason="disabled or unresolvable in production", step="init")
+    # 1. RabbitMQ Consumers (Mandatory)
+    try:
+        import asyncio
+        # Wait at most 5 seconds for consumers to start
+        await asyncio.wait_for(start_consumers(), timeout=5.0)
+        logger.info("consumers_started", step="init")
+    except TimeoutError:
+        logger.warning("consumers_start_timeout", step="init")
+    except Exception as error:
+        # We log but allow startup to proceed if RabbitMQ is transiently down,
+        # however we no longer allow skipping it via configuration.
+        logger.error("consumers_start_failed", error=str(error), step="init")
 
     logger.info("app_ready", step="init")
 

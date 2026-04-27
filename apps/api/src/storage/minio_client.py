@@ -34,10 +34,6 @@ def get_minio() -> Minio:
         secure=settings.minio_secure,
         http_client=http_client,
     )
-    # Ensure buckets exist
-    if not settings.minio_enabled:
-        logger.info("minio_skipped", reason="explicitly disabled or host set to none", step="init")
-        return client
 
     try:
         # Check if host is resolvable to avoid long timeouts/retries on cloud platforms

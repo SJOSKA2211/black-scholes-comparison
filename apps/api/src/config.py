@@ -58,17 +58,6 @@ class Settings(BaseSettings):
             return self.redis_url_override
         return f"redis://{self.redis_host}:{self.redis_port}/0"
 
-    @property
-    def redis_enabled(self) -> bool:
-        """Check if Redis is explicitly disabled or host is 'none'."""
-        enabled = os.getenv("REDIS_ENABLED", "true").lower() == "true"
-        if not enabled or self.redis_host.lower() in ("none", "disabled"):
-            return False
-        
-        # In production, check if the host is resolvable to avoid connection loops
-        if self.environment == "production" and self.redis_host == "redis":
-            return self._is_resolvable(self.redis_host, self.redis_port)
-        return True
 
     redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
 
@@ -86,18 +75,6 @@ class Settings(BaseSettings):
         host = os.getenv("RABBITMQ_HOST", "rabbitmq")
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@{host}:5672/"
 
-    @property
-    def rabbitmq_enabled(self) -> bool:
-        """Check if RabbitMQ is explicitly disabled or host is 'none'."""
-        host = os.getenv("RABBITMQ_HOST", "rabbitmq")
-        enabled = os.getenv("RABBITMQ_ENABLED", "true").lower() == "true"
-        if not enabled or host.lower() in ("none", "disabled"):
-            return False
-        
-        # In production, check if the host is resolvable
-        if self.environment == "production" and host == "rabbitmq":
-            return self._is_resolvable(host, 5672)
-        return True
 
     # 5. Object Storage (MinIO / S3)
     minio_host: str = Field("minio", alias="MINIO_HOST")
@@ -116,27 +93,6 @@ class Settings(BaseSettings):
     minio_bucket_scraper: str = Field("bs-scraper", alias="MINIO_BUCKET_SCRAPER")
     minio_secure: bool = Field(False, alias="MINIO_SECURE")
 
-    @property
-    def minio_enabled(self) -> bool:
-        """Check if MinIO is explicitly disabled or host is 'none'."""
-        enabled = os.getenv("MINIO_ENABLED", "true").lower() == "true"
-        if not enabled or self.minio_host.lower() in ("none", "disabled"):
-            return False
-        
-        # In production, check if the host is resolvable
-        if self.environment == "production" and self.minio_host == "minio":
-            return self._is_resolvable(self.minio_host, self.minio_port)
-        return True
-
-    def _is_resolvable(self, host: str, port: int) -> bool:
-        """Check if a hostname is resolvable to avoid hanging on connection attempts."""
-        import socket
-        try:
-            # We use a short timeout for the DNS check
-            socket.getaddrinfo(host, port)
-            return True
-        except (socket.gaierror, socket.timeout, Exception):
-            return False
 
     # 6. Observability
     prometheus_port: int = Field(9090, alias="PROMETHEUS_PORT")
