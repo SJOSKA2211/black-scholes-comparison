@@ -9,8 +9,8 @@ class TestNotificationsIntegration:
     @pytest.mark.asyncio
     async def test_notify_user_real(self):
         """Zero-mock: test real notification flow."""
-        user_id = str(uuid.uuid4())
-        title = "Integration Test"
+        user_id = "a24fb1a2-700a-4590-8d43-2930596a14f2"
+        title = f"Integration Test {uuid.uuid4()}"
         body = "Testing zero-mock policy"
         
         # This will hit real Supabase (insert_notification) and real Redis (broadcast)
@@ -29,7 +29,7 @@ class TestNotificationsIntegration:
     @pytest.mark.asyncio
     async def test_notify_user_critical_graceful_fail(self):
         """Zero-mock: test critical severity which triggers email, ensuring it fails gracefully if no API key."""
-        user_id = str(uuid.uuid4())
+        user_id = "a24fb1a2-700a-4590-8d43-2930596a14f2"
         # This will attempt to send email via Resend. 
         # If RESEND_API_KEY is missing, it returns False but shouldn't crash the whole flow
         # unless we specifically raise.

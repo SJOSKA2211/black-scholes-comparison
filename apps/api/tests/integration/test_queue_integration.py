@@ -14,7 +14,8 @@ class TestRabbitMQIntegration:
     async def test_publish_and_declare_queues(self):
         """Test that we can publish and that queues are declared correctly."""
         # 1. Publish tasks
-        await publish_scrape_task("spy", "2024-01-01")
+        from datetime import date
+        await publish_scrape_task("spy", date(2024, 1, 1))
         await publish_experiment_task({"id": "integration-test-exp"})
         
         # 2. Verify connection and channel
