@@ -21,6 +21,10 @@ async def get_rabbitmq_connection() -> aio_pika.abc.AbstractConnection:
     global _connection
     if _connection is None or _connection.is_closed:
         settings = get_settings()
+        if not settings.rabbitmq_enabled:
+            logger.warning("rabbitmq_connection_skipped", reason="disabled or unresolvable", step="init")
+            raise ConnectionError("RabbitMQ is disabled or unresolvable")
+            
         _connection = await aio_pika.connect_robust(
             settings.rabbitmq_url,
             timeout=10,

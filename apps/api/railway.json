@@ -3,11 +3,12 @@
   "build": {
     "builder": "DOCKER",
     "dockerfilePath": "Dockerfile",
-    "root": "."
+    "root": "apps/api"
   },
   "deploy": {
     "restartPolicyType": "ON_FAILURE",
     "healthCheckPath": "/health",
-    "healthCheckTimeout": 120
+    "healthCheckTimeout": 120,
+    "healthCheckInterval": 30
   }
 }

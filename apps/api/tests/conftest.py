@@ -71,12 +71,18 @@ def supabase():
 @pytest.fixture(scope="session")
 def redis():
     """Session-scoped Redis client."""
+    settings = get_settings()
+    if not settings.redis_enabled:
+        pytest.skip("Redis is disabled or unresolvable")
     return get_redis()
 
 
 @pytest_asyncio.fixture(scope="session")
 async def rabbitmq():
     """Session-scoped RabbitMQ connection."""
+    settings = get_settings()
+    if not settings.rabbitmq_enabled:
+        pytest.skip("RabbitMQ is disabled or unresolvable")
     connection = await get_rabbitmq_connection()
     yield connection
     await connection.close()
@@ -85,6 +91,9 @@ async def rabbitmq():
 @pytest.fixture(scope="session")
 def minio_client() -> Minio:
     """Session-scoped MinIO client."""
+    settings = get_settings()
+    if not settings.minio_enabled:
+        pytest.skip("MinIO is disabled or unresolvable")
     return get_minio()
 
 

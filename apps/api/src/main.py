@@ -64,7 +64,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as error:
             logger.error("consumers_start_failed", error=str(error), step="init")
     else:
-        logger.info("consumers_skipped", reason="explicitly disabled or host set to none", step="init")
+        logger.info("consumers_skipped", reason="disabled or unresolvable in production", step="init")
 
     logger.info("app_ready", step="init")
 
