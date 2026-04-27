@@ -22,7 +22,8 @@ async def _fetch_data(resource: str) -> pd.DataFrame:
         # get_experiments returns {"items": [...], "total": ...}
         data = results.get("items", [])
     elif resource == "market_data":
-        data = await get_market_data(source="spy", limit=1000)
+        results = await get_market_data(source="spy", limit=1000)
+        data = results.get("items", [])
     else:
         raise ValueError(f"Unknown resource type: {resource}")
 

@@ -3,6 +3,7 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  compress: true,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   outputFileTracingRoot: path.join(process.cwd(), "../../"),
 };

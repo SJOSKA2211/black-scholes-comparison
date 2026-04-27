@@ -55,5 +55,6 @@ export function useExperiments(options: UseExperimentsOptions = {}) {
   return {
     ...query,
     experiments: query.data?.items ?? [],
+    total: query.data?.total ?? 0,
   };
 }

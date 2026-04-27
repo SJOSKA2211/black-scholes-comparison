@@ -221,13 +221,18 @@ async def get_market_data(
     limit: int = 100,
     from_date: str | None = None,
     to_date: str | None = None,
-) -> list[dict[str, Any]]:
+    page: int = 1,
+) -> dict[str, Any]:
     supabase = get_supabase_client()
     table = "market_data"
     op = "select"
     start = time.time()
+
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit - 1
+
     try:
-        query = supabase.table(table).select("*, option_parameters(*)").eq("data_source", source)
+        query = supabase.table(table).select("*, option_parameters(*)", count="exact").eq("data_source", source)
         if trade_date:
             query = query.eq("trade_date", trade_date.isoformat())
         if from_date:
@@ -235,9 +240,16 @@ async def get_market_data(
         if to_date:
             query = query.lte("trade_date", to_date)
 
-        response = query.order("trade_date", desc=True).limit(limit).execute()
+        response = query.order("trade_date", desc=True).range(start_idx, end_idx).execute()
         SUPABASE_QUERY_DURATION.labels(table=table, operation=op).observe(time.time() - start)
-        return cast("list[dict[str, Any]]", response.data)
+
+        total = response.count
+        return {
+            "items": cast("list[dict[str, Any]]", response.data),
+            "total": total,
+            "page": page,
+            "page_size": limit,
+        }
     except Exception as error:
         SUPABASE_ERRORS.labels(table=table, operation=op).inc()
         logger.error("repository_error", operation="get_market_data", error=str(error))

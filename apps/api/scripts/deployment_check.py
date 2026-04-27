@@ -31,14 +31,20 @@ def check_service(host, port, name, enabled_var=None):
         return True
 
     logger.info(f"checking_{name}_reachability: {host}:{port}")
+    
+    # Fast-fail for obviously local-only hostnames in production if they fail once
+    timeout = 1 if host in ("redis", "rabbitmq", "minio") else 2
+    
     try:
-        with socket.create_connection((host, port), timeout=2):
+        with socket.create_connection((host, port), timeout=timeout):
             logger.info(f"{name}_reachable")
             return True
     except Exception as e:
         logger.warning(f"{name}_unreachable: {str(e)}")
-        # We don't fail for optional services, but we warn
+        if host in ("redis", "rabbitmq", "minio"):
+            logger.info(f"TIP: Hostname '{host}' looks like a local Docker name. Ensure it is correct for production.")
         return True
+
 
 def check_url_reachability(url_str, name):
     if not url_str:

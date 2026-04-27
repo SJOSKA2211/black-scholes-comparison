@@ -27,8 +27,9 @@ export function useMarketData({
       if (fromDate) params.append("from", fromDate);
       if (toDate) params.append("to", toDate);
 
+      params.append("source", source);
       return get<{ items: MarketData[]; total: number }>(
-        `/api/v1/market-data/${source}?${params.toString()}`,
+        `/api/v1/market-data?${params.toString()}`,
       );
     },
   });

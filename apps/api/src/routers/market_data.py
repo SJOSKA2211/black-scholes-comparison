@@ -17,12 +17,22 @@ logger = structlog.get_logger(__name__)
 async def get_market_quotes(
     source: str = Query("synthetic", pattern="^(synthetic|spy|nse)$"),
     trade_date: datetime.date | None = Query(None),
+    from_date: str | None = Query(None, alias="from"),
+    to_date: str | None = Query(None, alias="to"),
+    page: int = Query(1, ge=1),
     limit: int = Query(100, ge=1, le=1000),
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> list[dict[str, Any]]:
-    """Retrieves market data quotes based on source and date."""
+) -> dict[str, Any]:
+    """Retrieves market data quotes based on source and date range."""
     try:
-        data = await get_market_data(source=source, trade_date=trade_date, limit=limit)
+        data = await get_market_data(
+            source=source,
+            trade_date=trade_date,
+            from_date=from_date,
+            to_date=to_date,
+            page=page,
+            limit=limit,
+        )
         return data
     except Exception as error:
         logger.error("market_data_fetch_failed", error=str(error), source=source, step="router")

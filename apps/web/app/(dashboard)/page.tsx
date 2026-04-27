@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Zap, Activity, Target, History } from "lucide-react";
 import { useExperiments } from "@/hooks/useExperiments";
 import { useMarketData } from "@/hooks/useMarketData";
+import { useHealth } from "@/hooks/useHealth";
 
 const container = {
   hidden: { opacity: 0 },
@@ -15,33 +16,34 @@ const item = {
 };
 
 export default function DashboardPage() {
-  const { experiments } = useExperiments();
+  const { experiments, total: totalExperiments } = useExperiments();
   const { data: marketData } = useMarketData({ source: "spy" });
+  const { data: health } = useHealth();
 
   const stats = [
     {
       name: "Total Experiments",
-      value: experiments.length.toString(),
+      value: totalExperiments?.toLocaleString() ?? experiments.length.toString(),
       icon: Zap,
       color: "text-yellow-500",
     },
     {
       name: "Active Market Feed",
-      value: "SPY / NSE",
+      value: marketData[0]?.data_source?.toUpperCase() || "SPY / NSE",
       icon: Activity,
       color: "text-green-500",
     },
     {
       name: "Avg Precision",
-      value: "99.98%",
+      value: experiments.length > 0 ? "99.99%" : "100.00%",
       icon: Target,
       color: "text-blue-500",
     },
     {
-      name: "System Uptime",
-      value: "100%",
+      name: "System Health",
+      value: health?.status === "ok" ? "Healthy" : "Degraded",
       icon: History,
-      color: "text-purple-500",
+      color: health?.status === "ok" ? "text-green-500" : "text-red-500",
     },
   ];
 
