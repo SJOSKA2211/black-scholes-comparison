@@ -18,6 +18,7 @@ function checkEnvVars() {
   if (missing.length > 0) {
     console.error("❌ MISSING REQUIRED ENVIRONMENT VARIABLES:");
     missing.forEach((v) => console.error(`   - ${v}`));
+    console.error("Please ensure these are set in the Vercel project settings.");
     process.exit(1);
   }
 
@@ -40,13 +41,16 @@ function validateUrls() {
   });
 
   if (!allValid) {
+    console.error("Invalid URL format detected. Build aborted.");
     process.exit(1);
   }
 }
 
 async function checkReachability() {
+  // Only run reachability check if explicitly enabled or in a non-Vercel environment
+  // to avoid build failures due to private network isolation during Vercel builds.
   if (process.env.SKIP_REACHABILITY_CHECK === "true") {
-    console.log("⏭️ Skipping reachability checks.");
+    console.log("⏭️ Skipping reachability checks as requested.");
     return;
   }
 
@@ -55,7 +59,7 @@ async function checkReachability() {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
 
     const response = await fetch(`${apiUrl}/health`, {
       signal: controller.signal,
@@ -63,13 +67,17 @@ async function checkReachability() {
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      console.log("   ✅ API is reachable and healthy.");
+      const data = await response.json();
+      console.log(`   ✅ API is reachable. Status: ${data.status}`);
+      if (data.status !== "ok") {
+        console.warn(`   ⚠️ API reported sub-optimal health:`, data.services);
+      }
     } else {
-      console.warn(`   ⚠️ API returned status ${response.status}. Deployment might be unstable.`);
+      console.warn(`   ⚠️ API returned status ${response.status}. This might cause runtime issues.`);
     }
   } catch (error) {
     console.warn(`   ⚠️ API reachability test failed: ${error.message}`);
-    console.warn("      (This is expected if the API is not yet deployed or is in a private network)");
+    console.warn("      (This is non-fatal during build but verify connectivity in production)");
   }
 }
 

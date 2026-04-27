@@ -44,9 +44,14 @@ async def health_check() -> dict[str, Any]:
 
     # 2. Redis (Cache/PubSub)
     try:
-        redis = get_redis()
-        await cast("Any", redis.ping())
-        health["services"]["redis"] = "connected"
+        from src.config import get_settings
+        settings = get_settings()
+        if not settings.redis_enabled:
+            health["services"]["redis"] = "skipped"
+        else:
+            redis = get_redis()
+            await cast("Any", redis.ping())
+            health["services"]["redis"] = "connected"
     except Exception as error:
         health["services"]["redis"] = f"unreachable: {error!s}"
         # We don't fail the whole app for Redis if it's just a cache/pubsub
