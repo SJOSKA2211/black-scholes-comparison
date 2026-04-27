@@ -124,7 +124,7 @@ class TestExperimentsRouter:
         """Verify results listing from real Supabase."""
         response = auth_client.get("/api/v1/experiments/results")
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
+        assert isinstance(response.json()["items"], list)
 
     def test_get_result_detail_missing(self, auth_client) -> None:
         """Verify 404 for non-existent experiment."""
