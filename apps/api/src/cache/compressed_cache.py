@@ -1,17 +1,17 @@
 """Compressed Redis cache utility."""
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 import redis.asyncio as aioredis
 
 from src.config import get_settings
 from src.utils.compression import compress_data, decompress_data
 
-_binary_redis_client: Optional[aioredis.Redis] = None
+_binary_redis_client: aioredis.Redis[Any] | None = None
 
 
-def get_binary_redis() -> aioredis.Redis:
+def get_binary_redis() -> aioredis.Redis[Any]:
     """Return a Redis client that handles binary data (no auto-decoding)."""
     global _binary_redis_client
     if _binary_redis_client is None:

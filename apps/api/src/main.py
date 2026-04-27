@@ -41,9 +41,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.cache.redis_client import get_redis
     from src.storage.minio_client import get_minio
 
-    # Eager initialization (Mandatory)
+    # Eager initialization (Respecting enabled flags)
     get_redis()
     get_minio()
+
+    if not settings.redis_enabled:
+        logger.info("redis_skipped", step="init")
+    if not settings.minio_enabled:
+        logger.info("minio_skipped", step="init")
 
     # 2. Start RabbitMQ consumers (Section 8.4)
     # Background workers consume tasks from bs.scrape and bs.experiment

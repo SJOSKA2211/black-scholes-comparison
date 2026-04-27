@@ -20,6 +20,8 @@ def get_minio() -> Minio:
     import urllib3
 
     settings = get_settings()
+    if not settings.minio_enabled:
+        return None  # type: ignore
 
     # Use custom urllib3 PoolManager with timeouts to avoid hanging on init
     http_client = urllib3.PoolManager(

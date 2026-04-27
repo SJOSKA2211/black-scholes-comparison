@@ -32,7 +32,7 @@ def check_service(host, port, name, enabled_var=None):
 
     logger.info(f"checking_{name}_reachability: {host}:{port}")
     try:
-        with socket.create_connection((host, port), timeout=5):
+        with socket.create_connection((host, port), timeout=2):
             logger.info(f"{name}_reachable")
             return True
     except Exception as e:
@@ -62,7 +62,7 @@ def check_url_reachability(url_str, name):
             logger.warning(f"{name}_invalid_url: {url_str}")
             return True
 
-        with socket.create_connection((host, port), timeout=5):
+        with socket.create_connection((host, port), timeout=2):
             logger.info(f"{name}_reachable")
             return True
     except Exception as e:

@@ -26,7 +26,10 @@ def upload_export(
     Upload binary data to MinIO and return a presigned URL.
     Optionally compresses data using Gzip (zlib).
     """
-    client: Minio = get_minio()
+    client: Minio | None = get_minio()
+    if client is None:
+        logger.warning("storage_skipped", reason="disabled", filename=filename)
+        return "storage_disabled_url"
 
     final_data = data
     final_filename = filename

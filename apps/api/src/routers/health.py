@@ -57,16 +57,25 @@ async def health_check() -> dict[str, Any]:
 
     # 3. RabbitMQ (Task Queue)
     try:
-        conn = await get_rabbitmq_connection()
-        if not conn.is_closed:
-            health["services"]["rabbitmq"] = "connected"
+        from src.config import get_settings
+
+        if get_settings().rabbitmq_enabled:
+            conn = await get_rabbitmq_connection()
+            if not conn.is_closed:
+                health["services"]["rabbitmq"] = "connected"
+        else:
+            health["services"]["rabbitmq"] = "disabled"
     except Exception as error:
         health["services"]["rabbitmq"] = f"unreachable: {error!s}"
 
     # 4. Storage (MinIO)
     try:
-        get_minio().list_buckets()
-        health["services"]["storage"] = "connected"
+        client = get_minio()
+        if client:
+            client.list_buckets()
+            health["services"]["storage"] = "connected"
+        else:
+            health["services"]["storage"] = "disabled"
     except Exception as error:
         health["services"]["storage"] = f"unreachable: {error!s}"
 
