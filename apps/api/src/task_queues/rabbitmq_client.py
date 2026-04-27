@@ -21,12 +21,17 @@ async def get_rabbitmq_connection() -> aio_pika.abc.AbstractConnection:
     global _connection
     if _connection is None or _connection.is_closed:
         settings = get_settings()
-        _connection = await aio_pika.connect_robust(
-            settings.rabbitmq_url,
-            timeout=10,
-            reconnect_interval=5,
-        )
-        logger.info("rabbitmq_connected", url=settings.rabbitmq_url.split("@")[-1], step="init")
+        try:
+            _connection = await aio_pika.connect_robust(
+                settings.rabbitmq_url,
+                timeout=5,
+                reconnect_interval=10,
+            )
+            logger.info("rabbitmq_connected", url=settings.rabbitmq_url.split("@")[-1], step="init")
+        except Exception as error:
+            logger.error("rabbitmq_connection_failed", error=str(error), step="init")
+            # We raise here but start_consumers() catches it
+            raise
 
     return _connection
 
