@@ -27,8 +27,8 @@ def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any
             redis = get_redis()
             import hashlib
 
-            # Create a deterministic cache key from sorted kwargs
-            key_parts = str(sorted(kwargs.items())).encode()
+            # Create a deterministic cache key from args and sorted kwargs
+            key_parts = f"{args}:{sorted(kwargs.items())}".encode()
             cache_key = f"{key_prefix}:{hashlib.sha256(key_parts).hexdigest()}"
 
             try:
