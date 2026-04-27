@@ -15,9 +15,12 @@ _redis_client: aioredis.Redis[Any] | None = None
 def get_redis() -> aioredis.Redis[Any] | None:
     """Return a cached async Redis client or None if disabled."""
     global _redis_client
+    settings = get_settings()
+
+    if not settings.redis_enabled:
+        return None
+
     if _redis_client is None:
-        settings = get_settings()
-            
         _redis_client = aioredis.from_url(
             settings.redis_url,
             password=settings.redis_password,

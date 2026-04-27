@@ -5,10 +5,24 @@ Strictly zero-mock: uses real Redis instance.
 import json
 import pytest
 from src.cache.decorators import cache_response
-from src.cache.redis_client import get_redis
+from src.cache.redis_client import get_redis, reset_redis
+from src.cache.compressed_cache import reset_binary_redis
 
 @pytest.mark.integration
 class TestRedisCacheIntegration:
+    @pytest.fixture(autouse=True)
+    async def setup_cache(self):
+        """Reset Redis singletons and flush data before each test."""
+        reset_redis()
+        reset_binary_redis()
+        
+        # Flush real Redis data
+        redis = get_redis()
+        if redis:
+            await redis.flushdb()
+        
+        yield
+
     @pytest.mark.asyncio
     async def test_cache_hit_and_miss(self):
         """Test real cache hit/miss flow with decorator."""
@@ -52,3 +66,34 @@ class TestRedisCacheIntegration:
         
         await redis.delete(key)
         assert await redis.get(key) is None
+
+    @pytest.mark.asyncio
+    async def test_compressed_cache_flow(self):
+        """Test the compressed cache utility."""
+        from src.cache.compressed_cache import get_compressed, set_compressed, get_binary_redis
+        
+        key = "compressed_test_key"
+        val = {"large_data": "A" * 2000} # > 2KB
+        
+        # 1. Set compressed
+        await set_compressed(key, val, expire=10)
+        
+        # 2. Verify raw data is compressed (and not plain JSON)
+        binary_redis = get_binary_redis()
+        raw_binary = await binary_redis.get(key)
+        assert raw_binary is not None
+        assert len(raw_binary) < 2000 # Should be significantly smaller
+        
+        # Verify it's not valid JSON
+        try:
+            json.loads(raw_binary.decode())
+            pytest.fail("Raw binary data should not be valid JSON")
+        except:
+            pass
+            
+        # 3. Get compressed
+        retrieved = await get_compressed(key)
+        assert retrieved == val
+        
+        # Cleanup
+        await binary_redis.delete(key)

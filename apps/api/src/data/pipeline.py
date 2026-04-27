@@ -136,13 +136,14 @@ class DataPipeline:
 
             # 3. Notification (Section 10.1)
             from src.database.repository import insert_notification
+
             await insert_notification(
                 user_id="a24fb1a2-700a-4590-8d43-2930596a14f2",
                 title=f"Scrape Completed: {market.upper()}",
                 body=f"Successfully ingested {inserted_count} market quotes.",
                 severity="info",
                 channel="in_app",
-                action_url="/scrapers"
+                action_url="/scrapers",
             )
 
             SCRAPE_RUNS_TOTAL.labels(market=market, status="success").inc()
@@ -152,16 +153,17 @@ class DataPipeline:
             logger.error("pipeline_failed", error=str(error), run_id=self.run_id)
             await create_audit_log(self.run_id, "pipeline", "failed", message=str(error))
             await update_scrape_run(self.run_id, {"status": "failed", "error_count": 1})
-            
+
             from src.database.repository import insert_notification
+
             await insert_notification(
                 user_id="a24fb1a2-700a-4590-8d43-2930596a14f2",
                 title=f"Scrape Failed: {market.upper()}",
                 body=f"Error: {error!s}",
                 severity="error",
-                channel="in_app"
+                channel="in_app",
             )
-            
+
             SCRAPE_RUNS_TOTAL.labels(market=market, status="failed").inc()
             return {"status": "failed", "error": str(error)}
         finally:

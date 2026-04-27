@@ -10,6 +10,7 @@ from minio import Minio
 
 from src.config import get_settings
 from src.storage.minio_client import get_minio
+from src.utils.compression import compress_data
 
 logger = structlog.get_logger(__name__)
 
@@ -19,25 +20,39 @@ def upload_export(
     filename: str,
     content_type: str,
     bucket: str = "bs-exports",
+    compress: bool = True,
 ) -> str:
     """
     Upload binary data to MinIO and return a presigned URL.
-    URL valid for 1 hour — sufficient for browser-direct download.
+    Optionally compresses data using Gzip (zlib).
     """
     client: Minio = get_minio()
+
+    final_data = data
+    final_filename = filename
+    metadata: dict[str, str | list[str] | tuple[str]] = {}
+
+    if compress and len(data) > 1024:  # Only compress if > 1KB
+        final_data = compress_data(data)
+        if not final_filename.endswith(".gz"):
+            final_filename += ".gz"
+        metadata["Content-Encoding"] = "gzip"
+        logger.info("export_compressed", original_size=len(data), new_size=len(final_data))
+
     # Organized by date for better scalability
-    object_name = f"exports/{datetime.datetime.now(datetime.UTC):%Y/%m/%d}/{filename}"
+    object_name = f"exports/{datetime.datetime.now(datetime.UTC):%Y/%m/%d}/{final_filename}"
 
     client.put_object(
         bucket_name=bucket,
         object_name=object_name,
-        data=io.BytesIO(data),
-        length=len(data),
+        data=io.BytesIO(final_data),
+        length=len(final_data),
         content_type=content_type,
+        metadata=metadata,
     )
 
     # Generate a presigned URL that is accessible via Nginx proxy
-    # The URL will contain the internal hostname (e.g. minio:9000), 
+    # The URL will contain the internal hostname (e.g. minio:9000),
     # but the client needs to access it via the public gateway /minio/
     internal_url = client.presigned_get_object(
         bucket_name=bucket,

@@ -6,7 +6,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_experiment_by_id, get_experiments, get_experiments_by_method
+from src.database.repository import get_experiment_by_id, get_experiments
 from src.task_queues.publisher import publish_experiment_task
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
@@ -43,10 +43,7 @@ async def get_results(
     """Retrieves paginated experiment results from the database."""
     try:
         results = await get_experiments(
-            method_type=method_type,
-            market_source=market_source,
-            page=page,
-            page_size=page_size
+            method_type=method_type, market_source=market_source, page=page, page_size=page_size
         )
         return results
     except Exception as error:

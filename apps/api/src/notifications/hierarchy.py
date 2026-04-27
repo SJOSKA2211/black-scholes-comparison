@@ -39,12 +39,13 @@ async def notify_user(
 
         # 2. WebSocket Push (Pub/Sub) - Always real-time
         redis = get_redis()
-        await redis.publish(
-            "ws:notifications",
-            json.dumps(
-                {"user_id": str(user_id), "title": title, "body": body, "severity": severity}
-            ),
-        )
+        if redis:
+            await redis.publish(
+                "ws:notifications",
+                json.dumps(
+                    {"user_id": str(user_id), "title": title, "body": body, "severity": severity}
+                ),
+            )
 
         # 3. Channel specific delivery
         if channel == "email" or severity in ["error", "critical"]:

@@ -31,25 +31,27 @@ def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any
             key_parts = f"{args}:{sorted(kwargs.items())}".encode()
             cache_key = f"{key_prefix}:{hashlib.sha256(key_parts).hexdigest()}"
 
-            try:
-                cached = await redis.get(cache_key)
-                if cached is not None:
-                    logger.debug("cache_hit", key=cache_key, step="cache")
-                    return json.loads(cached)
-            except Exception as error:
-                logger.warning("cache_lookup_failed", error=str(error), step="cache")
+            if redis:
+                try:
+                    cached = await redis.get(cache_key)
+                    if cached is not None:
+                        logger.debug("cache_hit", key=cache_key, step="cache")
+                        return json.loads(cached)
+                except Exception as error:
+                    logger.warning("cache_lookup_failed", error=str(error), step="cache")
 
             result = await func(*args, **kwargs)
 
-            try:
-                # Handle Pydantic models (Section 4.1)
-                from pydantic import BaseModel
+            if redis:
+                try:
+                    # Handle Pydantic models (Section 4.1)
+                    from pydantic import BaseModel
 
-                dumped = result.model_dump() if isinstance(result, BaseModel) else result
-                await redis.setex(cache_key, ttl_seconds, json.dumps(dumped, default=str))
-                logger.debug("cache_miss_stored", key=cache_key, step="cache")
-            except Exception as error:
-                logger.warning("cache_store_failed", error=str(error), step="cache")
+                    dumped = result.model_dump() if isinstance(result, BaseModel) else result
+                    await redis.setex(cache_key, ttl_seconds, json.dumps(dumped, default=str))
+                    logger.debug("cache_miss_stored", key=cache_key, step="cache")
+                except Exception as error:
+                    logger.warning("cache_store_failed", error=str(error), step="cache")
 
             return result
 

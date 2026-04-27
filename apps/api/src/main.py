@@ -50,6 +50,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 1. RabbitMQ Consumers (Mandatory)
     try:
         import asyncio
+
         # Wait at most 5 seconds for consumers to start
         await asyncio.wait_for(start_consumers(), timeout=5.0)
         logger.info("consumers_started", step="init")
@@ -67,12 +68,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown logic
     logger.info("app_shutting_down", step="shutdown")
     from src.task_queues.rabbitmq_client import close_rabbitmq_connection
+
     await close_rabbitmq_connection()
-    
+
     from src.cache.redis_client import get_redis
+
     redis = get_redis()
     if redis:
-        await redis.aclose()
+        await redis.aclose()  # type: ignore[attr-defined]
 
 
 def create_app() -> FastAPI:
@@ -132,26 +135,26 @@ def create_app() -> FastAPI:
 
         settings = get_settings()
         target_url = f"http://{settings.minio_endpoint}/{path}"
-        
+
         # Use a long timeout for file uploads/downloads
         async with httpx.AsyncClient(timeout=120.0) as client:
             # Prepare headers (strip host)
             headers = dict(request.headers)
             headers.pop("host", None)
-            
+
             # Proxy request
             proxy_res = await client.request(
                 method=request.method,
                 url=target_url,
                 headers=headers,
                 params=request.query_params,
-                content=await request.body()
+                content=await request.body(),
             )
-            
+
             return Response(
                 content=proxy_res.content,
                 status_code=proxy_res.status_code,
-                headers=dict(proxy_res.headers)
+                headers=dict(proxy_res.headers),
             )
 
     return app

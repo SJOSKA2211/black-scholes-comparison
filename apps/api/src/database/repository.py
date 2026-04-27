@@ -67,13 +67,18 @@ async def insert_method_result(
             from src.cache.redis_client import get_redis
 
             redis = get_redis()
-            broadcast_payload = json.dumps(response.data[0])
-            # Use asyncio.wait_for to prevent hanging if Redis is down
-            await asyncio.wait_for(redis.publish("ws:experiments", broadcast_payload), timeout=1.0)
-            if user_id:
+            if redis:
+                broadcast_payload = json.dumps(response.data[0])
+                # Use asyncio.wait_for to prevent hanging if Redis is down
                 await asyncio.wait_for(
-                    redis.publish(f"ws:user_{user_id}", broadcast_payload), timeout=1.0
+                    redis.publish("ws:experiments", broadcast_payload), timeout=1.0
                 )
+                if user_id:
+                    await asyncio.wait_for(
+                        redis.publish(f"ws:user_{user_id}", broadcast_payload), timeout=1.0
+                    )
+            else:
+                logger.debug("redis_skip_publish", reason="disabled_or_unavailable")
         except Exception as redis_error:
             logger.warning("redis_publish_failed", error=str(redis_error), step="repository")
 

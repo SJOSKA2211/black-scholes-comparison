@@ -38,11 +38,12 @@ def get_minio() -> Minio:
     try:
         # Check if host is resolvable to avoid long timeouts/retries on cloud platforms
         import socket
+
         host = settings.minio_host
         try:
             # getaddrinfo is more robust than gethostbyname
             socket.getaddrinfo(host, settings.minio_port)
-        except (socket.gaierror, socket.timeout):
+        except (TimeoutError, socket.gaierror):
             logger.warning("minio_host_not_resolvable", host=host, step="init")
             return client
 

@@ -78,6 +78,10 @@ class WebSocketManager:
         """Subscribe to Redis channel and forward messages to WebSocket clients."""
         try:
             redis = get_redis()
+            if not redis:
+                logger.error("redis_unavailable", step="websocket")
+                return
+
             pubsub = redis.pubsub()
             await pubsub.subscribe(f"ws:{channel}")
             logger.info("redis_listener_started", channel=channel, step="websocket")

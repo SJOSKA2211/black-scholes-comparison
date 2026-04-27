@@ -18,7 +18,9 @@ function checkEnvVars() {
   if (missing.length > 0) {
     console.error("❌ MISSING REQUIRED ENVIRONMENT VARIABLES:");
     missing.forEach((v) => console.error(`   - ${v}`));
-    console.error("Please ensure these are set in the Vercel project settings.");
+    console.error(
+      "Please ensure these are set in the Vercel project settings.",
+    );
     process.exit(1);
   }
 
@@ -46,44 +48,51 @@ function validateUrls() {
   }
 }
 
-async function checkReachability() {
-  // Only run reachability check if explicitly enabled or in a non-Vercel environment
-  // to avoid build failures due to private network isolation during Vercel builds.
+async function checkReachability(retries = 2) {
   if (process.env.SKIP_REACHABILITY_CHECK === "true") {
     console.log("⏭️ Skipping reachability checks as requested.");
     return;
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  console.log(`📡 Testing API reachability: ${apiUrl}/health`);
+  console.log(`📡 Testing API reachability: ${apiUrl}/health (Timeout: 30s)`);
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(`${apiUrl}/health`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
+      const response = await fetch(`${apiUrl}/health`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`   ✅ API is reachable. Status: ${data.status}`);
-      if (data.status !== "ok") {
-        console.warn(`   ⚠️ API reported sub-optimal health:`, data.services);
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`   ✅ API is reachable. Status: ${data.status}`);
+        return;
+      } else {
+        console.warn(`   ⚠️ API returned status ${response.status}.`);
       }
-    } else {
-      console.warn(`   ⚠️ API returned status ${response.status}. This might cause runtime issues.`);
+    } catch (error) {
+      if (error.name === "AbortError") {
+        console.warn(
+          `   ⚠️ API reachability test TIMED OUT (Attempt ${i + 1}/${retries + 1}).`,
+        );
+      } else {
+        console.warn(`   ⚠️ API reachability test failed: ${error.message}`);
+      }
     }
-  } catch (error) {
-    if (error.name === "AbortError") {
-      console.warn(`   ⚠️ API reachability test TIMED OUT after 15s.`);
-      console.warn("      (This often happens if the backend is waking up from a cold start on Render)");
-    } else {
-      console.warn(`   ⚠️ API reachability test failed: ${error.message}`);
+
+    if (i < retries) {
+      console.log(`   🔄 Retrying in 5s...`);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-    console.warn("      (This is non-fatal during build but verify connectivity in production)");
   }
+
+  console.warn(
+    "      (This is non-fatal during build but verify connectivity in production)",
+  );
 }
 
 async function run() {
