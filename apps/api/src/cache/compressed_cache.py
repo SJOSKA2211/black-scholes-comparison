@@ -1,4 +1,5 @@
 """Compressed Redis cache utility."""
+
 from __future__ import annotations
 
 
