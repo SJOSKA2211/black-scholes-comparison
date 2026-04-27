@@ -3,7 +3,7 @@
   "build": {
     "builder": "DOCKER",
     "dockerfilePath": "Dockerfile",
-    "root": "apps/api"
+    "root": "."
   },
   "deploy": {
     "restartPolicyType": "ON_FAILURE",

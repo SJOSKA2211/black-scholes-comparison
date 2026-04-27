@@ -15,10 +15,14 @@ class TestMinioClient:
     def test_get_minio_init(self, mock_settings, mock_minio_class):
         get_minio.cache_clear()
         mock_settings.return_value.minio_endpoint = "localhost:9000"
+        mock_settings.return_value.minio_host = "localhost"
+        mock_settings.return_value.minio_port = 9000
+        mock_settings.return_value.minio_enabled = True
         mock_settings.return_value.minio_access_key = "minio"
         mock_settings.return_value.minio_secret_key = "minio123"
         mock_settings.return_value.minio_bucket_exports = "bs-exports"
         mock_settings.return_value.minio_bucket_market_data = "bs-market-data"
+        mock_settings.return_value.minio_bucket_scraper = "bs-scraper"
 
         mock_client = mock_minio_class.return_value
         # First call: buckets don't exist, so create them
@@ -38,6 +42,10 @@ class TestMinioClient:
     @patch("src.storage.minio_client.get_settings")
     def test_get_minio_s3_error(self, mock_settings, mock_minio_class):
         get_minio.cache_clear()
+        mock_settings.return_value.minio_endpoint = "localhost:9000"
+        mock_settings.return_value.minio_host = "localhost"
+        mock_settings.return_value.minio_port = 9000
+        mock_settings.return_value.minio_enabled = True
         mock_client = mock_minio_class.return_value
         err = S3Error("code", "msg", "res", "req", "host", MagicMock())
         mock_client.bucket_exists.side_effect = err

@@ -34,6 +34,10 @@ RUN playwright install chromium
 # Copy source code
 COPY . .
 
+# Ensure uvicorn is in the PATH and available as a command
+ENV PATH="/usr/local/bin:/home/app/.local/bin:${PATH}"
+RUN ln -s /usr/local/bin/uvicorn /usr/bin/uvicorn || true
+
 # Non-root user
 RUN groupadd -r app && useradd -r -g app -m app
 RUN chown -R app:app /app
