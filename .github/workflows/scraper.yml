@@ -29,5 +29,5 @@ jobs:
           echo "trade_date=${D:-$(date +%F)}" >> $GITHUB_OUTPUT
       - run: |
           cd apps/api
-          python -m scripts.collect --market "${{ github.event.inputs.market || 'spy' }}" \
+          PYTHONPATH=. python -m scripts.collect --market "${{ github.event.inputs.market || 'spy' }}" \
             --date "${{ steps.date.outputs.trade_date }}"

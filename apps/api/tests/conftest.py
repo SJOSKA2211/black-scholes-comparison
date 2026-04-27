@@ -43,12 +43,7 @@ from src.storage.minio_client import get_minio
 from src.task_queues.rabbitmq_client import get_rabbitmq_connection, reset_rabbitmq
 
 
-@pytest.fixture(autouse=True)
-def reset_infrastructure_globals():
-    """Reset globals between tests to avoid event loop conflicts."""
-    reset_redis()
-    reset_rabbitmq()
-    yield
+
 
 
 @pytest.fixture(scope="session")

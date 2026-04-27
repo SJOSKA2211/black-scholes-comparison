@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 REQUIRED_ENV_VARS = [
     "SUPABASE_URL",
-    "SUPABASE_SERVICE_ROLE_KEY",
+    "SUPABASE_KEY",
 ]
 
 def check_env_vars():

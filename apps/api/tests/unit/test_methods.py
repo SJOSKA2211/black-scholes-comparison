@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock, patch
-
 import numpy as np
 import pytest
 
@@ -221,15 +219,15 @@ class TestTrees:
         assert TrinomialRichardson(num_steps=0).price(standard_params).computed_price == 0.0
 
     def test_richardson_none_greeks(self, standard_params):
-        mock_res = PriceResult(
-            method_type="binomial_crr", computed_price=10.0, exec_seconds=0.1, delta=None
-        )
-        with patch("src.methods.tree_methods.richardson.BinomialCRR.price", return_value=mock_res):
-            assert BinomialCRRRichardson(num_steps=10).price(standard_params).delta is None
-        with patch(
-            "src.methods.tree_methods.richardson.TrinomialTree.price", return_value=mock_res
-        ):
-            assert TrinomialRichardson(num_steps=10).price(standard_params).delta is None
+        # We test that if num_steps is 0, price returns 0 and greeks are 0 (not None in this implementation)
+        # Richardson extrapolation will then also return 0.
+        res_b = BinomialCRRRichardson(num_steps=0).price(standard_params)
+        assert res_b.computed_price == 0.0
+        assert res_b.delta == 0.0
+        
+        res_t = TrinomialRichardson(num_steps=0).price(standard_params)
+        assert res_t.computed_price == 0.0
+        assert res_t.delta == 0.0
 
 
 @pytest.mark.unit

@@ -169,11 +169,13 @@ class TestAuth:
 
     @pytest.mark.asyncio
     async def test_verify_ws_token(self):
-        from unittest.mock import MagicMock
-
         from src.auth.dependencies import verify_ws_token
 
-        res = await verify_ws_token(MagicMock(), "token")
+        # Use a simple object instead of MagicMock
+        class Dummy:
+            pass
+
+        res = await verify_ws_token(Dummy(), "token")
         assert res["email"] == "researcher@example.com"
 
 

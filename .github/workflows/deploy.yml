@@ -26,8 +26,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r apps/api/requirements.txt playwright pytest-playwright pytest-asyncio
-          playwright install chromium
-          cd apps/web && npm install
+          python -m playwright install --with-deps chromium
+          cd apps/web && npm ci
       - name: Start FastAPI Backend
         run: |
           cd apps/api

@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import get_settings
@@ -65,7 +66,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Shutdown logic
     logger.info("app_shutting_down", step="shutdown")
-    # Add any cleanup logic here (e.g. closing DB connections if managed locally)
+    from src.task_queues.rabbitmq_client import close_rabbitmq_connection
+    await close_rabbitmq_connection()
+    
+    from src.cache.redis_client import get_redis
+    redis = get_redis()
+    if redis:
+        await redis.aclose()
 
 
 def create_app() -> FastAPI:
@@ -90,6 +97,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # GZip compression (Mandatory for production)
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     # Prometheus Instrumentation (Section 12.1)
     # Exposes /metrics for Prometheus scraping
