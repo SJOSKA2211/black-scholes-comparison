@@ -24,7 +24,7 @@ jobs:
       - run: black   --check --line-length 100 apps/api/src/
       - run: isort   --check-only --profile black apps/api/src/
       - run: ruff    check apps/api/src/
-      - run: pip install -r apps/api/requirements.txt
+      - run: pip install -r apps/api/requirements.txt -r apps/api/requirements-dev.txt
       - run: mypy    --strict apps/api/src/
  
   # ── Job 2: Frontend lint ─────────────────────────────────────────
