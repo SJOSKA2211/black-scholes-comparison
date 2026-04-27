@@ -34,7 +34,7 @@ function validateUrls() {
     try {
       new URL(url);
       console.log(`   ✅ ${v} is a valid URL: ${url}`);
-    } catch (e) {
+    } catch {
       console.error(`   ❌ ${v} is NOT a valid URL: ${url}`);
       allValid = false;
     }
