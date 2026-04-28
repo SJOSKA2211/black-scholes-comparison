@@ -10,14 +10,23 @@ from aio_pika.abc import AbstractIncomingMessage
 
 from src.data.pipeline import DataPipeline
 from src.task_queues.rabbitmq_client import get_rabbitmq_connection
+from src.utils.compression import decompress_data
 
 logger = structlog.get_logger(__name__)
+
+
+def _get_payload(message: AbstractIncomingMessage) -> Any:
+    """Helper to decompress and parse message body."""
+    body = message.body
+    if message.content_encoding == "gzip":
+        body = decompress_data(body, method="gzip")
+    return json.loads(body)
 
 
 async def handle_scrape_task(message: AbstractIncomingMessage) -> None:
     """Process a market data scrape task."""
     async with message.process():
-        payload = json.loads(message.body)
+        payload = _get_payload(message)
         market = payload["market"]
         trade_date = date.fromisoformat(payload["date"])
 
@@ -26,7 +35,6 @@ async def handle_scrape_task(message: AbstractIncomingMessage) -> None:
         )
 
         # Create pipeline instance and run
-        # Note: Pipeline ID is generated here for tracking
         import uuid
 
         run_id = str(uuid.uuid4())
@@ -37,7 +45,6 @@ async def handle_scrape_task(message: AbstractIncomingMessage) -> None:
             logger.info("scrape_task_success", market=market, run_id=run_id, step="queue")
         except Exception as error:
             logger.error("scrape_task_failed", market=market, error=str(error), step="queue")
-            # In production, we might want to dead-letter or retry here
             raise
 
 
@@ -46,7 +53,7 @@ async def handle_experiment_task(message: AbstractIncomingMessage) -> None:
     from scripts.run_experiments import run_experiments
 
     async with message.process():
-        payload = json.loads(message.body)
+        payload = _get_payload(message)
         logger.info("experiment_task_received", payload=payload, step="queue")
 
         try:
@@ -54,7 +61,6 @@ async def handle_experiment_task(message: AbstractIncomingMessage) -> None:
             logger.info("experiment_task_success", step="queue")
         except Exception as error:
             logger.error("experiment_task_failed", error=str(error), step="queue")
-            # Log failure but process() handles ack/nack depending on robustness needs
             raise
 
 

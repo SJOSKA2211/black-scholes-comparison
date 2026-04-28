@@ -1,0 +1,24 @@
+.git/
+node_modules/
+**/node_modules/
+.next/
+**/ .next/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.log
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+supabase/
+scratch/
+docs/
+notebooks/
+*.ipynb
+data/
+**/data/
+# Exclude other apps if building specifically for one
+# but since this is a general dockerignore, let's keep it safe

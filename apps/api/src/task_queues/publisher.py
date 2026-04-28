@@ -10,6 +10,7 @@ import aio_pika
 import structlog
 
 from src.task_queues.rabbitmq_client import get_rabbitmq_connection
+from src.utils.compression import compress_data
 
 logger = structlog.get_logger(__name__)
 
@@ -37,9 +38,16 @@ async def publish_scrape_task(market: str, trade_date: date) -> None:
     connection = await get_rabbitmq_connection()
     async with connection.channel() as channel:
         exchange = await _setup_topology(channel)
-        body = json.dumps({"market": market, "date": trade_date.isoformat()}).encode()
+        payload = json.dumps({"market": market, "date": trade_date.isoformat()}).encode()
+        body = compress_data(payload, method="gzip")
+
         await exchange.publish(
-            aio_pika.Message(body=body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+            aio_pika.Message(
+                body=body,
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                content_encoding="gzip",
+                content_type="application/json",
+            ),
             routing_key="scrape",
         )
     logger.info("task_published", market=market, date=trade_date.isoformat(), step="queue")
@@ -50,9 +58,16 @@ async def publish_experiment_task(params: dict[str, Any]) -> None:
     connection = await get_rabbitmq_connection()
     async with connection.channel() as channel:
         exchange = await _setup_topology(channel)
-        body = json.dumps(params).encode()
+        payload = json.dumps(params).encode()
+        body = compress_data(payload, method="gzip")
+
         await exchange.publish(
-            aio_pika.Message(body=body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT),
+            aio_pika.Message(
+                body=body,
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+                content_encoding="gzip",
+                content_type="application/json",
+            ),
             routing_key="experiment",
         )
     logger.info("experiment_task_published", step="queue")

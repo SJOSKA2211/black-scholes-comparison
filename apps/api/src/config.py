@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     redis_host: str = Field("redis", alias="REDIS_HOST")
     redis_port: int = Field(6379, alias="REDIS_PORT")
     redis_url_override: str | None = Field(None, alias="REDIS_URL")
-    redis_enabled: bool = Field(True, alias="REDIS_ENABLED")
+    redis_enabled: bool = Field(False, alias="REDIS_ENABLED")
 
     @property
     def redis_url(self) -> str:
@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     rabbitmq_user: str = Field("rabbitmq_user", alias="RABBITMQ_USER")
     rabbitmq_password: str = Field("JKmaish2025", alias="RABBITMQ_PASSWORD")
     rabbitmq_url_override: str | None = Field(None, alias="RABBITMQ_URL")
-    rabbitmq_enabled: bool = Field(True, alias="RABBITMQ_ENABLED")
+    rabbitmq_enabled: bool = Field(False, alias="RABBITMQ_ENABLED")
 
     @property
     def rabbitmq_url(self) -> str:
@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     minio_host: str = Field("minio", alias="MINIO_HOST")
     minio_port: int = Field(9000, alias="MINIO_PORT")
     minio_endpoint_override: str | None = Field(None, alias="MINIO_ENDPOINT")
-    minio_enabled: bool = Field(True, alias="MINIO_ENABLED")
+    minio_enabled: bool = Field(False, alias="MINIO_ENABLED")
 
     @property
     def minio_endpoint(self) -> str:
