@@ -24,6 +24,10 @@ MANDATORY_VARS = [
 
 def check_mandatory_vars():
     logger.info("checking_mandatory_vars")
+    from src.config import get_settings
+    settings = get_settings()
+    
+    # We check the raw environment variables first to ensure they are set in the platform
     missing = [v for v in MANDATORY_VARS if not os.getenv(v)]
     if missing:
         msg = f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing)}"

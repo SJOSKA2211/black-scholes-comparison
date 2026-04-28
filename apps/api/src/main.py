@@ -50,6 +50,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.storage.minio_client import get_minio
 
     # Zero-Mock Mandatory Guard (Applies to all environments)
+    from src.metrics import ZERO_MOCK_VIOLATIONS
+
     missing_vars = []
     if not settings.redis_url:
         missing_vars.append("REDIS_URL")
@@ -59,6 +61,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         missing_vars.append("MINIO_ENDPOINT")
 
     if missing_vars:
+        ZERO_MOCK_VIOLATIONS.labels(violation_type="missing_variables").inc()
         raise RuntimeError(
             f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing_vars)}"
         )
@@ -66,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
         # Block localhost and 127.0.0.1 which definitely imply local mocks in production
         if any(bad in url.lower() for bad in ["localhost", "127.0.0.1"]):
+            ZERO_MOCK_VIOLATIONS.labels(violation_type="local_infrastructure").inc()
             raise RuntimeError(
                 f"Zero-Mock Violation: Detected local infrastructure URL ({url}). Use real infrastructure."
             )

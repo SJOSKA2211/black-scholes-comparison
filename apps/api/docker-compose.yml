@@ -8,6 +8,8 @@ volumes:
   minio_data:      {}
   prometheus_data: {}
   grafana_data:    {}
+  playwright_cache: {}
+
  
 services:
  
@@ -38,7 +40,9 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - playwright_cache:/home/app/.cache/ms-playwright
     networks: [bs_network]
+
 
     deploy:
       resources:

@@ -95,6 +95,8 @@ class SPYScraper(BaseScraper):
                             .replace("-", "20")
                         )
                         volatility = float(iv_text) / 100.0 if iv_text else 0.2
+                        volatility = max(0.0001, volatility)
+
 
                         if ask > 0:
                             scraped_data.append(

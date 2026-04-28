@@ -47,43 +47,41 @@ class Settings(BaseSettings):
         return self.environment
 
     # 3. Cache / Pub-Sub (Redis)
-    redis_url_override: str | None = Field(None, alias="REDIS_URL")
+    redis_url_override: str = Field("redis://redis:6379/0", alias="REDIS_URL")
 
     @property
     def redis_url(self) -> str:
         """Return the Redis URL."""
-        return self.redis_url_override or ""
+        return self.redis_url_override
 
     redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
 
     # 4. Message Queue (RabbitMQ)
-    rabbitmq_url_override: str | None = Field(None, alias="RABBITMQ_URL")
+    rabbitmq_url_override: str = Field(
+        "amqp://rabbitmq_user:JKmaish2025@rabbitmq:5672/", alias="RABBITMQ_URL"
+    )
 
     @property
     def rabbitmq_url(self) -> str:
         """Return the RabbitMQ URL."""
-        return self.rabbitmq_url_override or ""
+        return self.rabbitmq_url_override
 
     # 5. Object Storage (MinIO / S3)
-    minio_endpoint_override: str | None = Field(None, alias="MINIO_ENDPOINT")
+    minio_endpoint_override: str = Field("minio:9000", alias="MINIO_ENDPOINT")
 
     @property
     def minio_endpoint(self) -> str:
         """Return the MinIO endpoint."""
-        return self.minio_endpoint_override or ""
+        return self.minio_endpoint_override
 
     @property
     def minio_host(self) -> str:
         """Extract host from endpoint."""
-        if not self.minio_endpoint_override:
-            return ""
         return self.minio_endpoint_override.split(":")[0]
 
     @property
     def minio_port(self) -> int:
         """Extract port from endpoint."""
-        if not self.minio_endpoint_override:
-            return 9000
         parts = self.minio_endpoint_override.split(":")
         return int(parts[1]) if len(parts) > 1 else 9000
 

@@ -84,3 +84,10 @@ NOTIFICATIONS_SENT = Counter(
 )
 
 MINIO_UPLOADS_TOTAL = Counter("black_scholes_minio_uploads_total", "MinIO uploads.", ["bucket"])
+ 
+# Policy Enforcement
+ZERO_MOCK_VIOLATIONS = Counter(
+    "black_scholes_zero_mock_violations_total",
+    "Total Zero-Mock policy violations detected at startup.",
+    ["violation_type"]
+)
