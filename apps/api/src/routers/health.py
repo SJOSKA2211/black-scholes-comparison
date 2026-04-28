@@ -59,7 +59,7 @@ async def health_check() -> dict[str, Any]:
     try:
         from src.config import get_settings
 
-        if get_settings().rabbitmq_enabled:
+        if get_settings().rabbitmq_url:
             conn = await get_rabbitmq_connection()
             if not conn.is_closed:
                 health["services"]["rabbitmq"] = "connected"
