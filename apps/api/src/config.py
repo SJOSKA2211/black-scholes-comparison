@@ -50,7 +50,6 @@ class Settings(BaseSettings):
     redis_host: str = Field("redis", alias="REDIS_HOST")
     redis_port: int = Field(6379, alias="REDIS_PORT")
     redis_url_override: str | None = Field(None, alias="REDIS_URL")
-    redis_enabled: bool = Field(True, alias="REDIS_ENABLED")
 
     @property
     def redis_url(self) -> str:
@@ -60,12 +59,12 @@ class Settings(BaseSettings):
         return f"redis://{self.redis_host}:{self.redis_port}/0"
 
     redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
+    redis_enabled: bool = Field(True, alias="REDIS_ENABLED")
 
     # 4. Message Queue (RabbitMQ)
     rabbitmq_user: str = Field("rabbitmq_user", alias="RABBITMQ_USER")
     rabbitmq_password: str = Field("JKmaish2025", alias="RABBITMQ_PASSWORD")
     rabbitmq_url_override: str | None = Field(None, alias="RABBITMQ_URL")
-    rabbitmq_enabled: bool = Field(True, alias="RABBITMQ_ENABLED")
 
     @property
     def rabbitmq_url(self) -> str:
@@ -76,11 +75,12 @@ class Settings(BaseSettings):
         host = os.getenv("RABBITMQ_HOST", "rabbitmq")
         return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@{host}:5672/"
 
+    rabbitmq_enabled: bool = Field(True, alias="RABBITMQ_ENABLED")
+
     # 5. Object Storage (MinIO / S3)
     minio_host: str = Field("minio", alias="MINIO_HOST")
     minio_port: int = Field(9000, alias="MINIO_PORT")
     minio_endpoint_override: str | None = Field(None, alias="MINIO_ENDPOINT")
-    minio_enabled: bool = Field(True, alias="MINIO_ENABLED")
 
     @property
     def minio_endpoint(self) -> str:
@@ -94,6 +94,7 @@ class Settings(BaseSettings):
     minio_bucket_exports: str = Field("bs-exports", alias="MINIO_BUCKET_EXPORTS")
     minio_bucket_scraper: str = Field("bs-scraper", alias="MINIO_BUCKET_SCRAPER")
     minio_secure: bool = Field(False, alias="MINIO_SECURE")
+    minio_enabled: bool = Field(True, alias="MINIO_ENABLED")
 
     # 6. Observability
     prometheus_port: int = Field(9090, alias="PROMETHEUS_PORT")

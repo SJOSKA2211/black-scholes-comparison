@@ -19,13 +19,9 @@ async def get_rabbitmq_connection() -> aio_pika.abc.AbstractConnection:
     Implements Section 8.2 of the Production Final mandate.
     """
     global _connection
-    settings = get_settings()
-    if not settings.rabbitmq_enabled:
-        logger.info("rabbitmq_skipped", reason="disabled_via_config")
-        # We might need to handle this differently if callers expect a connection
-        # but for now we just log it.
     
     if _connection is None or _connection.is_closed:
+        settings = get_settings()
         try:
             _connection = await aio_pika.connect_robust(
                 settings.rabbitmq_url,

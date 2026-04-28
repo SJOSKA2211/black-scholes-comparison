@@ -11,8 +11,6 @@ from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
-# Bucket names are managed in src.config (Section 1.2)
-
 
 @lru_cache(maxsize=1)
 def get_minio() -> Minio:
@@ -20,10 +18,6 @@ def get_minio() -> Minio:
     import urllib3
 
     settings = get_settings()
-    if not settings.minio_enabled:
-        logger.info("minio_skipped", reason="disabled_via_config")
-        return None  # type: ignore
-
     logger.info("minio_client_init", endpoint=settings.minio_endpoint)
 
     # Use custom urllib3 PoolManager with timeouts to avoid hanging on init

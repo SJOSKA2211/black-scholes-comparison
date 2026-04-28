@@ -22,18 +22,11 @@ def check_env_vars():
     logger.info("env_vars_ok")
     return True
 
-def check_service(host, port, name, enabled_var=None, retries=3):
+def check_service(host, port, name, retries=3):
     """
     Check if a service is reachable. 
-    Strictly follows Zero-Mock: Default to True (Enabled) if not specified.
+    Strictly follows Zero-Mock: Infrastructure is mandatory.
     """
-    # If the variable is NOT set, we default to "true" to follow Zero-Mock
-    is_enabled = os.getenv(enabled_var, "true").lower() == "true" if enabled_var else True
-    
-    if not is_enabled:
-        logger.info(f"{name}_skipped")
-        return True
-    
     for i in range(retries):
         logger.info(f"checking_{name}_reachability: {host}:{port} (attempt {i+1}/{retries})")
         try:
@@ -44,7 +37,7 @@ def check_service(host, port, name, enabled_var=None, retries=3):
             if i < retries - 1:
                 time.sleep(2)
                 continue
-            logger.error(f"{name}_unreachable: {str(e)}")
+            logger.error(f"{name}_unreachable_error: {str(e)}. Zero-Mock Violation.")
             if host in ("redis", "rabbitmq", "minio"):
                 logger.info(f"TIP: Hostname '{host}' looks like a local Docker name. Ensure it is correct for production.")
             return False
@@ -53,7 +46,8 @@ def check_service(host, port, name, enabled_var=None, retries=3):
 
 def check_url_reachability(url_str, name):
     if not url_str:
-        return True
+        logger.error(f"{name}_url_missing")
+        return False
     
     logger.info(f"checking_{name}_url_reachability: {url_str}")
     try:
@@ -96,8 +90,7 @@ def main():
         redis_ok = check_service(
             os.getenv("REDIS_HOST", "redis"),
             int(os.getenv("REDIS_PORT", 6379)),
-            "redis",
-            "REDIS_ENABLED"
+            "redis"
         )
     if not redis_ok:
         sys.exit(1)
@@ -111,8 +104,7 @@ def main():
         rabbitmq_ok = check_service(
             os.getenv("RABBITMQ_HOST", "rabbitmq"),
             5672,
-            "rabbitmq",
-            "RABBITMQ_ENABLED"
+            "rabbitmq"
         )
     if not rabbitmq_ok:
         sys.exit(1)
@@ -124,15 +116,14 @@ def main():
         # MinIO endpoint is usually host:port
         if ":" in minio_endpoint:
             host, port = minio_endpoint.split(":", 1)
-            minio_ok = check_service(host, int(port), "minio", "MINIO_ENABLED")
+            minio_ok = check_service(host, int(port), "minio")
         else:
-            minio_ok = check_service(minio_endpoint, 9000, "minio", "MINIO_ENABLED")
+            minio_ok = check_service(minio_endpoint, 9000, "minio")
     else:
         minio_ok = check_service(
             os.getenv("MINIO_HOST", "minio"),
             int(os.getenv("MINIO_PORT", 9000)),
-            "minio",
-            "MINIO_ENABLED"
+            "minio"
         )
     if not minio_ok:
         sys.exit(1)
