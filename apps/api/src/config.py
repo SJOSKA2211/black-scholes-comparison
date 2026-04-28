@@ -48,6 +48,7 @@ class Settings(BaseSettings):
 
     # 3. Cache / Pub-Sub (Redis)
     redis_url_override: str = Field("redis://redis:6379/0", alias="REDIS_URL")
+    redis_cluster_enabled: bool = Field(False, alias="REDIS_CLUSTER_ENABLED")
 
     @property
     def redis_url(self) -> str:
@@ -85,8 +86,8 @@ class Settings(BaseSettings):
         parts = self.minio_endpoint_override.split(":")
         return int(parts[1]) if len(parts) > 1 else 9000
 
-    minio_access_key: str = Field("minio_admin", alias="MINIO_ACCESS_KEY")
-    minio_secret_key: str = Field("minio_secret", alias="MINIO_SECRET_KEY")
+    minio_access_key: str = Field("IH8P9j7hVWrapfay7rTv", alias="MINIO_ACCESS_KEY")
+    minio_secret_key: str = Field("PdcNNjWEvo28vnuxSfdWAZNgkCBCut4G5dPi77Yk", alias="MINIO_SECRET_KEY")
     minio_bucket_exports: str = Field("bs-exports", alias="MINIO_BUCKET_EXPORTS")
     minio_bucket_scraper: str = Field("bs-scraper", alias="MINIO_BUCKET_SCRAPER")
     minio_secure: bool = Field(False, alias="MINIO_SECURE")

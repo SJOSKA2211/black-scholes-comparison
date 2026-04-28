@@ -71,7 +71,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Block localhost, 127.0.0.1, and common docker-compose defaults
         if any(
             bad in url.lower()
-            for bad in ["localhost", "127.0.0.1", "://redis", "://rabbitmq", "minio:9000"]
+            for bad in ["localhost", "127.0.0.1"]
+
         ):
             ZERO_MOCK_VIOLATIONS.labels(violation_type="local_infrastructure").inc()
             

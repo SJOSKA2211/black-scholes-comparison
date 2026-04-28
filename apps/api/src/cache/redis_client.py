@@ -19,17 +19,27 @@ def get_redis() -> aioredis.Redis[Any] | None:
 
     if _redis_client is None:
         try:
-            _redis_client = aioredis.from_url(
-                settings.redis_url,
-                password=settings.redis_password,
-                encoding="utf-8",
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-                retry_on_timeout=True,
-                health_check_interval=30,
-            )
-            logger.info("redis_client_created", url=settings.redis_url.split("@")[-1], step="init")
+            if settings.redis_cluster_enabled:
+                from redis.asyncio.cluster import RedisCluster
+                _redis_client = RedisCluster.from_url(
+                    settings.redis_url,
+                    password=settings.redis_password,
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                )
+                logger.info("redis_cluster_client_created", step="init")
+            else:
+                _redis_client = aioredis.from_url(
+                    settings.redis_url,
+                    password=settings.redis_password,
+                    encoding="utf-8",
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=5,
+                    retry_on_timeout=True,
+                    health_check_interval=30,
+                )
+                logger.info("redis_client_created", url=settings.redis_url.split("@")[-1], step="init")
         except Exception as e:
             logger.error("redis_client_init_failed", error=str(e), url=settings.redis_url.split("@")[-1])
             raise
