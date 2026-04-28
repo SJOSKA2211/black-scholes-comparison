@@ -25,10 +25,7 @@ class Settings(BaseSettings):
 
     # 2. API
     api_url: str = Field("http://localhost:8000", alias="NEXT_PUBLIC_API_URL")
-    environment: str = Field(
-        "production" if os.getenv("RENDER") else "development", 
-        alias="ENVIRONMENT"
-    )
+    environment: str = Field("development", alias="ENVIRONMENT")
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
@@ -46,7 +43,9 @@ class Settings(BaseSettings):
 
     @property
     def env(self) -> str:
-        """Alias for environment."""
+        """Alias for environment with auto-detection for cloud platforms."""
+        if os.getenv("RENDER") or os.getenv("RAILWAY_STATIC_URL"):
+            return "production"
         return self.environment
 
     # 3. Cache / Pub-Sub (Redis)

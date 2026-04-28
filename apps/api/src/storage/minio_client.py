@@ -50,6 +50,12 @@ def get_minio() -> Minio:
     )
 
     try:
+        # Check connectivity (not just DNS)
+        # S3-compatible providers might not allow bucket creation via API easily
+        # but we check if we can at least list buckets
+        client.list_buckets()
+        logger.info("minio_connection_ok", endpoint=endpoint, step="init")
+
         # Ensure buckets exist
         for bucket in [settings.minio_bucket_exports, settings.minio_bucket_scraper]:
             if not client.bucket_exists(bucket):
@@ -57,6 +63,6 @@ def get_minio() -> Minio:
                 logger.info("minio_bucket_created", bucket=bucket, step="init")
     except Exception as error:
         # We catch but don't re-raise to ensure API startup continues
-        logger.error("minio_bucket_check_failed", error=str(error), step="init")
+        logger.error("minio_check_failed", error=str(error), step="init")
 
     return client
