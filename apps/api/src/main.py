@@ -152,12 +152,19 @@ def create_app() -> FastAPI:
 
     # Premium Compression (Brotli primary, GZip fallback)
     if settings.gzip_enabled:
-        # Brotli is superior to Gzip for JSON and text
-        app.add_middleware(
-            BrotliMiddleware,
-            quality=settings.gzip_level,  # Reuse gzip_level for brotli quality
-            minimum_size=settings.gzip_min_size,
-        )
+        try:
+            from brotli_asgi import BrotliMiddleware
+            # Brotli is superior to Gzip for JSON and text
+            app.add_middleware(
+                BrotliMiddleware,
+                quality=settings.gzip_level,  # Reuse gzip_level for brotli quality
+                minimum_size=settings.gzip_min_size,
+            )
+            logger.info("compression_enabled", type="Brotli+GZip")
+        except ImportError:
+            logger.warning("brotli_not_found_falling_back_to_gzip")
+            logger.info("compression_enabled", type="GZip")
+
         # GZip as a fallback for older clients
         app.add_middleware(
             GZipMiddleware,

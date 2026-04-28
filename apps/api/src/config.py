@@ -49,7 +49,7 @@ class Settings(BaseSettings):
         return self.environment
 
     # 3. Cache / Pub-Sub (Redis)
-    redis_url_override: str = Field("redis://redis:6379/0", alias="REDIS_URL")
+    redis_url_override: str = Field(..., alias="REDIS_URL")
     redis_cluster_enabled: bool = Field(False, alias="REDIS_CLUSTER_ENABLED")
 
     @property
@@ -60,9 +60,7 @@ class Settings(BaseSettings):
     redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
 
     # 4. Message Queue (RabbitMQ)
-    rabbitmq_url_override: str = Field(
-        "amqp://rabbitmq_user:JKmaish2025@rabbitmq:5672/", alias="RABBITMQ_URL"
-    )
+    rabbitmq_url_override: str = Field(..., alias="RABBITMQ_URL")
 
     @property
     def rabbitmq_url(self) -> str:
@@ -96,6 +94,7 @@ class Settings(BaseSettings):
     minio_enabled: bool = Field(True, alias="MINIO_ENABLED")
     minio_cluster_enabled: bool = Field(False, alias="MINIO_CLUSTER_ENABLED")
     minio_cluster_nodes: list[str] = Field(["minio:9000"], alias="MINIO_CLUSTER_NODES")
+    minio_cluster_sa_url: str | None = Field(None, alias="MINIO_CLUSTER_SA_URL")
 
     # 6. Observability
     prometheus_port: int = Field(9090, alias="PROMETHEUS_PORT")
