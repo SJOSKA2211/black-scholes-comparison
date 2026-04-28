@@ -72,9 +72,6 @@ async def start_consumers() -> None:
     from src.config import get_settings
 
     settings = get_settings()
-    if not settings.rabbitmq_enabled:
-        logger.info("consumers_skipped", reason="disabled", step="init")
-        return
 
     try:
         connection = await get_rabbitmq_connection()
