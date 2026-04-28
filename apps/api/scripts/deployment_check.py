@@ -2,6 +2,7 @@ import os
 import sys
 import socket
 import logging
+import time
 
 # Configure minimal logging for deployment check
 logging.basicConfig(level=logging.INFO, format='{"step": "deploy_check", "event": "%(message)s"}')
@@ -21,30 +22,33 @@ def check_env_vars():
     logger.info("env_vars_ok")
     return True
 
-def check_service(host, port, name, enabled_var=None):
-    # Default to False for optional infrastructure to allow boot
-    if enabled_var and os.getenv(enabled_var, "false").lower() != "true":
+def check_service(host, port, name, enabled_var=None, retries=3):
+    """
+    Check if a service is reachable. 
+    Strictly follows Zero-Mock: Default to True (Enabled) if not specified.
+    """
+    # If the variable is NOT set, we default to "true" to follow Zero-Mock
+    is_enabled = os.getenv(enabled_var, "true").lower() == "true" if enabled_var else True
+    
+    if not is_enabled:
         logger.info(f"{name}_skipped")
         return True
     
-    if host.lower() in ("none", "disabled"):
-        logger.info(f"{name}_skipped_explicit")
-        return True
-
-    logger.info(f"checking_{name}_reachability: {host}:{port}")
-    
-    # Fast-fail for obviously local-only hostnames in production if they fail once
-    timeout = 1 if host in ("redis", "rabbitmq", "minio") else 2
-    
-    try:
-        with socket.create_connection((host, port), timeout=timeout):
-            logger.info(f"{name}_reachable")
-            return True
-    except Exception as e:
-        logger.error(f"{name}_unreachable: {str(e)}")
-        if host in ("redis", "rabbitmq", "minio"):
-            logger.info(f"TIP: Hostname '{host}' looks like a local Docker name. Ensure it is correct for production.")
-        return False
+    for i in range(retries):
+        logger.info(f"checking_{name}_reachability: {host}:{port} (attempt {i+1}/{retries})")
+        try:
+            with socket.create_connection((host, port), timeout=3):
+                logger.info(f"{name}_reachable")
+                return True
+        except Exception as e:
+            if i < retries - 1:
+                time.sleep(2)
+                continue
+            logger.error(f"{name}_unreachable: {str(e)}")
+            if host in ("redis", "rabbitmq", "minio"):
+                logger.info(f"TIP: Hostname '{host}' looks like a local Docker name. Ensure it is correct for production.")
+            return False
+    return False
 
 
 def check_url_reachability(url_str, name):
@@ -69,7 +73,7 @@ def check_url_reachability(url_str, name):
             logger.error(f"{name}_invalid_url: {url_str}")
             return False
 
-        with socket.create_connection((host, port), timeout=2):
+        with socket.create_connection((host, port), timeout=3):
             logger.info(f"{name}_reachable")
             return True
     except Exception as e:

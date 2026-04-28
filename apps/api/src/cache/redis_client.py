@@ -18,20 +18,25 @@ def get_redis() -> aioredis.Redis[Any] | None:
     settings = get_settings()
 
     if not settings.redis_enabled:
+        logger.info("redis_skipped", reason="disabled_via_config")
         return None
 
     if _redis_client is None:
-        _redis_client = aioredis.from_url(
-            settings.redis_url,
-            password=settings.redis_password,
-            encoding="utf-8",
-            decode_responses=True,
-            socket_connect_timeout=5,
-            socket_timeout=5,
-            retry_on_timeout=True,
-            health_check_interval=30,
-        )
-        logger.info("redis_client_created", url=settings.redis_url.split("@")[-1], step="init")
+        try:
+            _redis_client = aioredis.from_url(
+                settings.redis_url,
+                password=settings.redis_password,
+                encoding="utf-8",
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_timeout=5,
+                retry_on_timeout=True,
+                health_check_interval=30,
+            )
+            logger.info("redis_client_created", url=settings.redis_url.split("@")[-1], step="init")
+        except Exception as e:
+            logger.error("redis_client_init_failed", error=str(e), url=settings.redis_url.split("@")[-1])
+            raise
     return _redis_client
 
 

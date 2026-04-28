@@ -22,6 +22,7 @@ from src.routers import (
     pricing,
     scrapers,
     websocket,
+    debug,
 )
 from src.task_queues.consumer import start_consumers
 
@@ -126,6 +127,7 @@ def create_app() -> FastAPI:
     app.include_router(downloads.router, prefix=api_v1_prefix)
     app.include_router(notifications.router, prefix=api_v1_prefix)
     app.include_router(websocket.router, prefix=api_v1_prefix)
+    app.include_router(debug.router)
 
     @app.get("/")
     async def root() -> dict[str, str]:

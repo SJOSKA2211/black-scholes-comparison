@@ -21,7 +21,10 @@ def get_minio() -> Minio:
 
     settings = get_settings()
     if not settings.minio_enabled:
+        logger.info("minio_skipped", reason="disabled_via_config")
         return None  # type: ignore
+
+    logger.info("minio_client_init", endpoint=settings.minio_endpoint)
 
     # Use custom urllib3 PoolManager with timeouts to avoid hanging on init
     http_client = urllib3.PoolManager(
