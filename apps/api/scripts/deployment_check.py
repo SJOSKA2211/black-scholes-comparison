@@ -8,127 +8,110 @@ import time
 logging.basicConfig(level=logging.INFO, format='{"step": "deploy_check", "event": "%(message)s"}')
 logger = logging.getLogger(__name__)
 
-REQUIRED_ENV_VARS = [
+# Mandatory infrastructure variables per Zero-Mock Policy
+MANDATORY_VARS = [
     "SUPABASE_URL",
     "SUPABASE_KEY",
+    "REDIS_URL",
+    "RABBITMQ_URL",
+    "MINIO_ENDPOINT"
 ]
 
-def check_env_vars():
-    logger.info("checking_env_vars")
-    missing = [v for v in REQUIRED_ENV_VARS if not os.getenv(v)]
+def check_mandatory_vars():
+    logger.info("checking_mandatory_vars")
+    missing = [v for v in MANDATORY_VARS if not os.getenv(v)]
     if missing:
-        logger.error(f"missing_env_vars: {', '.join(missing)}")
+        logger.error(f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing)}")
+        logger.info("TIP: You must provide real infrastructure URLs in your platform environment settings.")
         return False
-    logger.info("env_vars_ok")
+    logger.info("mandatory_vars_ok")
     return True
 
-def check_service(host, port, name, retries=3):
+def check_url_reachability(url_str, name, retries=3):
     """
-    Check if a service is reachable. 
-    Strictly follows Zero-Mock: Infrastructure is mandatory.
+    Strictly follows Zero-Mock: Infrastructure must be reachable.
     """
-    for i in range(retries):
-        logger.info(f"checking_{name}_reachability: {host}:{port} (attempt {i+1}/{retries})")
-        try:
-            with socket.create_connection((host, port), timeout=3):
-                logger.info(f"{name}_reachable")
-                return True
-        except Exception as e:
-            if i < retries - 1:
-                time.sleep(2)
-                continue
-            logger.error(f"{name}_unreachable_error: {str(e)}. Zero-Mock Violation.")
-            if host in ("redis", "rabbitmq", "minio"):
-                logger.info(f"TIP: Hostname '{host}' looks like a local Docker name. Ensure it is correct for production.")
-            return False
-    return False
-
-
-def check_url_reachability(url_str, name):
-    if not url_str:
-        logger.error(f"{name}_url_missing")
-        return False
-    
-    logger.info(f"checking_{name}_url_reachability: {url_str}")
+    logger.info(f"checking_{name}_reachability: {url_str}")
     try:
         from urllib.parse import urlparse
         parsed = urlparse(url_str)
         host = parsed.hostname
         port = parsed.port
         
-        # Default ports if missing in URL
+        # Default ports based on scheme
         if not port:
             if parsed.scheme == "redis": port = 6379
             elif parsed.scheme in ("amqp", "amqps"): port = 5672
             elif parsed.scheme in ("http", "https"): port = 80 if parsed.scheme == "http" else 443
-            else: port = 80
+            else:
+                logger.error(f"{name}_unsupported_scheme: {parsed.scheme}")
+                return False
 
         if not host:
             logger.error(f"{name}_invalid_url: {url_str}")
             return False
 
-        with socket.create_connection((host, port), timeout=3):
-            logger.info(f"{name}_reachable")
-            return True
+        for i in range(retries):
+            logger.info(f"attempting_connection: {host}:{port} (attempt {i+1}/{retries})")
+            try:
+                with socket.create_connection((host, port), timeout=5):
+                    logger.info(f"{name}_reachable")
+                    return True
+            except Exception as e:
+                if i < retries - 1:
+                    time.sleep(3)
+                    continue
+                logger.error(f"{name}_unreachable_error: {str(e)}")
+                if host in ("redis", "rabbitmq", "minio"):
+                    logger.info(f"TIP: Hostname '{host}' looks like a local Docker default. Ensure your {name.upper()}_URL is correct for production.")
+                return False
     except Exception as e:
-        logger.error(f"{name}_unreachable: {str(e)}")
+        logger.error(f"{name}_url_parse_failed: {str(e)}")
         return False
+    return False
+
+def check_minio_reachability(endpoint, retries=3):
+    """MinIO endpoints are often host:port without a scheme."""
+    host = endpoint
+    port = 9000
+    if ":" in endpoint:
+        host, port_str = endpoint.split(":", 1)
+        port = int(port_str)
+    
+    for i in range(retries):
+        logger.info(f"attempting_minio_connection: {host}:{port} (attempt {i+1}/{retries})")
+        try:
+            with socket.create_connection((host, port), timeout=5):
+                logger.info("minio_reachable")
+                return True
+        except Exception as e:
+            if i < retries - 1:
+                time.sleep(3)
+                continue
+            logger.error(f"minio_unreachable_error: {str(e)}")
+            return False
+    return False
 
 def main():
-    logger.info("starting_deployment_checks")
+    logger.info("starting_zero_mock_verification")
     
-    # 1. Environment Variables (Critical)
-    if not check_env_vars():
+    # 1. Mandatory Variables
+    if not check_mandatory_vars():
         sys.exit(1)
         
-    # 2. Redis
-    redis_url = os.getenv("REDIS_URL")
-    redis_ok = False
-    if redis_url:
-        redis_ok = check_url_reachability(redis_url, "redis")
-    else:
-        redis_ok = check_service(
-            os.getenv("REDIS_HOST", "redis"),
-            int(os.getenv("REDIS_PORT", 6379)),
-            "redis"
-        )
-    if not redis_ok:
+    # 2. Redis Reachability
+    if not check_url_reachability(os.getenv("REDIS_URL"), "redis"):
         sys.exit(1)
     
-    # 3. RabbitMQ
-    rabbitmq_url = os.getenv("RABBITMQ_URL")
-    rabbitmq_ok = False
-    if rabbitmq_url:
-        rabbitmq_ok = check_url_reachability(rabbitmq_url, "rabbitmq")
-    else:
-        rabbitmq_ok = check_service(
-            os.getenv("RABBITMQ_HOST", "rabbitmq"),
-            5672,
-            "rabbitmq"
-        )
-    if not rabbitmq_ok:
+    # 3. RabbitMQ Reachability
+    if not check_url_reachability(os.getenv("RABBITMQ_URL"), "rabbitmq"):
         sys.exit(1)
     
-    # 4. MinIO
-    minio_endpoint = os.getenv("MINIO_ENDPOINT")
-    minio_ok = False
-    if minio_endpoint:
-        # MinIO endpoint is usually host:port
-        if ":" in minio_endpoint:
-            host, port = minio_endpoint.split(":", 1)
-            minio_ok = check_service(host, int(port), "minio")
-        else:
-            minio_ok = check_service(minio_endpoint, 9000, "minio")
-    else:
-        minio_ok = check_service(
-            os.getenv("MINIO_HOST", "minio"),
-            int(os.getenv("MINIO_PORT", 9000)),
-            "minio"
-        )
-    if not minio_ok:
+    # 4. MinIO Reachability
+    if not check_minio_reachability(os.getenv("MINIO_ENDPOINT")):
         sys.exit(1)
 
-    logger.info("deployment_checks_passed")
+    logger.info("zero_mock_verification_passed")
 
 
 if __name__ == "__main__":
