@@ -68,12 +68,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         )
 
     for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
-        # Block localhost and 127.0.0.1 which definitely imply local mocks in production
-        if any(bad in url.lower() for bad in ["localhost", "127.0.0.1"]):
+        # Block localhost, 127.0.0.1, and common docker-compose defaults
+        if any(
+            bad in url.lower()
+            for bad in ["localhost", "127.0.0.1", "://redis", "://rabbitmq", "minio:9000"]
+        ):
             ZERO_MOCK_VIOLATIONS.labels(violation_type="local_infrastructure").inc()
-            raise RuntimeError(
-                f"Zero-Mock Violation: Detected local infrastructure URL ({url}). Use real infrastructure."
-            )
+            
+            # For strict Zero-Mock, we raise a RuntimeError to prevent startup with invalid infrastructure
+            msg = f"Zero-Mock Violation: Detected local/default infrastructure URL ({url}). Use real infrastructure."
+            logger.critical(msg)
+            raise RuntimeError(msg)
 
 
 
@@ -85,18 +90,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Background workers consume tasks from bs.scrape and bs.experiment
     try:
         import asyncio
-
         # Wait at most 5 seconds for consumers to start
         await asyncio.wait_for(start_consumers(), timeout=5.0)
         logger.info("consumers_started", step="init")
-    except TimeoutError:
+    except (TimeoutError, asyncio.TimeoutError):
         logger.warning("consumers_start_timeout", step="init")
+        if settings.env == "production":
+            raise RuntimeError("Zero-Mock Violation: RabbitMQ consumers failed to start within timeout in production.")
     except Exception as error:
-        # We log but allow startup to proceed if RabbitMQ is transiently down,
-        # however we no longer allow skipping it via configuration.
         logger.error("consumers_start_failed", error=str(error), step="init")
+        if settings.env == "production":
+            raise RuntimeError(f"Zero-Mock Violation: RabbitMQ connection failed in production: {error}")
 
-    logger.info("app_ready", step="init")
+    # Premium Startup Banner
+    logger.info(
+        "app_ready",
+        env=settings.env,
+        compression="Brotli+GZip" if settings.gzip_enabled else "Disabled",
+        zero_mock="Strict (Production)" if settings.env == "production" else "Standard",
+        step="init"
+    )
 
     yield
 

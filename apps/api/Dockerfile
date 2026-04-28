@@ -29,7 +29,7 @@ COPY requirements.txt requirements-dev.txt .
 RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 
 # Install Playwright Chromium
-# RUN playwright install chromium
+RUN playwright install chromium
 
 
 # Copy source code

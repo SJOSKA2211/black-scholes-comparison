@@ -11,8 +11,10 @@ from aio_pika.abc import AbstractIncomingMessage
 from src.data.pipeline import DataPipeline
 from src.task_queues.rabbitmq_client import get_rabbitmq_connection
 from src.utils.compression import decompress_data
+from src.metrics import RABBITMQ_TASKS_CONSUMED
 
 logger = structlog.get_logger(__name__)
+
 
 
 def _get_payload(message: AbstractIncomingMessage) -> Any:
@@ -43,9 +45,12 @@ async def handle_scrape_task(message: AbstractIncomingMessage) -> None:
         try:
             await pipeline.run(trade_date)
             logger.info("scrape_task_success", market=market, run_id=run_id, step="queue")
+            RABBITMQ_TASKS_CONSUMED.labels(queue="bs.scrape", status="success").inc()
         except Exception as error:
             logger.error("scrape_task_failed", market=market, error=str(error), step="queue")
+            RABBITMQ_TASKS_CONSUMED.labels(queue="bs.scrape", status="error").inc()
             raise
+
 
 
 async def handle_experiment_task(message: AbstractIncomingMessage) -> None:
@@ -59,9 +64,12 @@ async def handle_experiment_task(message: AbstractIncomingMessage) -> None:
         try:
             await run_experiments(payload)
             logger.info("experiment_task_success", step="queue")
+            RABBITMQ_TASKS_CONSUMED.labels(queue="bs.experiment", status="success").inc()
         except Exception as error:
             logger.error("experiment_task_failed", error=str(error), step="queue")
+            RABBITMQ_TASKS_CONSUMED.labels(queue="bs.experiment", status="error").inc()
             raise
+
 
 
 async def start_consumers() -> None:

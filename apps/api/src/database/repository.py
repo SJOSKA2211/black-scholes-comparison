@@ -14,7 +14,44 @@ from src.metrics import SUPABASE_ERRORS, SUPABASE_QUERY_DURATION
 logger = structlog.get_logger(__name__)
 
 
+def retry_supabase(max_retries: int = 3, delay: float = 1.0):
+    """Decorator to retry Supabase operations on connection errors."""
+
+    def decorator(func):
+        import functools
+
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as error:
+                    # Retry on connection reset or other transient network issues
+                    if "Connection reset by peer" in str(error) or "[Errno 104]" in str(error):
+                        last_error = error
+                        wait = delay * (2**attempt)  # Exponential backoff
+                        logger.warning(
+                            "supabase_retry",
+                            func=func.__name__,
+                            attempt=attempt + 1,
+                            wait=wait,
+                            error=str(error),
+                        )
+                        await asyncio.sleep(wait)
+                        continue
+                    raise  # Re-raise non-transient errors
+            raise last_error
+
+        return wrapper
+
+    return decorator
+
+
+
+@retry_supabase(max_retries=3)
 async def upsert_option_parameters(params: dict[str, Any]) -> str:
+
     """
     Finds existing option parameters or inserts new ones.
     Returns the ID of the record.
@@ -51,7 +88,9 @@ async def upsert_option_parameters(params: dict[str, Any]) -> str:
         raise RepositoryError(f"Database operation failed: {error!s}") from error
 
 
+@retry_supabase(max_retries=3)
 async def insert_method_result(
+
     result: dict[str, Any], user_id: str | None = None
 ) -> list[dict[str, Any]]:
     supabase = get_supabase_client()
@@ -256,7 +295,9 @@ async def get_market_data(
         raise RepositoryError(f"Database operation failed: {error!s}") from error
 
 
+@retry_supabase(max_retries=3)
 async def insert_market_data(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+
     supabase = get_supabase_client()
     table = "market_data"
     op = "upsert"
@@ -333,7 +374,9 @@ async def create_scrape_run(market: str) -> str:
         raise RepositoryError(f"Database operation failed: {error!s}") from error
 
 
+@retry_supabase(max_retries=3)
 async def update_scrape_run(run_id: str, data: dict[str, Any]) -> dict[str, Any]:
+
     supabase = get_supabase_client()
     table = "scrape_runs"
     op = "update"
