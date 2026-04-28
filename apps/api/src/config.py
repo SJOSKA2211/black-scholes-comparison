@@ -25,7 +25,10 @@ class Settings(BaseSettings):
 
     # 2. API
     api_url: str = Field("http://localhost:8000", alias="NEXT_PUBLIC_API_URL")
-    environment: str = Field("production", alias="ENVIRONMENT")
+    environment: str = Field(
+        "production" if os.getenv("RENDER") else "development", 
+        alias="ENVIRONMENT"
+    )
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
@@ -92,6 +95,8 @@ class Settings(BaseSettings):
     minio_bucket_scraper: str = Field("bs-scraper", alias="MINIO_BUCKET_SCRAPER")
     minio_secure: bool = Field(False, alias="MINIO_SECURE")
     minio_enabled: bool = Field(True, alias="MINIO_ENABLED")
+    minio_cluster_enabled: bool = Field(False, alias="MINIO_CLUSTER_ENABLED")
+    minio_cluster_nodes: list[str] = Field(["minio:9000"], alias="MINIO_CLUSTER_NODES")
 
     # 6. Observability
     prometheus_port: int = Field(9090, alias="PROMETHEUS_PORT")

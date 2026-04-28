@@ -26,8 +26,23 @@ def get_minio() -> Minio:
         retries=urllib3.Retry(total=1, backoff_factor=0.2),
     )
 
+    endpoint = settings.minio_endpoint
+    if settings.minio_cluster_enabled:
+        # Simple node discovery: pick the first resolvable node
+        import socket
+        for node in settings.minio_cluster_nodes:
+            try:
+                host = node.split(":")[0]
+                port = int(node.split(":")[1]) if ":" in node else 9000
+                socket.getaddrinfo(host, port)
+                endpoint = node
+                logger.info("minio_cluster_node_selected", node=node)
+                break
+            except Exception:
+                continue
+
     client = Minio(
-        settings.minio_endpoint,
+        endpoint,
         access_key=settings.minio_access_key,
         secret_key=settings.minio_secret_key,
         secure=settings.minio_secure,
@@ -35,17 +50,6 @@ def get_minio() -> Minio:
     )
 
     try:
-        # Check if host is resolvable to avoid long timeouts/retries on cloud platforms
-        import socket
-
-        host = settings.minio_host
-        try:
-            # getaddrinfo is more robust than gethostbyname
-            socket.getaddrinfo(host, settings.minio_port)
-        except (TimeoutError, socket.gaierror):
-            logger.warning("minio_host_not_resolvable", host=host, step="init")
-            return client
-
         # Ensure buckets exist
         for bucket in [settings.minio_bucket_exports, settings.minio_bucket_scraper]:
             if not client.bucket_exists(bucket):

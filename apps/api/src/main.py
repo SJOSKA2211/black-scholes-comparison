@@ -68,18 +68,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         )
 
     for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
-        # Block localhost, 127.0.0.1, and common docker-compose defaults
-        if any(
-            bad in url.lower()
-            for bad in ["localhost", "127.0.0.1"]
-
-        ):
-            ZERO_MOCK_VIOLATIONS.labels(violation_type="local_infrastructure").inc()
-            
-            # For strict Zero-Mock, we raise a RuntimeError to prevent startup with invalid infrastructure
-            msg = f"Zero-Mock Violation: Detected local/default infrastructure URL ({url}). Use real infrastructure."
-            logger.critical(msg)
-            raise RuntimeError(msg)
+        # Block localhost, 127.0.0.1, and common docker-compose defaults in production
+        if settings.env == "production":
+            if any(
+                bad in url.lower()
+                for bad in ["localhost", "127.0.0.1", "://redis", "://rabbitmq", "minio:9000"]
+            ):
+                ZERO_MOCK_VIOLATIONS.labels(violation_type="local_infrastructure").inc()
+                
+                # For strict Zero-Mock, we raise a RuntimeError to prevent startup with invalid infrastructure
+                msg = f"Zero-Mock Violation: Detected local/default infrastructure URL ({url}) in production. Use real infrastructure."
+                logger.critical(msg)
+                raise RuntimeError(msg)
 
 
 
