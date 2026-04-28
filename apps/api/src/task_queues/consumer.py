@@ -69,27 +69,40 @@ async def start_consumers() -> None:
     Start consuming from both queues — called from main.py lifespan.
     Adheres to Section 8.4 of the Production Final mandate.
     """
+    import asyncio
     from src.config import get_settings
 
     settings = get_settings()
+    max_retries = 5
+    retry_delay = 5
 
-    try:
-        connection = await get_rabbitmq_connection()
-        channel = await connection.channel()
+    for attempt in range(max_retries):
+        try:
+            connection = await get_rabbitmq_connection()
+            channel = await connection.channel()
 
-        # Prefetch 1 ensures fair dispatch (Section 8.4)
-        await channel.set_qos(prefetch_count=1)
+            # Prefetch 1 ensures fair dispatch (Section 8.4)
+            await channel.set_qos(prefetch_count=1)
 
-        # Ensure queues exist
-        scrape_queue = await channel.declare_queue("bs.scrape", durable=True)
-        experiment_queue = await channel.declare_queue("bs.experiment", durable=True)
+            # Ensure queues exist
+            scrape_queue = await channel.declare_queue("bs.scrape", durable=True)
+            experiment_queue = await channel.declare_queue("bs.experiment", durable=True)
 
-        # Start consuming
-        await scrape_queue.consume(handle_scrape_task)
-        await experiment_queue.consume(handle_experiment_task)
+            # Start consuming
+            await scrape_queue.consume(handle_scrape_task)
+            await experiment_queue.consume(handle_experiment_task)
 
-        logger.info("consumers_active", queues=["bs.scrape", "bs.experiment"], step="init")
-    except Exception as error:
-        logger.error("consumers_start_failed", error=str(error), step="init")
-        # Do not raise here to allow API to start even if RabbitMQ is transiently down
-        # Robustness handled by connect_robust in rabbitmq_client.py
+            logger.info("consumers_active", queues=["bs.scrape", "bs.experiment"], step="init")
+            return
+        except Exception as error:
+            logger.warning(
+                "consumers_start_retry",
+                error=str(error),
+                attempt=attempt + 1,
+                next_retry=retry_delay,
+                step="init",
+            )
+            await asyncio.sleep(retry_delay)
+
+    logger.error("consumers_start_final_failure", step="init")
+

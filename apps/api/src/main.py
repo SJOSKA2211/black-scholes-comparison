@@ -44,13 +44,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Zero-Mock Production Guard
     if settings.environment == "production":
-        # Check for obvious local/docker defaults in production
-        if "redis:6379" in settings.redis_url:
-            raise RuntimeError("Zero-Mock Violation: Using local Redis default in Production.")
-        if "rabbitmq:5672" in settings.rabbitmq_url:
-            raise RuntimeError("Zero-Mock Violation: Using local RabbitMQ default in Production.")
-        if "minio:9000" in settings.minio_endpoint:
-            raise RuntimeError("Zero-Mock Violation: Using local MinIO default in Production.")
+        # Check for localhost/127.0.0.1 which implies mocking/local-only infra in production
+        for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
+            if "localhost" in url or "127.0.0.1" in url:
+                raise RuntimeError(f"Zero-Mock Violation: Using local infrastructure ({url}) in Production.")
+
 
     # Eager initialization triggers connection attempts
     get_redis()

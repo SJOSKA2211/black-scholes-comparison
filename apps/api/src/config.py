@@ -17,9 +17,11 @@ class Settings(BaseSettings):
 
     # 1. Supabase
     supabase_url: str = Field(..., alias="SUPABASE_URL")
-    supabase_db_host: str = Field(..., alias="SUPABASE_DB_HOST")
+    supabase_db_host: str = Field(
+        "db.smawxojcohoqeqyksuvp.supabase.co:5432", alias="SUPABASE_DB_HOST"
+    )
     supabase_key: str = Field(..., alias="SUPABASE_KEY")
-    supabase_anon_key: str = Field(..., alias="SUPABASE_ANON_KEY")
+    supabase_anon_key: str = Field("dummy_anon_key", alias="SUPABASE_ANON_KEY")
 
     # 2. API
     api_url: str = Field("http://localhost:8000", alias="NEXT_PUBLIC_API_URL")
@@ -69,6 +71,17 @@ class Settings(BaseSettings):
     def minio_endpoint(self) -> str:
         """Return the MinIO endpoint."""
         return self.minio_endpoint_override
+
+    @property
+    def minio_host(self) -> str:
+        """Extract host from endpoint."""
+        return self.minio_endpoint_override.split(":")[0]
+
+    @property
+    def minio_port(self) -> int:
+        """Extract port from endpoint."""
+        parts = self.minio_endpoint_override.split(":")
+        return int(parts[1]) if len(parts) > 1 else 9000
 
     minio_access_key: str = Field("minio_admin", alias="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field("minio_secret", alias="MINIO_SECRET_KEY")
