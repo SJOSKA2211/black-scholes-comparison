@@ -19,11 +19,18 @@ MANDATORY_VARS = [
 
 def check_mandatory_vars():
     logger.info("checking_mandatory_vars")
+    env = os.getenv("ENVIRONMENT", "production").lower()
+    
     missing = [v for v in MANDATORY_VARS if not os.getenv(v)]
     if missing:
-        logger.error(f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing)}")
-        logger.info("TIP: You must provide real infrastructure URLs in your platform environment settings.")
-        return False
+        if env == "production":
+            logger.error(f"Zero-Mock Violation: Missing mandatory infrastructure variables in PRODUCTION: {', '.join(missing)}")
+            logger.info("TIP: You must provide real infrastructure URLs in your platform environment settings.")
+            return False
+        else:
+            logger.warning(f"Development Mode: Skipping mandatory variables: {', '.join(missing)}")
+            return True
+            
     logger.info("mandatory_vars_ok")
     return True
 
@@ -94,21 +101,37 @@ def check_minio_reachability(endpoint, retries=3):
 
 def main():
     logger.info("starting_zero_mock_verification")
+    env = os.getenv("ENVIRONMENT", "production").lower()
     
     # 1. Mandatory Variables
     if not check_mandatory_vars():
         sys.exit(1)
         
     # 2. Redis Reachability
-    if not check_url_reachability(os.getenv("REDIS_URL"), "redis"):
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        if not check_url_reachability(redis_url, "redis"):
+            sys.exit(1)
+    elif env == "production":
+        logger.error("REDIS_URL_missing_in_production")
         sys.exit(1)
     
     # 3. RabbitMQ Reachability
-    if not check_url_reachability(os.getenv("RABBITMQ_URL"), "rabbitmq"):
+    rabbitmq_url = os.getenv("RABBITMQ_URL")
+    if rabbitmq_url:
+        if not check_url_reachability(rabbitmq_url, "rabbitmq"):
+            sys.exit(1)
+    elif env == "production":
+        logger.error("RABBITMQ_URL_missing_in_production")
         sys.exit(1)
     
     # 4. MinIO Reachability
-    if not check_minio_reachability(os.getenv("MINIO_ENDPOINT")):
+    minio_endpoint = os.getenv("MINIO_ENDPOINT")
+    if minio_endpoint:
+        if not check_minio_reachability(minio_endpoint):
+            sys.exit(1)
+    elif env == "production":
+        logger.error("MINIO_ENDPOINT_missing_in_production")
         sys.exit(1)
 
     logger.info("zero_mock_verification_passed")

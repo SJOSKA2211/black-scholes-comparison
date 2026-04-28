@@ -42,6 +42,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.cache.redis_client import get_redis
     from src.storage.minio_client import get_minio
 
+    # Zero-Mock Production Guard
+    if settings.environment == "production":
+        # Check for obvious local/docker defaults in production
+        if "redis:6379" in settings.redis_url:
+            raise RuntimeError("Zero-Mock Violation: Using local Redis default in Production.")
+        if "rabbitmq:5672" in settings.rabbitmq_url:
+            raise RuntimeError("Zero-Mock Violation: Using local RabbitMQ default in Production.")
+        if "minio:9000" in settings.minio_endpoint:
+            raise RuntimeError("Zero-Mock Violation: Using local MinIO default in Production.")
+
     # Eager initialization triggers connection attempts
     get_redis()
     get_minio()
