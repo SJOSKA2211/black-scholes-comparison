@@ -16,6 +16,7 @@ import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from brotli_asgi import BrotliMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.config import get_settings
@@ -135,8 +136,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # GZip compression (Mandatory for production)
+    # Premium Compression (Brotli primary, GZip fallback)
     if settings.gzip_enabled:
+        # Brotli is superior to Gzip for JSON and text
+        app.add_middleware(
+            BrotliMiddleware,
+            quality=settings.gzip_level,  # Reuse gzip_level for brotli quality
+            minimum_size=settings.gzip_min_size,
+        )
+        # GZip as a fallback for older clients
         app.add_middleware(
             GZipMiddleware,
             minimum_size=settings.gzip_min_size,

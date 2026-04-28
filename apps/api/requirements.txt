@@ -31,3 +31,4 @@ minio==7.2.7
 ruff==0.4.4
 mypy==1.10.0
 xlsxwriter>=3.2.0
+brotli-asgi==1.4.0
