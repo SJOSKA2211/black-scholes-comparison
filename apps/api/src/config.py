@@ -47,39 +47,43 @@ class Settings(BaseSettings):
         return self.environment
 
     # 3. Cache / Pub-Sub (Redis)
-    redis_url_override: str = Field("redis://redis:6379/0", alias="REDIS_URL")
+    redis_url_override: str | None = Field(None, alias="REDIS_URL")
 
     @property
     def redis_url(self) -> str:
         """Return the Redis URL."""
-        return self.redis_url_override
+        return self.redis_url_override or ""
 
     redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
 
     # 4. Message Queue (RabbitMQ)
-    rabbitmq_url_override: str = Field("amqp://rabbitmq_user:JKmaish2025@rabbitmq:5672/", alias="RABBITMQ_URL")
+    rabbitmq_url_override: str | None = Field(None, alias="RABBITMQ_URL")
 
     @property
     def rabbitmq_url(self) -> str:
         """Return the RabbitMQ URL."""
-        return self.rabbitmq_url_override
+        return self.rabbitmq_url_override or ""
 
     # 5. Object Storage (MinIO / S3)
-    minio_endpoint_override: str = Field("minio:9000", alias="MINIO_ENDPOINT")
+    minio_endpoint_override: str | None = Field(None, alias="MINIO_ENDPOINT")
 
     @property
     def minio_endpoint(self) -> str:
         """Return the MinIO endpoint."""
-        return self.minio_endpoint_override
+        return self.minio_endpoint_override or ""
 
     @property
     def minio_host(self) -> str:
         """Extract host from endpoint."""
+        if not self.minio_endpoint_override:
+            return ""
         return self.minio_endpoint_override.split(":")[0]
 
     @property
     def minio_port(self) -> int:
         """Extract port from endpoint."""
+        if not self.minio_endpoint_override:
+            return 9000
         parts = self.minio_endpoint_override.split(":")
         return int(parts[1]) if len(parts) > 1 else 9000
 
@@ -104,8 +108,18 @@ class Settings(BaseSettings):
     # 10. Scraper
     playwright_headless: bool = Field(True, alias="PLAYWRIGHT_HEADLESS")
 
+    # 11. Compression
+    gzip_enabled: bool = Field(True, alias="GZIP_ENABLED")
+    gzip_min_size: int = Field(1000, alias="GZIP_MIN_SIZE")
+    gzip_level: int = Field(9, alias="GZIP_LEVEL")
+
     model_config = SettingsConfigDict(
-        env_file=".env" if not os.getenv("SKIP_DOTENV") else None,
+        env_file=(
+            ".env",
+            "apps/api/.env",
+            "../.env",
+            "../../.env"
+        ) if not os.getenv("SKIP_DOTENV") else None,
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

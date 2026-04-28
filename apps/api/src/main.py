@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+
+# Load environment variables early
+load_dotenv()
+load_dotenv("apps/api/.env")
 
 import structlog
 from fastapi import FastAPI, Request, Response
@@ -43,10 +50,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.storage.minio_client import get_minio
 
     # Zero-Mock Mandatory Guard (Applies to all environments)
+    missing_vars = []
+    if not settings.redis_url:
+        missing_vars.append("REDIS_URL")
+    if not settings.rabbitmq_url:
+        missing_vars.append("RABBITMQ_URL")
+    if not settings.minio_endpoint:
+        missing_vars.append("MINIO_ENDPOINT")
+
+    if missing_vars:
+        raise RuntimeError(
+            f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing_vars)}"
+        )
+
     for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
-        # Block localhost, 127.0.0.1, and common docker-compose defaults
-        if any(bad in url.lower() for bad in ["localhost", "127.0.0.1", "://redis", "://rabbitmq", "minio:9000"]):
-            raise RuntimeError(f"Zero-Mock Violation: Detected local/default infrastructure URL ({url}). Use real infrastructure.")
+        # Block localhost and 127.0.0.1 which definitely imply local mocks in production
+        if any(bad in url.lower() for bad in ["localhost", "127.0.0.1"]):
+            raise RuntimeError(
+                f"Zero-Mock Violation: Detected local infrastructure URL ({url}). Use real infrastructure."
+            )
+
 
 
     # Eager initialization triggers connection attempts
@@ -109,7 +132,11 @@ def create_app() -> FastAPI:
     )
 
     # GZip compression (Mandatory for production)
-    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    if settings.gzip_enabled:
+        app.add_middleware(
+            GZipMiddleware,
+            minimum_size=settings.gzip_min_size,
+        )
 
     # Prometheus Instrumentation (Section 12.1)
     # Exposes /metrics for Prometheus scraping

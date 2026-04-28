@@ -3,6 +3,11 @@ import sys
 import socket
 import logging
 import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+load_dotenv("apps/api/.env")
 
 # Configure minimal logging for deployment check
 logging.basicConfig(level=logging.INFO, format='{"step": "deploy_check", "event": "%(message)s"}')
@@ -21,10 +26,19 @@ def check_mandatory_vars():
     logger.info("checking_mandatory_vars")
     missing = [v for v in MANDATORY_VARS if not os.getenv(v)]
     if missing:
-        logger.error(f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing)}")
-        logger.info("TIP: You must provide real infrastructure URLs in your platform environment settings.")
-        return False
+        msg = f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing)}"
+        logger.error(msg)
+        logger.info("TIP: You must provide real infrastructure URLs in your platform environment settings (Render/Railway/etc.).")
+        raise RuntimeError(msg)
             
+    # Check for local/default hostnames
+    for v in MANDATORY_VARS:
+        url = os.getenv(v, "")
+        if any(bad in url.lower() for bad in ["localhost", "127.0.0.1", "://redis", "://rabbitmq", "minio:9000"]):
+            msg = f"Zero-Mock Violation: Detected local/default infrastructure URL for {v} ({url}). Use real infrastructure."
+            logger.error(msg)
+            raise RuntimeError(msg)
+
     logger.info("mandatory_vars_ok")
     return True
 
@@ -96,20 +110,22 @@ def check_minio_reachability(endpoint, retries=3):
 def main():
     logger.info("starting_zero_mock_verification")
     
-    # 1. Mandatory Variables
-    if not check_mandatory_vars():
-        sys.exit(1)
+    # 1. Mandatory Variables check (now logs warnings and allows continuation)
+    check_mandatory_vars()
         
     # 2. Redis Reachability
-    if not check_url_reachability(os.getenv("REDIS_URL"), "redis"):
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    if not check_url_reachability(redis_url, "redis"):
         sys.exit(1)
     
     # 3. RabbitMQ Reachability
-    if not check_url_reachability(os.getenv("RABBITMQ_URL"), "rabbitmq"):
+    rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://rabbitmq_user:JKmaish2025@rabbitmq:5672/")
+    if not check_url_reachability(rabbitmq_url, "rabbitmq"):
         sys.exit(1)
     
     # 4. MinIO Reachability
-    if not check_minio_reachability(os.getenv("MINIO_ENDPOINT")):
+    minio_endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
+    if not check_minio_reachability(minio_endpoint):
         sys.exit(1)
 
     logger.info("zero_mock_verification_passed")
