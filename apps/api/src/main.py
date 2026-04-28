@@ -42,12 +42,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.cache.redis_client import get_redis
     from src.storage.minio_client import get_minio
 
-    # Zero-Mock Production Guard
-    if settings.environment == "production":
-        # Check for localhost/127.0.0.1 which implies mocking/local-only infra in production
-        for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
-            if "localhost" in url or "127.0.0.1" in url:
-                raise RuntimeError(f"Zero-Mock Violation: Using local infrastructure ({url}) in Production.")
+    # Zero-Mock Mandatory Guard (Applies to all environments)
+    for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
+        # Block localhost, 127.0.0.1, and common docker-compose defaults
+        if any(bad in url.lower() for bad in ["localhost", "127.0.0.1", "://redis", "://rabbitmq", "minio:9000"]):
+            raise RuntimeError(f"Zero-Mock Violation: Detected local/default infrastructure URL ({url}). Use real infrastructure.")
 
 
     # Eager initialization triggers connection attempts
