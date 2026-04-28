@@ -16,12 +16,10 @@ class Settings(BaseSettings):
     """
 
     # 1. Supabase
-    supabase_url: str = Field("https://smawxojcohoqeqyksuvp.supabase.co", alias="SUPABASE_URL")
-    supabase_db_host: str = Field(
-        "db.smawxojcohoqeqyksuvp.supabase.co:5432", alias="SUPABASE_DB_HOST"
-    )
-    supabase_key: str = Field("dummy_service_key", alias="SUPABASE_KEY")
-    supabase_anon_key: str = Field("dummy_anon_key", alias="SUPABASE_ANON_KEY")
+    supabase_url: str = Field(..., alias="SUPABASE_URL")
+    supabase_db_host: str = Field(..., alias="SUPABASE_DB_HOST")
+    supabase_key: str = Field(..., alias="SUPABASE_KEY")
+    supabase_anon_key: str = Field(..., alias="SUPABASE_ANON_KEY")
 
     # 2. API
     api_url: str = Field("http://localhost:8000", alias="NEXT_PUBLIC_API_URL")
@@ -47,50 +45,33 @@ class Settings(BaseSettings):
         return self.environment
 
     # 3. Cache / Pub-Sub (Redis)
-    redis_host: str = Field("redis", alias="REDIS_HOST")
-    redis_port: int = Field(6379, alias="REDIS_PORT")
-    redis_url_override: str | None = Field(None, alias="REDIS_URL")
+    redis_url_override: str = Field(..., alias="REDIS_URL")
 
     @property
     def redis_url(self) -> str:
-        """Construct Redis URL if not overridden."""
-        if self.redis_url_override:
-            return self.redis_url_override
-        return f"redis://{self.redis_host}:{self.redis_port}/0"
+        """Return the mandatory Redis URL."""
+        return self.redis_url_override
 
-    redis_password: str = Field("JKmaish2025", alias="REDIS_PASSWORD")
-    redis_enabled: bool = Field(True, alias="REDIS_ENABLED")
+    redis_password: str = Field(..., alias="REDIS_PASSWORD")
 
     # 4. Message Queue (RabbitMQ)
-    rabbitmq_user: str = Field("rabbitmq_user", alias="RABBITMQ_USER")
-    rabbitmq_password: str = Field("JKmaish2025", alias="RABBITMQ_PASSWORD")
-    rabbitmq_url_override: str | None = Field(None, alias="RABBITMQ_URL")
+    rabbitmq_url_override: str = Field(..., alias="RABBITMQ_URL")
 
     @property
     def rabbitmq_url(self) -> str:
-        """Construct the AMQP connection string, allowing override."""
-        if self.rabbitmq_url_override:
-            return self.rabbitmq_url_override
-
-        host = os.getenv("RABBITMQ_HOST", "rabbitmq")
-        return f"amqp://{self.rabbitmq_user}:{self.rabbitmq_password}@{host}:5672/"
-
-    rabbitmq_enabled: bool = Field(True, alias="RABBITMQ_ENABLED")
+        """Return the mandatory RabbitMQ URL."""
+        return self.rabbitmq_url_override
 
     # 5. Object Storage (MinIO / S3)
-    minio_host: str = Field("minio", alias="MINIO_HOST")
-    minio_port: int = Field(9000, alias="MINIO_PORT")
-    minio_endpoint_override: str | None = Field(None, alias="MINIO_ENDPOINT")
+    minio_endpoint_override: str = Field(..., alias="MINIO_ENDPOINT")
 
     @property
     def minio_endpoint(self) -> str:
-        """Construct MinIO endpoint if not overridden."""
-        if self.minio_endpoint_override:
-            return self.minio_endpoint_override
-        return f"{self.minio_host}:{self.minio_port}"
+        """Return the mandatory MinIO endpoint."""
+        return self.minio_endpoint_override
 
-    minio_access_key: str = Field("minio_admin", alias="MINIO_ACCESS_KEY")
-    minio_secret_key: str = Field("minio_secret", alias="MINIO_SECRET_KEY")
+    minio_access_key: str = Field(..., alias="MINIO_ACCESS_KEY")
+    minio_secret_key: str = Field(..., alias="MINIO_SECRET_KEY")
     minio_bucket_exports: str = Field("bs-exports", alias="MINIO_BUCKET_EXPORTS")
     minio_bucket_scraper: str = Field("bs-scraper", alias="MINIO_BUCKET_SCRAPER")
     minio_secure: bool = Field(False, alias="MINIO_SECURE")
