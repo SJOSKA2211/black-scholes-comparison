@@ -40,10 +40,10 @@ def check_service(host, port, name, enabled_var=None):
             logger.info(f"{name}_reachable")
             return True
     except Exception as e:
-        logger.warning(f"{name}_unreachable: {str(e)}")
+        logger.error(f"{name}_unreachable: {str(e)}")
         if host in ("redis", "rabbitmq", "minio"):
             logger.info(f"TIP: Hostname '{host}' looks like a local Docker name. Ensure it is correct for production.")
-        return True
+        return False
 
 
 def check_url_reachability(url_str, name):
@@ -65,15 +65,15 @@ def check_url_reachability(url_str, name):
             else: port = 80
 
         if not host:
-            logger.warning(f"{name}_invalid_url: {url_str}")
-            return True
+            logger.error(f"{name}_invalid_url: {url_str}")
+            return False
 
         with socket.create_connection((host, port), timeout=2):
             logger.info(f"{name}_reachable")
             return True
     except Exception as e:
-        logger.warning(f"{name}_unreachable: {str(e)}")
-        return True
+        logger.error(f"{name}_unreachable: {str(e)}")
+        return False
 
 def main():
     logger.info("starting_deployment_checks")
@@ -84,44 +84,53 @@ def main():
         
     # 2. Redis
     redis_url = os.getenv("REDIS_URL")
+    redis_ok = False
     if redis_url:
-        check_url_reachability(redis_url, "redis")
+        redis_ok = check_url_reachability(redis_url, "redis")
     else:
-        check_service(
+        redis_ok = check_service(
             os.getenv("REDIS_HOST", "redis"),
             int(os.getenv("REDIS_PORT", 6379)),
             "redis",
             "REDIS_ENABLED"
         )
+    if not redis_ok:
+        sys.exit(1)
     
     # 3. RabbitMQ
     rabbitmq_url = os.getenv("RABBITMQ_URL")
+    rabbitmq_ok = False
     if rabbitmq_url:
-        check_url_reachability(rabbitmq_url, "rabbitmq")
+        rabbitmq_ok = check_url_reachability(rabbitmq_url, "rabbitmq")
     else:
-        check_service(
+        rabbitmq_ok = check_service(
             os.getenv("RABBITMQ_HOST", "rabbitmq"),
             5672,
             "rabbitmq",
             "RABBITMQ_ENABLED"
         )
+    if not rabbitmq_ok:
+        sys.exit(1)
     
     # 4. MinIO
     minio_endpoint = os.getenv("MINIO_ENDPOINT")
+    minio_ok = False
     if minio_endpoint:
         # MinIO endpoint is usually host:port
         if ":" in minio_endpoint:
             host, port = minio_endpoint.split(":", 1)
-            check_service(host, int(port), "minio", "MINIO_ENABLED")
+            minio_ok = check_service(host, int(port), "minio", "MINIO_ENABLED")
         else:
-            check_service(minio_endpoint, 9000, "minio", "MINIO_ENABLED")
+            minio_ok = check_service(minio_endpoint, 9000, "minio", "MINIO_ENABLED")
     else:
-        check_service(
+        minio_ok = check_service(
             os.getenv("MINIO_HOST", "minio"),
             int(os.getenv("MINIO_PORT", 9000)),
             "minio",
             "MINIO_ENABLED"
         )
+    if not minio_ok:
+        sys.exit(1)
 
     logger.info("deployment_checks_passed")
 

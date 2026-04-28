@@ -24,7 +24,7 @@ def upload_export(
 ) -> str:
     """
     Upload binary data to MinIO and return a presigned URL.
-    Optionally compresses data using Gzip (zlib).
+    Optionally compresses data using Gzip.
     """
     client: Minio | None = get_minio()
     if client is None:
@@ -36,7 +36,7 @@ def upload_export(
     metadata: dict[str, str | list[str] | tuple[str]] = {}
 
     if compress and len(data) > 1024:  # Only compress if > 1KB
-        final_data = compress_data(data)
+        final_data = compress_data(data, method="gzip")
         if not final_filename.endswith(".gz"):
             final_filename += ".gz"
         metadata["Content-Encoding"] = "gzip"

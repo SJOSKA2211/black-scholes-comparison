@@ -1,4 +1,18 @@
 uvicorn[standard]==0.29.0
 fastapi==0.111.0
+pydantic==2.7.1
+pydantic-settings==2.2.1
+supabase==2.4.3
+structlog==24.2.0
+numpy==1.26.4
+scipy==1.13.0
+pandas==2.2.2
+python-dotenv==1.0.1
+redis==5.0.4
+aio-pika==9.4.1
+minio==7.2.7
+resend==0.8.0
+python-multipart==0.0.9
+prometheus-client==0.20.0
+prometheus-fastapi-instrumentator==7.0.0
 -r apps/api/requirements.txt
--r apps/api/requirements-dev.txt
