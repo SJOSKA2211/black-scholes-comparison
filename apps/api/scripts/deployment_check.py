@@ -22,7 +22,8 @@ def check_env_vars():
     return True
 
 def check_service(host, port, name, enabled_var=None):
-    if enabled_var and os.getenv(enabled_var, "true").lower() != "true":
+    # Default to False for optional infrastructure to allow boot
+    if enabled_var and os.getenv(enabled_var, "false").lower() != "true":
         logger.info(f"{name}_skipped")
         return True
     

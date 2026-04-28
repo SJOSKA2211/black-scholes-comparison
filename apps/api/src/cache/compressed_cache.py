@@ -40,9 +40,9 @@ async def set_compressed(key: str, value: object, expire: int = 3600) -> None:
 
     # Serialize to JSON then compress
     json_data = json.dumps(value)
-    compressed = compress_data(json_data, method="zlib")
+    body = compress_data(json_data, method="gzip")
 
-    await redis.set(key, compressed, ex=expire)
+    await redis.set(key, body, ex=expire)
 
 
 async def get_compressed(key: str) -> Any | None:  # noqa: ANN401
@@ -53,5 +53,5 @@ async def get_compressed(key: str) -> Any | None:  # noqa: ANN401
     if compressed is None:
         return None
 
-    json_data = decompress_data(compressed, as_str=True, method="zlib")
+    json_data = decompress_data(compressed, as_str=True, method="gzip")
     return json.loads(json_data)
