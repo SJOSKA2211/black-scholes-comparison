@@ -1,13 +1,6 @@
-"""WebSocket channel definitions and message routing."""
+"""WebSocket channel definitions."""
 
-from enum import Enum
+from __future__ import annotations
 
-
-class ChannelName(str, Enum):
-    EXPERIMENTS = "experiments"
-    SCRAPERS = "scrapers"
-    NOTIFICATIONS = "notifications"
-    METRICS = "metrics"
-
-
-ALLOWED_CHANNELS = frozenset([c.value for c in ChannelName])
+# Channels are currently managed by WebSocketManager via ALLOWED_CHANNELS in routers/websocket.py.
+# This file can be used for more complex channel logic or message routing.

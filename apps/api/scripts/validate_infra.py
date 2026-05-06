@@ -4,10 +4,11 @@ import asyncio
 from datetime import date
 
 import structlog
-from src.data.pipeline import get_pipeline
+
 from src.cache.redis_client import get_redis
-from src.queue.publisher import publish_scrape_task
+from src.data.pipeline import get_pipeline
 from src.logging_config import setup_logging
+from src.queue.publisher import publish_scrape_task
 
 setup_logging()
 logger = structlog.get_logger(__name__)
@@ -15,12 +16,12 @@ logger = structlog.get_logger(__name__)
 
 async def validate():
     trade_date = date.today()
-    
+
     # 1. Run Pipeline for SPY (Real Data + Compression + MinIO)
     logger.info("step_1_pipeline_spy")
     spy_pipeline = get_pipeline("spy")
     await spy_pipeline.run(trade_date)
-    
+
     # 2. Run Pipeline for NSE (Real Data + Compression + MinIO)
     logger.info("step_2_pipeline_nse")
     nse_pipeline = get_pipeline("nse")

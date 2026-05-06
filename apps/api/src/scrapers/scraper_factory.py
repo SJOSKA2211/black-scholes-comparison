@@ -1,15 +1,21 @@
 """Factory for creating scraper instances."""
 
-from src.scrapers.base_scraper import BaseScraper
-from src.scrapers.nse_next_scraper import NseNextScraper
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from src.scrapers.nse_next_scraper import NseScraper
 from src.scrapers.spy_scraper import SpyScraper
+
+if TYPE_CHECKING:
+    from src.scrapers.base_scraper import BaseScraper
 
 
 def get_scraper(market: str) -> BaseScraper:
-    """Return a scraper instance for the given market."""
-    market = market.lower()
-    if market == "spy":
+    """Return the scraper for the specified market."""
+    if market.lower() == "spy":
         return SpyScraper()
-    if market == "nse":
-        return NseNextScraper()
-    raise ValueError(f"No scraper implemented for market: {market}")
+    elif market.lower() == "nse":
+        return NseScraper()
+    else:
+        raise ValueError(f"Unknown market: {market}")

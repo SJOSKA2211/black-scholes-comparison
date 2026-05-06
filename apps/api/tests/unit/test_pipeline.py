@@ -1,9 +1,10 @@
 """Unit tests for data pipeline."""
-
-import pytest
-from unittest.mock import AsyncMock, patch
+from __future__ import annotations
 from datetime import date
+from unittest.mock import AsyncMock, patch
+import pytest
 from src.data.pipeline import DataPipeline
+from src.scrapers.base_scraper import ScraperResult
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -11,24 +12,23 @@ async def test_pipeline_run_success() -> None:
     """Test pipeline orchestration with mocks."""
     market = "spy"
     trade_date = date(2024, 1, 1)
-    
-    with patch("src.data.pipeline.get_scraper") as mock_get_scraper, \
-         patch("src.data.pipeline.Repository") as mock_repo_class, \
-         patch("src.data.pipeline.upload_export") as mock_upload:
-        
-        mock_repo = AsyncMock()
-        mock_repo_class.return_value = mock_repo
-        mock_repo.insert_scrape_run.return_value = {"id": "test-id"}
-        
-        mock_scraper = AsyncMock()
-        mock_get_scraper.return_value = mock_scraper
-        mock_scraper.scrape.return_value = [{"strike": 100}]
-        
-        mock_upload.return_value = "http://minio/test.json.gz"
-        
+
+    with (
+        patch("src.data.pipeline.SpyScraper.run") as mock_run,
+        patch("src.data.pipeline.SCRAPE_ROWS_INSERTED") as mock_metrics,
+    ):
+        mock_result = ScraperResult(
+            quotes=[],
+            execution_seconds=0.1,
+            market="spy",
+            status="success"
+        )
+        mock_run.return_value = mock_result
+
         pipeline = DataPipeline(market)
-        await pipeline.run(trade_date)
-        
-        mock_scraper.scrape.assert_awaited_once_with(trade_date)
-        mock_repo.insert_scrape_run.assert_called()
-        mock_upload.assert_called()
+        result = await pipeline.run(trade_date)
+
+        assert result.market == "spy"
+        assert result.rows_scraped == 0
+        mock_run.assert_awaited_once_with(trade_date)
+        mock_metrics.labels.assert_called_with(market="spy")

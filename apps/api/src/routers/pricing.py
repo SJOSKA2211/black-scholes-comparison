@@ -1,43 +1,39 @@
-"""Router for option pricing computations."""
-
-import time
+"""API router for option pricing."""
+from __future__ import annotations
 from typing import Any
-
-from fastapi import APIRouter, Depends
-
+from fastapi import APIRouter, Depends, HTTPException
+from src.methods.base import OptionParameters, PricingResult, BasePricingMethod
+from src.methods.analytical import BlackScholesAnalytical
+from src.methods.finite_difference.crank_nicolson import CrankNicolson
+from src.methods.monte_carlo.quasi_mc import QuasiMC
+from src.methods.tree_methods.richardson import BinomialCRRRichardson
 from src.auth.dependencies import get_current_user
-from src.methods import get_method_instance
-from src.methods.base import MethodType, OptionParams
-from src.metrics import PRICE_COMPUTATIONS_TOTAL, PRICE_DURATION_SECONDS
+from src.cache.decorators import cache_response
+import structlog
 
-router = APIRouter(prefix="/pricing", tags=["Pricing"])
+router = APIRouter(prefix="/api/v1/price", tags=["pricing"])
+logger = structlog.get_logger(__name__)
 
-
-@router.post("/compute", response_model=dict)
+@router.post("/", response_model=PricingResult)
+@cache_response("price", ttl_seconds=300)
 async def compute_price(
-    params: OptionParams,
-    method: MethodType = MethodType.ANALYTICAL,
-    user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """Compute the price of an option using the specified method."""
-    method_instance = get_method_instance(method)
-
-    start_time = time.perf_counter()
-    result = await method_instance.price(params)
-    duration = time.perf_counter() - start_time
-
-    # Update metrics
-    PRICE_COMPUTATIONS_TOTAL.labels(
-        method_type=method.value,
-        option_type=params.option_type.value,
-        converged=str(result.converged).lower(),
-    ).inc()
-    PRICE_DURATION_SECONDS.labels(method_type=method.value).observe(duration)
-
-    return {
-        "price": result.price,
-        "exec_seconds": result.exec_seconds,
-        "method": method.value,
-        "params": params.model_dump(),
-        "metadata": result.metadata,
-    }
+    params: OptionParameters,
+    method: str = "analytical",
+    current_user: dict[str, Any] = Depends(get_current_user)
+) -> PricingResult:
+    """Compute option price using the specified method."""
+    logger.info("compute_price_request", method=method, user_id=current_user.get("id"))
+    
+    solver: BasePricingMethod
+    if method == "analytical":
+        solver = BlackScholesAnalytical()
+    elif method == "crank_nicolson":
+        solver = CrankNicolson()
+    elif method == "quasi_mc":
+        solver = QuasiMC()
+    elif method == "binomial_crr_richardson":
+        solver = BinomialCRRRichardson()
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported method: {method}")
+        
+    return solver.price(params)

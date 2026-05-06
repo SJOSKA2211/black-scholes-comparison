@@ -1,48 +1,75 @@
-"""Unit tests for data validators."""
+"""Unit tests for market data validators."""
+
+from datetime import date
 
 import pytest
-from src.data.validators import validate_parameters, validate_quote, validate_market_source
-from src.methods.base import OptionParams, OptionType
+
+from src.data.validators import (
+    validate_bid_ask_spread,
+    validate_maturity_date,
+    validate_positive_prices,
+    validate_quote,
+    validate_strike_price,
+    validate_symbol,
+)
 from src.exceptions import ValidationError
-from pydantic import ValidationError as PydanticValidationError
+from src.scrapers.base_scraper import RawQuote
+
+
+@pytest.fixture
+def valid_quote():
+    return RawQuote(
+        underlying_symbol="SPY",
+        strike_price=100.0,
+        maturity_date=date(2025, 12, 31),
+        option_type="call",
+        bid_price=5.0,
+        ask_price=5.5,
+        underlying_price=100.0,
+        data_source="spy",
+    )
+
 
 @pytest.mark.unit
-def test_validate_parameters_success(atm_call_params: OptionParams) -> None:
-    """Should not raise for valid parameters."""
-    validate_parameters(atm_call_params)
+def test_validate_positive_prices(valid_quote):
+    assert validate_positive_prices(valid_quote) is True
+    valid_quote.bid_price = -1
+    with pytest.raises(ValidationError):
+        validate_positive_prices(valid_quote)
+
 
 @pytest.mark.unit
-def test_validate_parameters_pydantic_enforcement() -> None:
-    """Pydantic should catch invalid parameters during object creation."""
-    with pytest.raises(PydanticValidationError):
-        OptionParams(
-            underlying_price=-100.0,
-            strike_price=100.0,
-            maturity_years=1.0,
-            volatility=0.2,
-            risk_free_rate=0.05,
-            option_type=OptionType.CALL
-        )
+def test_validate_bid_ask_spread(valid_quote):
+    assert validate_bid_ask_spread(valid_quote) is True
+    valid_quote.bid_price = 10
+    valid_quote.ask_price = 5
+    with pytest.raises(ValidationError):
+        validate_bid_ask_spread(valid_quote)
+
 
 @pytest.mark.unit
-def test_validate_quote_success() -> None:
-    """Should not raise for valid quote."""
-    validate_quote(10.0, 10.5)
+def test_validate_strike_price(valid_quote):
+    assert validate_strike_price(valid_quote) is True
+    valid_quote.strike_price = 0
+    with pytest.raises(ValidationError):
+        validate_strike_price(valid_quote)
+
 
 @pytest.mark.unit
-def test_validate_quote_crossed() -> None:
-    """Should raise if bid > ask."""
-    with pytest.raises(ValidationError, match="Bid price cannot be greater than ask"):
-        validate_quote(11.0, 10.5)
+def test_validate_maturity_date(valid_quote):
+    assert validate_maturity_date(valid_quote) is True
+
 
 @pytest.mark.unit
-def test_validate_market_source_success() -> None:
-    """Should not raise for allowed source."""
-    validate_market_source("SPY")
-    validate_market_source("NSE")
+def test_validate_symbol(valid_quote):
+    assert validate_symbol(valid_quote) is True
+    valid_quote.underlying_symbol = ""
+    with pytest.raises(ValidationError):
+        validate_symbol(valid_quote)
+
 
 @pytest.mark.unit
-def test_validate_market_source_invalid() -> None:
-    """Should raise for unknown source."""
-    with pytest.raises(ValidationError, match="Invalid market source"):
-        validate_market_source("NYSE")
+def test_validate_quote_composite(valid_quote):
+    assert validate_quote(valid_quote) is True
+    valid_quote.bid_price = -1
+    assert validate_quote(valid_quote) is False

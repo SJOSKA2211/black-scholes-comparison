@@ -1,66 +1,18 @@
-"""Notification hierarchy and delivery orchestration."""
+"""Notification hierarchy and severity definitions."""
 
 from __future__ import annotations
 
-import json
-
-import structlog
-
-from src.cache.redis_client import get_redis
-from src.database.repository import Repository
-from src.metrics import NOTIFICATIONS_SENT
-from src.notifications.email import send_email
-from src.notifications.push import send_push_notification
-
-logger = structlog.get_logger(__name__)
+from enum import Enum
 
 
-async def notify_user(
-    user_id: str,
-    title: str,
-    body: str,
-    severity: str = "info",
-    channel: str = "in_app",
-    action_url: str | None = None,
-) -> None:
-    """
-    Orchestrates notification delivery across multiple tiers.
-    """
-    repo = Repository()
-    try:
-        # 1. In-app notification (DB) - Always persistent
-        await repo.insert_notification(
-            {
-                "user_id": user_id,
-                "title": title,
-                "body": body,
-                "severity": severity,
-                "channel": channel,
-                "action_url": action_url,
-            }
-        )
+class NotificationSeverity(str, Enum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
 
-        # 2. WebSocket Push (Pub/Sub) - Always real-time
-        redis = get_redis()
-        await redis.publish(
-            "ws:notifications",
-            json.dumps(
-                {"user_id": str(user_id), "title": title, "body": body, "severity": severity}
-            ),
-        )
 
-        # 3. Channel specific delivery
-        if channel == "email" or severity in ["error", "critical"]:
-            await send_email("placeholder@example.com", title, body)
-            NOTIFICATIONS_SENT.labels(channel="email", severity=severity).inc()
-
-        if channel == "push":
-            await send_push_notification(str(user_id), title, body)
-            NOTIFICATIONS_SENT.labels(channel="push", severity=severity).inc()
-
-        NOTIFICATIONS_SENT.labels(channel="in_app", severity=severity).inc()
-        logger.info("notification_dispatched", user_id=user_id, severity=severity, channel=channel)
-
-    except Exception as error:
-        logger.error("notification_dispatch_failed", error=str(error), user_id=user_id)
-        raise  # Raise so caller knows it failed
+class NotificationChannel(str, Enum):
+    IN_APP = "in_app"
+    EMAIL = "email"
+    PUSH = "push"

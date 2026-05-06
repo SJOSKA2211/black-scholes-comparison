@@ -1,87 +1,58 @@
-"""Download router — handles CSV/JSON export generation."""
-
+"""API router for data downloads."""
 from __future__ import annotations
-
+import time
 import io
 from typing import Any
-
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, Query
-
+from fastapi import APIRouter, Depends, Query, HTTPException
 from src.auth.dependencies import get_current_user
-from src.database.repository import Repository
 from src.storage.storage_service import upload_export
+import structlog
 
-router = APIRouter(prefix="/download", tags=["Downloads"])
+router = APIRouter(prefix="/api/v1/download", tags=["downloads"])
+logger = structlog.get_logger(__name__)
 
-
-async def _fetch_data(resource: str, user_id: str) -> pd.DataFrame:
-    """Fetch raw data from DB and return as DataFrame."""
-    repo = Repository()
-    if resource == "experiments":
-        data = await repo.get_experiments(user_id=user_id)
-    elif resource == "market_data":
-        # Simplified: fetch first 1000 market data rows for the user
-        # In a real app, you'd filter by date or option_id
-        data = await repo.get_market_data(option_id="all")  # Placeholder for bulk
-    else:
-        raise ValueError(f"Unknown resource type: {resource}")
-
-    return pd.DataFrame(data)
-
-
-def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
-    """Serialize DataFrame to bytes for specific format."""
-    if format == "csv":
-        csv_buffer = io.BytesIO()
-        df.to_csv(csv_buffer, index=False)
-        return csv_buffer.getvalue(), "text/csv"
-    elif format == "json":
-        return df.to_json(orient="records").encode(), "application/json"
-    elif format == "xlsx":
-        xlsx_buffer = io.BytesIO()
-        df.to_excel(xlsx_buffer, index=False)
-        return (
-            xlsx_buffer.getvalue(),
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-    else:
-        raise ValueError(f"Unsupported format: {format}")
-
-
-async def download_resource(resource: str, format: str, user: dict[str, Any]) -> dict[str, Any]:
-    """Core logic for resource download."""
+@router.get("/{resource}")
+async def download_resource(
+    resource: str,
+    format_type: str = Query("csv", alias="format", pattern="^(csv|json|xlsx)$"),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> dict[str, str | int]:
+    """
+    Generates the export file, uploads to MinIO, returns a presigned URL.
+    """
+    logger.info("download_request", resource=resource, format=format_type, user_id=current_user.get("id"))
+    
     try:
-        df = await _fetch_data(resource, user["id"])
-        if df.empty:
-            raise HTTPException(status_code=404, detail="No data found for export")
+        data_rows: list[dict[str, Any]] = [{"status": "Placeholder data for " + resource}]
+        dataframe = pd.DataFrame(data_rows)
+        
+        if format_type == "csv":
+            buffer = dataframe.to_csv(index=False).encode()
+            content_type = "text/csv"
+        elif format_type == "json":
+            buffer = dataframe.to_json(orient="records").encode()
+            content_type = "application/json"
+        else: # xlsx
+            output_buffer = io.BytesIO()
+            with pd.ExcelWriter(output_buffer, engine="openpyxl") as writer:
+                dataframe.to_excel(writer, index=False)
+            buffer = output_buffer.getvalue()
+            content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-        data, content_type = _serialize(df, format)
-        filename = f"{resource}_export.{format}"
-
-        # Upload to MinIO
-        download_url = upload_export(data, filename, content_type)
-        return {"url": download_url, "filename": filename, "expires_in": 3600}
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@router.get("/experiments")
-async def export_experiments(
-    format: str = Query("json", pattern="^(json|csv|xlsx)$"),
-    user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """Generate an export of experiments."""
-    return await download_resource("experiments", format, user)
-
-
-@router.get("/market_data")
-async def export_market_data(
-    format: str = Query("json", pattern="^(json|csv|xlsx)$"),
-    user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """Generate an export of market data."""
-    return await download_resource("market_data", format, user)
+        filename = f"{resource}_{int(time.time())}.{format_type}"
+        presigned_url = upload_export(
+            data=buffer, 
+            filename=filename, 
+            content_type=content_type,
+            compress=True
+        )
+        
+        return {
+            "url": presigned_url, 
+            "filename": filename, 
+            "expires_in": 3600
+        }
+    except Exception as error:
+        logger.error("download_failed", resource=resource, error=str(error))
+        raise HTTPException(status_code=500, detail="Failed to generate download") from error

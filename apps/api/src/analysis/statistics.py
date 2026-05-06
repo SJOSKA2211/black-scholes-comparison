@@ -1,33 +1,21 @@
-"""Statistical analysis for pricing results."""
-
+"""Statistical analysis for research results."""
 from __future__ import annotations
-
 from typing import Any
-
 import numpy as np
 import pandas as pd
 
+def calculate_mape(
+    analytical_prices: np.ndarray[Any, np.dtype[np.float64]], 
+    numerical_prices: np.ndarray[Any, np.dtype[np.float64]]
+) -> float:
+    """Calculate Mean Absolute Percentage Error."""
+    absolute_errors = np.abs(analytical_prices - numerical_prices)
+    percentage_errors = absolute_errors / analytical_prices
+    return float(np.mean(percentage_errors) * 100)
 
-def compute_mape(results: list[dict[str, Any]], analytical_ref: float) -> float:
-    """Computes Mean Absolute Percentage Error for a set of results."""
-    if not results or analytical_ref == 0:
-        return 0.0
-
-    errors = [abs(res["computed_price"] - analytical_ref) / analytical_ref for res in results]
-    return float(np.mean(errors)) * 100
-
-
-def get_convergence_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
-    """Extracts convergence data points from method results."""
-    # Logic to map (num_steps or num_paths) -> error
-    df = pd.DataFrame(results)
-    if df.empty:
-        return {}
-
-    # Assume results contain parameter_set with resolution info
-    # This is a placeholder for more complex analysis
-    return {
-        "count": len(df),
-        "mean_price": df["computed_price"].mean(),
-        "std_dev": df["computed_price"].std(),
-    }
+def summarize_convergence(results_df: pd.DataFrame) -> pd.DataFrame:
+    """Summarize convergence characteristics of different methods."""
+    return results_df.groupby("method_type").agg({
+        "computed_price": ["mean", "std"],
+        "exec_seconds": ["mean", "max"]
+    })

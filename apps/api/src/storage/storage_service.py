@@ -5,11 +5,15 @@ from __future__ import annotations
 import datetime
 import gzip
 import io
+from typing import TYPE_CHECKING
 
 import structlog
-from minio import Minio
 
+from src.metrics import MINIO_UPLOADS_TOTAL
 from src.storage.minio_client import get_minio
+
+if TYPE_CHECKING:
+    from minio import Minio
 
 logger = structlog.get_logger(__name__)
 
@@ -24,32 +28,34 @@ def upload_export(
     """
     Upload binary data to MinIO and return a presigned URL.
     Optionally compresses data using gzip.
-    URL valid for 1 hour — sufficient for browser-direct download.
+    URL valid for 1 hour.
     """
     client: Minio = get_minio()
 
-    final_data = data
-    final_filename = filename
-    final_content_type = content_type
-
     if compress:
-        buffer = io.BytesIO()
-        with gzip.GzipFile(fileobj=buffer, mode="wb") as f:
+        compressed_buffer = io.BytesIO()
+        with gzip.GzipFile(fileobj=compressed_buffer, mode="wb") as f:
             f.write(data)
-        final_data = buffer.getvalue()
-        final_filename = f"{filename}.gz"
-        final_content_type = "application/gzip"
-        logger.info("data_compressed", original_size=len(data), compressed_size=len(final_data))
+        data = compressed_buffer.getvalue()
+        filename = f"{filename}.gz"
+        content_type = "application/gzip"
 
-    object_name = f"exports/{datetime.datetime.utcnow():%Y/%m/%d}/{final_filename}"
+    object_name = f"exports/{datetime.datetime.utcnow():%Y/%m/%d}/{filename}"
 
-    client.put_object(
-        bucket_name=bucket,
-        object_name=object_name,
-        data=io.BytesIO(final_data),
-        length=len(final_data),
-        content_type=final_content_type,
-    )
+    try:
+        client.put_object(
+            bucket_name=bucket,
+            object_name=object_name,
+            data=io.BytesIO(data),
+            length=len(data),
+            content_type=content_type,
+        )
+        MINIO_UPLOADS_TOTAL.labels(bucket=bucket).inc()
+    except Exception as e:
+        logger.error(
+            "minio_upload_failed", bucket=bucket, object=object_name, error=str(e), step="storage"
+        )
+        raise
 
     url = client.presigned_get_object(
         bucket_name=bucket,
@@ -57,5 +63,14 @@ def upload_export(
         expires=datetime.timedelta(hours=1),
     )
 
-    logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage", rows=1)
+    logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage")
     return url
+
+
+def upload_scraper_artifact(
+    data: bytes,
+    filename: str,
+    content_type: str,
+) -> str:
+    """Upload raw scraper artifacts to MinIO."""
+    return upload_export(data, filename, content_type, bucket="bs-scraper", compress=True)

@@ -1,118 +1,121 @@
-"""Crank-Nicolson Finite Difference Method implementation."""
-
-import time
+"""Crank-Nicolson finite difference method for option pricing."""
+from __future__ import annotations
 from typing import Any
-
 import numpy as np
+from src.methods.base import BasePricingMethod, OptionParameters, OptionType
 
-from src.methods.base import NumericalMethod, OptionParams, OptionType, PriceResult
+class CrankNicolson(BasePricingMethod):
+    """Crank-Nicolson finite difference solver."""
+    
+    def __init__(self, mesh_points_s: int = 100, mesh_points_t: int = 100) -> None:
+        super().__init__("crank_nicolson")
+        self.mesh_points_s = mesh_points_s
+        self.mesh_points_t = mesh_points_t
 
-
-class CrankNicolson(NumericalMethod):
-    """
-    Crank-Nicolson FDM for European and American options.
-    Uses Thomas algorithm for O(N) tridiagonal matrix inversion.
-    """
-
-    async def price(self, params: OptionParams) -> PriceResult:
-        start_time = time.perf_counter()
-
-        # Grid parameters
-        num_time_steps = 1000
-        num_space_steps = 200
-
+    def _compute(self, params: OptionParameters) -> float:
+        """Execute Crank-Nicolson computation."""
         underlying = params.underlying_price
         strike = params.strike_price
         maturity = params.maturity_years
-        vol = params.volatility
+        volatility = params.volatility
         rate = params.risk_free_rate
-
-        # Boundaries
-        max_price = underlying * 3
-        delta_time = maturity / num_time_steps
-
-        # Grid initialization
-        grid = np.linspace(0, max_price, num_space_steps + 1)
+        
+        # Grid setup
+        s_max = 3.0 * strike
+        ds = s_max / self.mesh_points_s
+        dt = maturity / self.mesh_points_t
+        
+        s_values = np.linspace(0, s_max, self.mesh_points_s + 1)
+        v_grid = np.zeros(self.mesh_points_s + 1)
+        
+        # Payoff boundary condition at maturity
         if params.option_type == OptionType.CALL:
-            values = np.maximum(grid - strike, 0)
+            v_grid = np.maximum(s_values - strike, 0)
         else:
-            values = np.maximum(strike - grid, 0)
-
-        # Matrix coefficients
-        indices = np.arange(1, num_space_steps)
-        alpha = 0.25 * delta_time * (vol**2 * indices**2 - rate * indices)
-        beta = -0.5 * delta_time * (vol**2 * indices**2 + rate)
-        gamma = 0.25 * delta_time * (vol**2 * indices**2 + rate * indices)
-
-        # Explicit part matrix (M1) and Implicit part matrix (M2)
-        # M2 * V_new = M1 * V_old
-        # Diagonal (d), Lower diagonal (l), Upper diagonal (u) for M2
-        d_m2 = 1 - beta
-        l_m2 = -alpha
-        u_m2 = -gamma
-
-        for _ in range(num_time_steps):
-            # RHS: M1 * V_old
-            rhs = np.zeros(num_space_steps + 1)
-            rhs[1:num_space_steps] = (
-                alpha * values[0 : num_space_steps - 1]
-                + (1 + beta) * values[1:num_space_steps]
-                + gamma * values[2 : num_space_steps + 1]
+            v_grid = np.maximum(strike - s_values, 0)
+            
+        # Crank-Nicolson coefficients
+        # j = index from 0 to M
+        j = np.arange(self.mesh_points_s + 1)
+        alpha = 0.25 * dt * (volatility**2 * j**2 - rate * j)
+        beta = -0.5 * dt * (volatility**2 * j**2 + rate)
+        gamma = 0.25 * dt * (volatility**2 * j**2 + rate * j)
+        
+        # Matrices for inner points i = 1 to M-1
+        # A * V_new = B * V_old + boundary_terms
+        # A = [ -alpha, 1-beta, -gamma ]
+        # B = [ alpha, 1+beta, gamma ]
+        
+        lower_a = -alpha[1:self.mesh_points_s]
+        diag_a = 1.0 - beta[1:self.mesh_points_s]
+        upper_a = -gamma[1:self.mesh_points_s]
+        
+        lower_b = alpha[1:self.mesh_points_s]
+        diag_b = 1.0 + beta[1:self.mesh_points_s]
+        upper_b = gamma[1:self.mesh_points_s]
+        
+        for step_idx in range(self.mesh_points_t):
+            # Calculate explicit part (B * V_old)
+            # rhs[i-1] = lower_b[i-1]*V[i-1] + diag_b[i-1]*V[i] + upper_b[i-1]*V[i+1]
+            # for i = 1 to M-1
+            rhs = (
+                lower_b * v_grid[0 : self.mesh_points_s - 1] 
+                + diag_b * v_grid[1 : self.mesh_points_s] 
+                + upper_b * v_grid[2 : self.mesh_points_s + 1]
             )
-
-            # Boundary conditions (European)
+            
+            # Boundary conditions (Dirichlet) at new time step
+            t_remaining = (step_idx + 1) * dt
             if params.option_type == OptionType.CALL:
-                rhs[0] = 0
-                rhs[num_space_steps] = max_price - strike * np.exp(-rate * delta_time)
+                v_new_0 = 0.0
+                v_new_m = s_max - strike * np.exp(-rate * t_remaining)
             else:
-                rhs[0] = strike * np.exp(-rate * delta_time)
-                rhs[num_space_steps] = 0
-
-            # Thomas Algorithm to solve M2 * values = rhs
-            values = self._thomas_algorithm(l_m2, d_m2, u_m2, rhs[1:num_space_steps])
-
-            # Boundary expansion
-            if params.option_type == OptionType.CALL:
-                values = np.concatenate([[0], values, [max_price - strike]])
-            else:
-                values = np.concatenate([[strike], values, [0]])
-
+                v_new_0 = strike * np.exp(-rate * t_remaining)
+                v_new_m = 0.0
+                
+            # Add implicit boundary terms to rhs
+            rhs[0] += alpha[1] * v_new_0
+            rhs[-1] += gamma[self.mesh_points_s - 1] * v_new_m
+            
+            # Solve A * V_new = rhs using Thomas Algorithm
+            v_grid[1:self.mesh_points_s] = self._thomas_algorithm(lower_a[1:], diag_a, upper_a[:-1], rhs)
+            v_grid[0] = v_new_0
+            v_grid[-1] = v_new_m
+            
+            # American option early exercise constraint
             if params.is_american:
                 if params.option_type == OptionType.CALL:
-                    values = np.maximum(values, grid - strike)
+                    v_grid = np.maximum(v_grid, s_values - strike)
                 else:
-                    values = np.maximum(values, strike - grid)
-
-        # Interpolate price at current underlying
-        final_price = np.interp(underlying, grid, values)
-
-        exec_time = time.perf_counter() - start_time
-        return PriceResult(price=float(final_price), exec_seconds=exec_time)
+                    v_grid = np.maximum(v_grid, strike - s_values)
+                    
+        # Interpolate result
+        return float(np.interp(underlying, s_values, v_grid))
 
     def _thomas_algorithm(
-        self,
-        lower: np.ndarray[Any, np.dtype[np.float64]],
-        diag: np.ndarray[Any, np.dtype[np.float64]],
-        upper: np.ndarray[Any, np.dtype[np.float64]],
-        rhs: np.ndarray[Any, np.dtype[np.float64]],
+        self, 
+        lower: np.ndarray[Any, np.dtype[np.float64]], 
+        diag: np.ndarray[Any, np.dtype[np.float64]], 
+        upper: np.ndarray[Any, np.dtype[np.float64]], 
+        rhs: np.ndarray[Any, np.dtype[np.float64]]
     ) -> np.ndarray[Any, np.dtype[np.float64]]:
-        """Solves tridiagonal system Ax = b in O(N) time."""
-        n = len(rhs)
-        c_star = np.zeros(n)
-        d_star = np.zeros(n)
-
-        c_star[0] = upper[0] / diag[0]
-        d_star[0] = rhs[0] / diag[0]
-
+        """O(n) solver for tridiagonal systems."""
+        n = len(diag)
+        cp = np.zeros(n)
+        dp = np.zeros(n)
+        
+        cp[0] = upper[0] / diag[0]
+        dp[0] = rhs[0] / diag[0]
+        
         for i in range(1, n):
-            m = diag[i] - lower[i] * c_star[i - 1]
+            m = diag[i] - lower[i-1] * cp[i-1]
             if i < n - 1:
-                c_star[i] = upper[i] / m
-            d_star[i] = (rhs[i] - lower[i] * d_star[i - 1]) / m
-
-        x = np.zeros(n)
-        x[-1] = d_star[-1]
-        for i in range(n - 2, -1, -1):
-            x[i] = d_star[i] - c_star[i] * x[i + 1]
-
-        return x
+                cp[i] = upper[i] / m
+            dp[i] = (rhs[i] - lower[i-1] * dp[i-1]) / m
+            
+        result = np.zeros(n)
+        result[-1] = dp[-1]
+        for i in range(n-2, -1, -1):
+            result[i] = dp[i] - cp[i] * result[i+1]
+            
+        return result

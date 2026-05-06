@@ -1,8 +1,8 @@
-"""Email notification delivery via Resend."""
+"""Email notification service using Resend."""
 
 from __future__ import annotations
 
-import resend
+import httpx
 import structlog
 
 from src.config import get_settings
@@ -10,43 +10,30 @@ from src.config import get_settings
 logger = structlog.get_logger(__name__)
 
 
-async def send_email(to_email: str, subject: str, body: str) -> bool:
-    """
-    Sends an email using the Resend API.
-    """
-    try:
-        settings = get_settings()
-        if not settings.resend_api_key:
-            logger.warning("resend_api_key_missing", to=to_email)
-            return False
+async def send_email_notification(recipient: str, subject: str, body: str) -> None:
+    """Send an email using Resend API."""
+    settings = get_settings()
+    if not settings.resend_api_key:
+        logger.warning("resend_api_key_not_set", recipient=recipient)
+        return
 
-        resend.api_key = settings.resend_api_key
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {settings.resend_api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "from": "Black-Scholes Research <notifications@black-scholes.example.com>",
+        "to": [recipient],
+        "subject": subject,
+        "html": body,
+    }
 
-        # Note: Resend.Emails.send is synchronous in 0.8.0,
-        # so we run it in a thread pool for production async safety
-        import asyncio
-        from functools import partial
-
-        email_params = {
-            "from": "Black-Scholes Platform <notifications@black-scholes.example.com>",
-            "to": [to_email],
-            "subject": subject,
-            "html": body,
-        }
-
-        from typing import Any, cast
-
-        loop = asyncio.get_event_loop()
-        send_fn = partial(resend.Emails.send, cast("Any", email_params))
-        response = await loop.run_in_executor(None, send_fn)
-
-        logger.info(
-            "email_sent",
-            to=to_email,
-            subject=subject,
-            response_id=getattr(response, "id", "unknown"),
-        )
-        return True
-    except Exception as error:
-        logger.error("email_failed", to=to_email, error=str(error))
-        return False
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            logger.info("email_sent", recipient=recipient, subject=subject)
+        except Exception as error:
+            logger.error("email_send_failed", recipient=recipient, error=str(error))
+            raise

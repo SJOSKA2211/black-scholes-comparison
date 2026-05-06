@@ -1,54 +1,48 @@
-"""Quasi-Monte Carlo Pricing using Sobol sequences."""
+"""Quasi-Monte Carlo pricing using Sobol sequences."""
 
-import time
+from __future__ import annotations
 
 import numpy as np
 from scipy.stats import norm, qmc
 
-from src.methods.base import NumericalMethod, OptionParams, OptionType, PriceResult
+from src.methods.base import BasePricingMethod, OptionParameters, OptionType
 
 
-class QuasiMC(NumericalMethod):
-    """
-    Quasi-Monte Carlo pricing using Sobol sequences.
-    Achieves O(N^-1) convergence vs O(N^-1/2) for standard MC.
-    """
+class QuasiMC(BasePricingMethod):
+    """Quasi-Monte Carlo solver with Sobol sequences."""
 
-    async def price(self, params: OptionParams) -> PriceResult:
-        start_time = time.perf_counter()
+    def __init__(self, num_paths: int = 131072) -> None:
+        super().__init__("quasi_mc")
+        # Enforce power of 2 for Sobol
+        exponent = int(np.round(np.log2(num_paths)))
+        self.num_paths = 2**exponent
 
-        # Power of 2 paths for Sobol efficiency
-        num_paths = 2**17  # 131,072
-
+    def _compute(self, params: OptionParameters) -> float:
+        """Execute Quasi-Monte Carlo computation."""
         underlying = params.underlying_price
         strike = params.strike_price
         maturity = params.maturity_years
-        vol = params.volatility
+        volatility = params.volatility
         rate = params.risk_free_rate
 
         # Sobol sequence generation
         sampler = qmc.Sobol(d=1, scramble=True)
-        sample = sampler.random(n=num_paths)
+        sobol_points = sampler.random(n=self.num_paths).flatten()
 
-        # Probit transform (Inverse Normal CDF)
-        # Clip sample to avoid infinity at 0 and 1
-        z_scores = norm.ppf(np.clip(sample, 1e-10, 1 - 1e-10)).flatten()
+        # Probit transform (clipped to avoid inf)
+        clipped_points = np.clip(sobol_points, 1e-10, 1 - 1e-10)
+        norm_variates = norm.ppf(clipped_points)
 
-        # Asset price paths at maturity
-        prices_at_maturity = underlying * np.exp(
-            (rate - 0.5 * vol**2) * maturity + vol * np.sqrt(maturity) * z_scores
-        )
+        # Path simulation
+        drift = (rate - 0.5 * volatility**2) * maturity
+        diffusion = volatility * np.sqrt(maturity) * norm_variates
+        terminal_prices = underlying * np.exp(drift + diffusion)
 
         # Payoff calculation
         if params.option_type == OptionType.CALL:
-            payoffs = np.maximum(prices_at_maturity - strike, 0)
+            payoffs = np.maximum(terminal_prices - strike, 0)
         else:
-            payoffs = np.maximum(strike - prices_at_maturity, 0)
+            payoffs = np.maximum(strike - terminal_prices, 0)
 
-        # Discounted mean payoff
-        price = np.exp(-rate * maturity) * np.mean(payoffs)
-
-        exec_time = time.perf_counter() - start_time
-        return PriceResult(
-            price=float(price), exec_seconds=exec_time, metadata={"num_paths": num_paths}
-        )
+        discounted_mean = np.exp(-rate * maturity) * np.mean(payoffs)
+        return float(discounted_mean)

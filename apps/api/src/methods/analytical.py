@@ -1,72 +1,103 @@
-"""Black-Scholes analytical closed-form implementation."""
+"""Black-Scholes analytical closed-form solution."""
 
-import time
-from typing import cast
+from __future__ import annotations
 
 import numpy as np
 from scipy.optimize import brentq
 from scipy.stats import norm
 
-from src.methods.base import NumericalMethod, OptionParams, OptionType, PriceResult
+from src.methods.base import BasePricingMethod, OptionParameters, OptionType
 
 
-class BlackScholesAnalytical(NumericalMethod):
-    """Standard Black-Scholes-Merton analytical formula."""
+class BlackScholesAnalytical(BasePricingMethod):
+    """Analytical Black-Scholes solver."""
 
-    async def price(self, params: OptionParams) -> PriceResult:
-        start_time = time.perf_counter()
+    def __init__(self) -> None:
+        super().__init__("analytical")
 
-        underlying = params.underlying_price
-        strike = params.strike_price
-        maturity = params.maturity_years
-        vol = params.volatility
-        rate = params.risk_free_rate
+    def _compute(self, params: OptionParameters) -> float:
+        """Standard Black-Scholes formula."""
+        underlying_price = params.underlying_price
+        strike_price = params.strike_price
+        maturity_years = params.maturity_years
+        volatility = params.volatility
+        risk_free_rate = params.risk_free_rate
 
-        d1 = (np.log(underlying / strike) + (rate + 0.5 * vol**2) * maturity) / (
-            vol * np.sqrt(maturity)
-        )
-        d2 = d1 - vol * np.sqrt(maturity)
+        d1_term = (
+            np.log(underlying_price / strike_price)
+            + (risk_free_rate + 0.5 * volatility**2) * maturity_years
+        ) / (volatility * np.sqrt(maturity_years))
+        d2_term = d1_term - volatility * np.sqrt(maturity_years)
 
         if params.option_type == OptionType.CALL:
-            price = underlying * norm.cdf(d1) - strike * np.exp(-rate * maturity) * norm.cdf(d2)
-            delta = norm.cdf(d1)
+            price = underlying_price * norm.cdf(d1_term) - strike_price * np.exp(
+                -risk_free_rate * maturity_years
+            ) * norm.cdf(d2_term)
         else:
-            price = strike * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying * norm.cdf(-d1)
-            delta = norm.cdf(d1) - 1
+            price = strike_price * np.exp(-risk_free_rate * maturity_years) * norm.cdf(
+                -d2_term
+            ) - underlying_price * norm.cdf(-d1_term)
 
-        gamma = norm.pdf(d1) / (underlying * vol * np.sqrt(maturity))
-        vega = underlying * norm.pdf(d1) * np.sqrt(maturity)
+        return float(price)
 
-        exec_time = time.perf_counter() - start_time
-        return PriceResult(
-            price=float(price),
-            exec_seconds=exec_time,
-            metadata={"delta": float(delta), "gamma": float(gamma), "vega": float(vega)},
-        )
+    def calculate_greeks(self, params: OptionParameters) -> dict[str, float]:
+        """Calculate Delta, Gamma, Vega, Theta, Rho."""
+        underlying_price = params.underlying_price
+        strike_price = params.strike_price
+        maturity_years = params.maturity_years
+        volatility = params.volatility
+        risk_free_rate = params.risk_free_rate
 
-    def implied_volatility(self, market_price: float, params: OptionParams) -> float:
+        d1_term = (
+            np.log(underlying_price / strike_price)
+            + (risk_free_rate + 0.5 * volatility**2) * maturity_years
+        ) / (volatility * np.sqrt(maturity_years))
+        d2_term = d1_term - volatility * np.sqrt(maturity_years)
+
+        pdf_d1 = norm.pdf(d1_term)
+        cdf_d1 = norm.cdf(d1_term)
+        cdf_d2 = norm.cdf(d2_term)
+
+        if params.option_type == OptionType.CALL:
+            delta = cdf_d1
+            rho = strike_price * maturity_years * np.exp(-risk_free_rate * maturity_years) * cdf_d2
+            theta = (
+                -(underlying_price * pdf_d1 * volatility) / (2 * np.sqrt(maturity_years))
+                - risk_free_rate * strike_price * np.exp(-risk_free_rate * maturity_years) * cdf_d2
+            )
+        else:
+            delta = cdf_d1 - 1
+            rho = (
+                -strike_price
+                * maturity_years
+                * np.exp(-risk_free_rate * maturity_years)
+                * norm.cdf(-d2_term)
+            )
+            theta = -(underlying_price * pdf_d1 * volatility) / (
+                2 * np.sqrt(maturity_years)
+            ) + risk_free_rate * strike_price * np.exp(-risk_free_rate * maturity_years) * norm.cdf(
+                -d2_term
+            )
+
+        gamma = pdf_d1 / (underlying_price * volatility * np.sqrt(maturity_years))
+        vega = underlying_price * pdf_d1 * np.sqrt(maturity_years)
+
+        return {
+            "delta": float(delta),
+            "gamma": float(gamma),
+            "vega": float(vega),
+            "theta": float(theta),
+            "rho": float(rho),
+        }
+
+    def implied_volatility(self, market_price: float, params: OptionParameters) -> float:
         """Invert Black-Scholes to find implied volatility using Brent's method."""
 
-        def objective(sigma: float) -> float:
-            # Synchronous version for optimization
-            if sigma <= 0:
-                return -market_price
-            d1 = (
-                np.log(params.underlying_price / params.strike_price)
-                + (params.risk_free_rate + 0.5 * sigma**2) * params.maturity_years
-            ) / (sigma * np.sqrt(params.maturity_years))
-            d2 = d1 - sigma * np.sqrt(params.maturity_years)
-            if params.option_type == OptionType.CALL:
-                price = params.underlying_price * norm.cdf(d1) - params.strike_price * np.exp(
-                    -params.risk_free_rate * params.maturity_years
-                ) * norm.cdf(d2)
-            else:
-                price = params.strike_price * np.exp(
-                    -params.risk_free_rate * params.maturity_years
-                ) * norm.cdf(-d2) - params.underlying_price * norm.cdf(-d1)
-            return float(price - market_price)
+        def objective(vol_candidate: float) -> float:
+            test_params = params.model_copy(update={"volatility": vol_candidate})
+            return self._compute(test_params) - market_price
 
         try:
-            return cast(float, brentq(objective, 1e-6, 5.0))
+            return float(brentq(objective, 1e-6, 5.0))
         except ValueError:
             return 0.0

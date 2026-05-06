@@ -1,8 +1,11 @@
 """Integration tests for data pipeline with real infrastructure."""
 
-import pytest
 from datetime import date
+
+import pytest
+
 from src.data.pipeline import DataPipeline
+
 
 @pytest.mark.integration
 @pytest.mark.asyncio

@@ -2,8 +2,10 @@
 Script to register and initialize the MinIO storage cluster.
 Adheres to Zero-Mock policy by ensuring real production infrastructure is ready.
 """
+
 import os
 import sys
+
 import httpx
 import structlog
 from minio import Minio
@@ -15,9 +17,10 @@ from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
+
 async def register_cluster():
     settings = get_settings()
-    
+
     # 1. Fetch Credentials if a service account URL is provided
     # The user provided: http://localhost:9001/api/v1/service-account-credentials
     sa_url = os.getenv("MINIO_CLUSTER_SA_URL")
@@ -35,8 +38,12 @@ async def register_cluster():
             logger.error("credential_fetch_failed", error=str(e))
 
     # 2. Initialize Cluster Nodes
-    nodes = settings.minio_cluster_nodes if settings.minio_cluster_enabled else [settings.minio_endpoint]
-    
+    nodes = (
+        settings.minio_cluster_nodes
+        if settings.minio_cluster_enabled
+        else [settings.minio_endpoint]
+    )
+
     for node in nodes:
         logger.info("registering_node", node=node)
         try:
@@ -44,9 +51,9 @@ async def register_cluster():
                 node,
                 access_key=settings.minio_access_key,
                 secret_key=settings.minio_secret_key,
-                secure=settings.minio_secure
+                secure=settings.minio_secure,
             )
-            
+
             # Ensure buckets exist on this node
             for bucket in [settings.minio_bucket_exports, settings.minio_bucket_scraper]:
                 if not client.bucket_exists(bucket):
@@ -54,10 +61,12 @@ async def register_cluster():
                     logger.info("bucket_registered", node=node, bucket=bucket)
                 else:
                     logger.info("bucket_already_exists", node=node, bucket=bucket)
-                    
+
         except Exception as e:
             logger.error("node_registration_failed", node=node, error=str(e))
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(register_cluster())

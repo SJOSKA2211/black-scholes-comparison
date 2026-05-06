@@ -1,6 +1,8 @@
 import re
+
 import pytest
 from playwright.sync_api import Page, expect
+
 
 @pytest.mark.e2e
 def test_realtime_notifications(page: Page, base_url: str) -> None:
@@ -8,7 +10,7 @@ def test_realtime_notifications(page: Page, base_url: str) -> None:
     page.on("console", lambda msg: print(f"BROWSER CONSOLE: {msg.text}"))
     # Force navigation to dashboard
     page.goto(f"{base_url}/")
-    
+
     # Wait for the page to be ready and hydrated
     page.wait_for_selector("aside", timeout=10000)
 
@@ -22,28 +24,29 @@ def test_realtime_notifications(page: Page, base_url: str) -> None:
 
     # Trigger a notification from the backend
     from src.database.supabase_client import get_supabase_client
+
     supabase = get_supabase_client()
 
     # Use the existing user ID to satisfy FK constraints
     researcher_id = "a24fb1a2-700a-4590-8d43-2930596a14f2"
-    
+
     # Ensure the profile exists (UPSERT)
-    supabase.table("user_profiles").upsert({
-        "id": researcher_id,
-        "display_name": "Researcher",
-        "role": "researcher"
-    }).execute()
+    supabase.table("user_profiles").upsert(
+        {"id": researcher_id, "display_name": "Researcher", "role": "researcher"}
+    ).execute()
 
     # Insert notification
     test_title = f"E2E Test {researcher_id[:8]}"
-    supabase.table("notifications").insert({
-        "user_id": researcher_id,
-        "title": test_title,
-        "body": "This is a real-time test.",
-        "severity": "info",
-        "channel": "in_app",
-        "read": False,
-    }).execute()
+    supabase.table("notifications").insert(
+        {
+            "user_id": researcher_id,
+            "title": test_title,
+            "body": "This is a real-time test.",
+            "severity": "info",
+            "channel": "in_app",
+            "read": False,
+        }
+    ).execute()
 
     # Verify that a notification toast or element appears
     # Using a longer timeout to allow for network latency and Realtime propagation

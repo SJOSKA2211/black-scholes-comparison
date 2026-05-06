@@ -1,55 +1,25 @@
-"""Router for managing market data scrapers."""
-
+"""API router for scrapers."""
 from __future__ import annotations
-
-import datetime
+from datetime import date
 from typing import Any
-
-import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
-
+from fastapi import APIRouter, Depends
 from src.auth.dependencies import get_current_user
-from src.database.repository import Repository
 from src.queue.publisher import publish_scrape_task
+import structlog
 
-router = APIRouter(prefix="/scrapers", tags=["Scrapers"])
+router = APIRouter(prefix="/api/v1/scrapers", tags=["scrapers"])
 logger = structlog.get_logger(__name__)
 
-
-@router.post("/trigger")
-async def trigger_scraper(
-    market: str = Query(..., pattern="^(spy|nse)$"),
-    trade_date: datetime.date | None = Query(None),
-    current_user: dict[str, Any] = Depends(get_current_user),
+@router.post("/run")
+async def run_scraper(
+    market: str,
+    trade_date: date | None = None,
+    current_user: dict[str, Any] = Depends(get_current_user)
 ) -> dict[str, str]:
-    """Manually triggers a scraper run via the message queue."""
-    if trade_date is None:
-        trade_date = datetime.date.today()
-
-    try:
-        await publish_scrape_task(market, trade_date)
-        logger.info(
-            "scraper_triggered",
-            market=market,
-            date=trade_date.isoformat(),
-            user_id=current_user["id"],
-            step="router",
-        )
-        return {"message": f"Scraper for {market} triggered", "status": "queued"}
-    except Exception as error:
-        logger.error("scraper_trigger_failed", error=str(error), market=market, step="router")
-        raise HTTPException(status_code=500, detail="Failed to trigger scraper") from error
-
-
-@router.get("/runs")
-async def get_runs(
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> list[dict[str, Any]]:
-    """Retrieves the history of scraper runs."""
-    repo = Repository()
-    try:
-        runs = await repo.get_scrape_runs()
-        return runs
-    except Exception as error:
-        logger.error("scraper_runs_fetch_failed", error=str(error), step="router")
-        raise HTTPException(status_code=500, detail="Failed to fetch scraper runs") from error
+    """Trigger a scraper task."""
+    target_date = trade_date or date.today()
+    logger.info("scraper_run_requested", market=market, date=target_date.isoformat(), user_id=current_user.get("id"))
+    
+    await publish_scrape_task(market, target_date)
+    
+    return {"status": "queued", "market": market, "date": target_date.isoformat()}

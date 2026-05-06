@@ -1,54 +1,42 @@
-"""Cache-aside decorator for FastAPI route handlers."""
-
+"""Cache-aside decorator for FastAPI endpoints."""
 from __future__ import annotations
-
-import functools
 import json
-from collections.abc import Callable
-from typing import Any
-
-import structlog
-
+import functools
+from typing import Any, Callable, TypeVar, cast
 from src.cache.redis_client import get_redis
 from src.metrics import REDIS_CACHE_HITS, REDIS_CACHE_MISSES
+import structlog
 
 logger = structlog.get_logger(__name__)
 
+F = TypeVar("F", bound=Callable[..., Any])
 
-def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any]:
-    """
-    Decorator: check Redis for cached JSON response; compute and cache on miss.
-    Cache key: f"{key_prefix}:{hash(str(sorted(kwargs.items())))}"
-    TTL default: 300 seconds (5 minutes).
-    """
-
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[[F], F]:
+    """Decorator to cache function results in Redis."""
+    def decorator(func: F) -> F:
         @functools.wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             redis = get_redis()
-            # Note: In a real app, hash() might not be stable across restarts.
-            # Using a deterministic hash or just str() would be safer.
-            cache_key = f"{key_prefix}:{hash(str(sorted(kwargs.items())))}"
+            # Generate cache key from prefix and arguments
+            cache_key = f"{key_prefix}:{hash(str(args) + str(kwargs))}"
+            
             try:
-                cached = await redis.get(cache_key)
-                if cached is not None:
+                cached_data = await redis.get(cache_key)
+                if cached_data:
                     REDIS_CACHE_HITS.labels(endpoint=key_prefix).inc()
-                    logger.debug("cache_hit", key=cache_key, step="cache")
-                    return json.loads(cached)
-            except Exception as e:
-                logger.warning("cache_error_fallback", error=str(e), step="cache")
+                    return json.loads(cached_data)
+            except Exception as error:
+                logger.warning("cache_lookup_failed", error=str(error))
 
-            REDIS_CACHE_MISSES.labels(endpoint=key_prefix).inc()
+            # Cache miss: execute function
             result = await func(*args, **kwargs)
-
+            
             try:
-                await redis.setex(cache_key, ttl_seconds, json.dumps(result, default=str))
-                logger.debug("cache_miss_stored", key=cache_key, step="cache")
-            except Exception as e:
-                logger.warning("cache_store_error", error=str(e), step="cache")
-
+                await redis.setex(cache_key, ttl_seconds, json.dumps(result))
+                REDIS_CACHE_MISSES.labels(endpoint=key_prefix).inc()
+            except Exception as error:
+                logger.warning("cache_storage_failed", error=str(error))
+                
             return result
-
-        return wrapper
-
+        return cast(F, wrapper)
     return decorator

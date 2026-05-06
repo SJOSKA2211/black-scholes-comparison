@@ -1,6 +1,8 @@
 import re
+
 import pytest
 from playwright.sync_api import Page
+
 
 @pytest.mark.e2e
 def test_download_button_functionality(page: Page, base_url: str) -> None:
@@ -12,11 +14,13 @@ def test_download_button_functionality(page: Page, base_url: str) -> None:
     page.wait_for_timeout(3000)
 
     from src.database.supabase_client import get_supabase_client
+
     supabase = get_supabase_client()
 
     RESEARCHER_ID = "a24fb1a2-700a-4590-8d43-2930596a14f2"
-    
+
     import uuid
+
     param_id = str(uuid.uuid4())
     params = {
         "id": param_id,
@@ -27,20 +31,22 @@ def test_download_button_functionality(page: Page, base_url: str) -> None:
         "risk_free_rate": 0.05,
         "option_type": "call",
         "is_american": False,
-        "market_source": "synthetic"
+        "market_source": "synthetic",
     }
     # Direct sync call to ensure data exists for the table to render
     supabase.table("option_parameters").upsert(params).execute()
-    
+
     # Insert a result so the table shows something
-    supabase.table("method_results").upsert({
-        "option_id": param_id,
-        "method_type": "analytical",
-        "computed_price": 10.45,
-        "exec_seconds": 0.001,
-        "parameter_set": {"s": 100, "k": 100}
-    }).execute()
-    
+    supabase.table("method_results").upsert(
+        {
+            "option_id": param_id,
+            "method_type": "analytical",
+            "computed_price": 10.45,
+            "exec_seconds": 0.001,
+            "parameter_set": {"s": 100, "k": 100},
+        }
+    ).execute()
+
     # Reload to ensure the table picks up the data
     page.reload()
     page.wait_for_selector("table", timeout=10000)

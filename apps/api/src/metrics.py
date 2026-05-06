@@ -1,4 +1,4 @@
-"""Prometheus metrics registry for monitoring the application."""
+"""Prometheus metrics registry for the Black-Scholes Research Platform."""
 
 from prometheus_client import Counter, Gauge, Histogram
 

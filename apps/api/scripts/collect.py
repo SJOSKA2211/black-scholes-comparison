@@ -1,4 +1,4 @@
-"""CLI script for manual and scheduled market data collection."""
+"""Script to trigger market data collection."""
 
 from __future__ import annotations
 
@@ -12,42 +12,35 @@ from src.data.pipeline import get_pipeline
 
 logger = structlog.get_logger(__name__)
 
-async def run_collection(market: str, target_date_str: str) -> None:
-    """
-    CLI entry point for running a specific scraper.
-    """
-    try:
-        target_date = date.fromisoformat(target_date_str)
-    except ValueError:
-        logger.error("invalid_date_format", date=target_date_str)
-        return
 
-    logger.info("cli_scraper_started", market=market, collection_date=target_date.isoformat())
-
-    # In this architecture, we use the DataPipeline to handle the full workflow
-    pipeline = get_pipeline(market)
-    try:
-        await pipeline.run(target_date)
-        logger.info("cli_scraper_completed", market=market)
-    except Exception as error:
-        logger.error("cli_scraper_failed", market=market, error=str(error))
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Black-Scholes Market Data Scraper CLI")
-    parser.add_argument("--market", choices=["spy", "nse", "both"], required=True, help="Market to scrape")
-    parser.add_argument("--date", default=date.today().strftime("%Y-%m-%d"), help="Target date (YYYY-MM-DD)")
+async def main() -> None:
+    """Main entry point for data collection."""
+    parser = argparse.ArgumentParser(description="Collect market data for Black-Scholes platform.")
+    parser.add_argument(
+        "--market", type=str, required=True, choices=["spy", "nse"], help="Market to scrape"
+    )
+    parser.add_argument(
+        "--date", type=str, default=date.today().isoformat(), help="Trade date in ISO format"
+    )
 
     args = parser.parse_args()
+    trade_date = date.fromisoformat(args.date)
 
-    if args.market == "both":
-        async def run_both() -> None:
-            await asyncio.gather(
-                run_collection("spy", args.date),
-                run_collection("nse", args.date)
-            )
-        asyncio.run(run_both())
-    else:
-        asyncio.run(run_collection(args.market, args.date))
+    logger.info("collection_script_started", market=args.market, date=trade_date.isoformat())
+
+    pipeline = get_pipeline(args.market)
+    try:
+        result = await pipeline.run(trade_date)
+        logger.info(
+            "collection_script_finished",
+            market=result.market,
+            scraped=result.rows_scraped,
+            validated=result.rows_validated,
+        )
+    except Exception as error:
+        logger.error("collection_script_failed", error=str(error))
+        exit(1)
+
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

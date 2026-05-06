@@ -1,28 +1,33 @@
 """Configuration management using Pydantic Settings."""
-
+from __future__ import annotations
 from functools import lru_cache
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
+    """Platform configuration settings."""
+    model_config = SettingsConfigDict(
+        env_file=".env", 
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+
+    # App
+    app_env: str = "development"
+    debug: bool = True
+    api_url: str = "http://localhost:8000"
 
     # Supabase
     supabase_url: str
     supabase_key: str
-    supabase_db_host: str
     supabase_anon_key: str
+    supabase_db_host: str
 
     # Redis
     redis_url: str = "redis://redis:6379/0"
-    redis_password: str
+    redis_password: str | None = None
 
     # RabbitMQ
-    rabbitmq_url: str
-    rabbitmq_user: str = "rabbitmq_user"
-    rabbitmq_password: str
-    rabbitmq_management_port: int = 15672
+    rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672/"
 
     # MinIO
     minio_endpoint: str = "minio:9000"
@@ -34,23 +39,17 @@ class Settings(BaseSettings):
     # Grafana
     grafana_admin_password: str
 
-    # External APIs
-    resend_api_key: str | None = None
-
-    # Auth
+    # OAuth
     github_client_id: str | None = None
     github_client_secret: str | None = None
     google_client_id: str | None = None
     google_client_secret: str | None = None
 
-    # App
-    app_env: str = "development"
-    debug: bool = False
+    # Email (Resend)
+    resend_api_key: str | None = None
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
-
-
-@lru_cache
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Return a cached instance of Settings."""
-    return Settings()  # type: ignore[call-arg]
+    """Return a cached Settings object."""
+    # Note: pydantic-settings automatically loads from environment or .env
+    return Settings() # type: ignore[call-arg]

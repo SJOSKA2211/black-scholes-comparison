@@ -1,12 +1,13 @@
 import pytest
 from playwright.sync_api import Page, expect
 
+
 @pytest.mark.e2e
 def test_dashboard_navigation(authenticated_page: Page, base_url: str) -> None:
     """Verify dashboard layout and navigation (Section 16.3)."""
     page = authenticated_page
     page.goto(f"{base_url}/")
-    
+
     # Wait for page hydration
     page.wait_for_selector("aside", timeout=10000)
 
@@ -32,14 +33,14 @@ def test_live_pricer_interactivity(authenticated_page: Page, base_url: str) -> N
 
     # Wait for sidebar to confirm login success and hydration
     page.wait_for_selector("aside", timeout=10000)
-    
+
     # Wait for the main content to be visible
     page.wait_for_selector("input", timeout=10000)
 
     # Check for inputs
     expect(page.get_by_label("Underlying Price")).to_be_visible()
     expect(page.get_by_label("Strike Price")).to_be_visible()
-    
+
     # Interact with input
     page.get_by_label("Underlying Price").fill("150")
     page.get_by_label("Underlying Price").press("Enter")
@@ -52,7 +53,7 @@ def test_live_pricer_interactivity(authenticated_page: Page, base_url: str) -> N
 
     # Wait for computation results to appear in the list
     page.wait_for_selector("p:text('analytical')", timeout=20000)
-    
+
     # Verify chart bars
     bars = page.locator(".recharts-bar-rectangle")
     count = bars.count()
