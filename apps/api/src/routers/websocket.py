@@ -10,10 +10,12 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from src.auth.dependencies import verify_ws_token
 from src.websocket.manager import ws_manager
 
+from src.websocket.channels import CHANNELS
+
 router = APIRouter(tags=["websocket"])
 logger = structlog.get_logger(__name__)
 
-ALLOWED_CHANNELS = frozenset(["experiments", "scrapers", "notifications", "metrics"])
+ALLOWED_CHANNELS = frozenset(CHANNELS)
 
 
 @router.websocket("/ws/{channel}")

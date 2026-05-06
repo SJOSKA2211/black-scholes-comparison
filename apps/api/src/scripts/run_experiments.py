@@ -6,6 +6,8 @@ from typing import Any
 
 import structlog
 
+from src.queue.publisher import publish_experiment_task
+
 logger = structlog.get_logger(__name__)
 
 
@@ -13,7 +15,6 @@ async def run_experiments(payload: dict[str, Any]) -> None:
     """Run experiments based on the payload."""
     logger.info("experiments_started", payload=payload)
     # Add to queue for processing
-    from src.queue.publisher import publish_experiment_task
     await publish_experiment_task(payload)
 
 async def main() -> None:
