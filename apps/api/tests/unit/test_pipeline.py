@@ -44,8 +44,6 @@ def test_transform_to_option_parameters() -> None:
 @pytest.mark.asyncio
 async def test_pipeline_run() -> None:
     """Verify pipeline orchestration."""
-    pipeline = DataPipeline("spy")
-    
     mock_scraper_result = AsyncMock()
     mock_scraper_result.quotes = [
         RawQuote(
@@ -63,6 +61,8 @@ async def test_pipeline_run() -> None:
     with patch("src.data.pipeline.SpyScraper") as mock_scraper_cls:
         mock_scraper = mock_scraper_cls.return_value
         mock_scraper.run = AsyncMock(return_value=mock_scraper_result)
+        
+        pipeline = DataPipeline("spy")
         
         # Mock validator to pass
         with patch("src.data.pipeline.validate_quote", return_value=True):

@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from src.database.supabase_client import get_supabase
 
-router = APIRouter(prefix="/health", tags=["health"])
+router = APIRouter(prefix="/api/v1/health", tags=["health"])
 logger = structlog.get_logger(__name__)
 
 

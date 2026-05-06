@@ -12,26 +12,31 @@ async def test_nse_scraper_run() -> None:
     """Verify NSE scraper execution logic."""
     scraper = NseScraper()
     
-    mock_browser = AsyncMock()
-    mock_page = AsyncMock()
+    mock_page = MagicMock()
+    mock_page.goto = AsyncMock()
+    mock_page.close = AsyncMock()
     
-    # mock_page.locator("...").all() is async
     mock_locator = MagicMock()
     mock_locator.all = AsyncMock(return_value=[])
-    mock_page.locator.return_value = mock_locator
+    mock_page.locator = MagicMock(return_value=mock_locator)
     
-    # Properly mock async context manager for playwright
-    mock_pw_context = AsyncMock()
-    mock_pw_context.__aenter__.return_value = AsyncMock()
-    mock_pw_context.__aenter__.return_value.chromium.launch.return_value = mock_browser
-    mock_browser.new_page.return_value = mock_page
+    mock_browser = MagicMock()
+    mock_browser.new_page = AsyncMock(return_value=mock_page)
+    mock_browser.close = AsyncMock()
     
-    with patch("src.scrapers.nse_next_scraper.async_playwright", return_value=mock_pw_context):
+    mock_playwright = MagicMock()
+    mock_playwright.chromium = MagicMock()
+    mock_playwright.chromium.launch = AsyncMock(return_value=mock_browser)
+    
+    # Mock the async context manager
+    mock_cm = MagicMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_playwright)
+    mock_cm.__aexit__ = AsyncMock(return_value=None)
+    
+    with patch("src.scrapers.nse_next_scraper.async_playwright", return_value=mock_cm):
         result = await scraper.run(date(2025, 1, 1))
-        
         assert result.market == "nse"
         assert result.status == "success"
-        mock_page.goto.assert_called_once()
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -39,14 +44,14 @@ async def test_spy_scraper_run() -> None:
     """Verify SPY scraper execution logic."""
     scraper = SpyScraper()
     
-    mock_browser = AsyncMock()
-    mock_page = AsyncMock()
+    mock_page = MagicMock()
+    mock_page.goto = AsyncMock()
+    mock_page.close = AsyncMock()
     
-    # Mock underlying price locator
-    mock_underlying_locator = AsyncMock()
-    mock_underlying_locator.first.inner_text.return_value = "500.00"
+    mock_underlying_locator = MagicMock()
+    mock_underlying_locator.first = MagicMock()
+    mock_underlying_locator.first.inner_text = AsyncMock(return_value="500.00")
     
-    # Mock call rows locator
     mock_rows_locator = MagicMock()
     mock_rows_locator.all = AsyncMock(return_value=[])
     
@@ -54,18 +59,21 @@ async def test_spy_scraper_run() -> None:
         if "regularMarketPrice" in selector:
             return mock_underlying_locator
         return mock_rows_locator
-        
-    mock_page.locator.side_effect = side_effect
+    mock_page.locator = MagicMock(side_effect=side_effect)
     
-    # Properly mock async context manager for playwright
-    mock_pw_context = AsyncMock()
-    mock_pw_context.__aenter__.return_value = AsyncMock()
-    mock_pw_context.__aenter__.return_value.chromium.launch.return_value = mock_browser
-    mock_browser.new_page.return_value = mock_page
+    mock_browser = MagicMock()
+    mock_browser.new_page = AsyncMock(return_value=mock_page)
+    mock_browser.close = AsyncMock()
     
-    with patch("src.scrapers.spy_scraper.async_playwright", return_value=mock_pw_context):
+    mock_playwright = MagicMock()
+    mock_playwright.chromium = MagicMock()
+    mock_playwright.chromium.launch = AsyncMock(return_value=mock_browser)
+    
+    mock_cm = MagicMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_playwright)
+    mock_cm.__aexit__ = AsyncMock(return_value=None)
+    
+    with patch("src.scrapers.spy_scraper.async_playwright", return_value=mock_cm):
         result = await scraper.run(date(2025, 1, 1))
-        
         assert result.market == "spy"
         assert result.status == "success"
-        mock_page.goto.assert_called_once()

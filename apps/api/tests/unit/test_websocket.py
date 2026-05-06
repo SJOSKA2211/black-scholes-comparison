@@ -38,7 +38,13 @@ async def test_get_current_user_valid() -> None:
     with patch("src.auth.dependencies.get_supabase") as mock_supa:
         mock_client = MagicMock()
         mock_supa.return_value = mock_client
-        mock_client.auth.get_user.return_value = MagicMock(user=MagicMock(id="test-id"))
+        mock_user = MagicMock()
+        mock_user.model_dump.return_value = {"id": "test-id"}
+        mock_client.auth.get_user.return_value = MagicMock(user=mock_user)
         
-        user = await get_current_user("valid-token")
+        # Mock the credentials object
+        mock_creds = MagicMock()
+        mock_creds.credentials = "valid-token"
+        
+        user = await get_current_user(mock_creds)
         assert user["id"] == "test-id"
