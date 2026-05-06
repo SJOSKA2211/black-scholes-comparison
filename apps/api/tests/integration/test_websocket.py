@@ -28,27 +28,18 @@ def test_websocket_lifecycle() -> None:
         decode_responses=True,
     )
 
-    client = TestClient(app)
-    # The WebSocketManager uses the global event loop. 
-    # TestClient's websocket_connect runs in its own thread/loop context sometimes.
-    # We use a timeout to avoid hanging.
-    try:
+    with TestClient(app) as client:
         with client.websocket_connect("/api/v1/ws/experiments") as websocket:
+            import time
+            time.sleep(0.5)  # Wait for consumer to subscribe
             test_msg = {"event": "new_row", "data": {"id": "test-ws-123"}}
 
             # Publish via sync Redis to the same channel the manager listens to
             r_sync.publish("ws:experiments", json.dumps(test_msg))
 
             # Manager should receive from Redis and broadcast to WS
-            # Use a timeout on receive
-            try:
-                data = websocket.receive_json()
-                assert data == test_msg
-            except Exception as e:
-                # If it times out or fails, we fail the test gracefully
-                pytest.fail(f"WebSocket receive failed: {e}")
-    except Exception as e:
-        pytest.fail(f"WebSocket lifecycle failed: {e}")
+            data = websocket.receive_json()
+            assert data == test_msg
 
 
 @pytest.mark.integration

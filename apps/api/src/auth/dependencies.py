@@ -1,70 +1,65 @@
-"""Authentication dependencies for FastAPI endpoints."""
+"""Authentication dependencies for FastAPI routes."""
 
 from __future__ import annotations
 
 from typing import Any
 
 import structlog
-from fastapi import Depends, HTTPException, WebSocket, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 
+from src.config import get_settings
 from src.database.supabase_client import get_supabase
 
 logger = structlog.get_logger(__name__)
-security = HTTPBearer()
 
-async def get_current_user(
-    auth: HTTPAuthorizationCredentials = Depends(security)
-) -> dict[str, Any]:
+# auto_error=False allows us to handle missing tokens manually for dev/test bypass
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
+
+async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict[str, Any]:
     """
-    Validates the Supabase JWT from the Authorization header.
-    Returns the user object if valid, otherwise raises 401.
+    Validate the Supabase JWT and return the user profile.
+    In development mode, bypasses validation if no token is provided.
     """
+    settings = get_settings()
+
+    # 1. Development/Test Bypass
+    if settings.environment == "development" and not token:
+        logger.warning("auth_bypassed", mode="development")
+        return {
+            "id": "de34e0d4-ad52-4ffe-9f75-1d41c83a4fb2",
+            "email": "researcher@example.com",
+            "role": "researcher",
+        }
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 2. Real Supabase Validation
     try:
         supabase = get_supabase()
-        # Verify the JWT with Supabase Auth
-        response = supabase.auth.get_user(auth.credentials)
-        if not response.user:
+        # verify_session is not directly in supabase-py client anymore?
+        # We use auth.get_user(token)
+        user_resp = supabase.auth.get_user(token)
+        if not user_resp.user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
             )
-        
+
         return {
-            "id": response.user.id,
-            "email": response.user.email,
-            "role": response.user.user_metadata.get("role", "researcher"),
+            "id": user_resp.user.id,
+            "email": user_resp.user.email,
+            "role": user_resp.user.user_metadata.get("role", "researcher"),
         }
     except Exception as e:
-        logger.error("auth_validation_failed", error=str(e), step="auth")
+        logger.error("auth_validation_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication failed",
+            detail="Could not validate credentials",
         ) from e
-
-async def verify_ws_token(websocket: WebSocket) -> dict[str, Any]:
-    """
-    Validates the Supabase JWT passed as a query parameter for WebSockets.
-    Expected URL: /ws/{channel}?token=<jwt>
-    """
-    token = websocket.query_params.get("token")
-    if not token:
-        logger.warning("ws_auth_missing_token", step="auth")
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        raise HTTPException(status_code=403, detail="Token missing")
-
-    try:
-        supabase = get_supabase()
-        response = supabase.auth.get_user(token)
-        if not response.user:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            raise HTTPException(status_code=403, detail="Invalid token")
-        
-        return {
-            "id": response.user.id,
-            "email": response.user.email,
-        }
-    except Exception as e:
-        logger.error("ws_auth_failed", error=str(e), step="auth")
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        raise HTTPException(status_code=403, detail="Authentication failed") from e

@@ -228,12 +228,12 @@ class TestDownloadsRouter:
 @pytest.mark.asyncio
 async def test_health_check_full(auth_client) -> None:
     """Verify health check returns OK with real infrastructure."""
-    response = auth_client.get("/health")
+    response = auth_client.get("/api/v1/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] in ("ok", "error")
     assert "services" in data
-    assert "database" in data["services"]
+    assert "supabase" in data["services"]
     assert "redis" in data["services"]
 
 
