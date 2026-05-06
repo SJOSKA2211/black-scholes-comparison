@@ -27,15 +27,21 @@ def atm_call_params():
 
 @pytest.mark.unit
 def test_analytical_price(atm_call_params):
-    """Verify analytical price is 10.4506."""
+    """Verify analytical price and greeks."""
     solver = BlackScholesAnalytical()
     result = solver.price(atm_call_params)
     assert pytest.approx(result.computed_price, abs=1e-4) == 10.45058
-
+    
+    greeks = solver.calculate_greeks(atm_call_params)
+    assert greeks["delta"] > 0
+    assert greeks["gamma"] > 0
+    
+    iv = solver.implied_volatility(10.4506, atm_call_params)
+    assert abs(iv - 0.2) < 0.01
 
 @pytest.mark.unit
 def test_crank_nicolson_agreement(atm_call_params):
-    """Verify Crank-Nicolson MAPE < 0.1% vs analytical."""
+    """Verify Crank-Nicolson and American option logic."""
     analytical_solver = BlackScholesAnalytical()
     analytical_price = analytical_solver.price(atm_call_params).computed_price
 
@@ -44,11 +50,15 @@ def test_crank_nicolson_agreement(atm_call_params):
 
     mape = abs(cn_price - analytical_price) / analytical_price
     assert mape < 0.001
-
+    
+    # Test American Call
+    params_american = atm_call_params.model_copy(update={"is_american": True})
+    price_american = cn_solver.price(params_american).computed_price
+    assert abs(price_american - cn_price) < 1e-10
 
 @pytest.mark.unit
 def test_quasi_mc_agreement(atm_call_params):
-    """Verify Quasi-MC MAPE < 0.1% vs analytical."""
+    """Verify Quasi-MC and Put option logic."""
     analytical_solver = BlackScholesAnalytical()
     analytical_price = analytical_solver.price(atm_call_params).computed_price
 
@@ -57,11 +67,15 @@ def test_quasi_mc_agreement(atm_call_params):
 
     mape = abs(qmc_price - analytical_price) / analytical_price
     assert mape < 0.001
-
+    
+    # Test Put
+    params_put = atm_call_params.model_copy(update={"option_type": OptionType.PUT})
+    price_put = qmc_solver.price(params_put).computed_price
+    assert price_put > 0
 
 @pytest.mark.unit
 def test_crr_richardson_agreement(atm_call_params):
-    """Verify CRR+Richardson MAPE < 0.1% vs analytical."""
+    """Verify CRR+Richardson and American Put logic."""
     analytical_solver = BlackScholesAnalytical()
     analytical_price = analytical_solver.price(atm_call_params).computed_price
 
@@ -70,6 +84,16 @@ def test_crr_richardson_agreement(atm_call_params):
 
     mape = abs(rich_price - analytical_price) / analytical_price
     assert mape < 0.001
+    
+    # Test American Put early exercise
+    params_put = atm_call_params.model_copy(update={"option_type": OptionType.PUT, "is_american": True})
+    crr_solver = BinomialCRR(steps=100)
+    price_american_put = crr_solver.price(params_put).computed_price
+    
+    params_eur_put = params_put.model_copy(update={"is_american": False})
+    price_european_put = crr_solver.price(params_eur_put).computed_price
+    
+    assert price_american_put >= price_european_put
 
 
 @pytest.mark.unit
