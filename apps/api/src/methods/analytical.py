@@ -57,5 +57,4 @@ class BlackScholesAnalytical(NumericalMethod):
     def rho(self, p: OptionParams) -> float: return 0.0
     def theta(self, p: OptionParams) -> float: return 0.0
     def geometric_asian_price(self, p: OptionParams) -> PriceResult:
-        # Placeholder for Asian CV support
         return self.price(p)

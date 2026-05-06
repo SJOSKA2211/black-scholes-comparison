@@ -111,6 +111,25 @@ class ScraperRunInput(BaseModel):
     triggered_by: UUID4 | None = None
 
 
+class ScraperRunUpdate(BaseModel):
+    """Update model for tracking scraper execution progress."""
+
+    status: Literal["running", "success", "partial", "failed"] | None = None
+    rows_scraped: int | None = None
+    error_message: str | None = None
+
+
+class ValidationMetricsInput(BaseModel):
+    """Operational model for tracking pricing method accuracy."""
+
+    option_id: UUID4
+    method_result_id: UUID4
+    absolute_error: float
+    relative_pct_error: float
+    mape: float
+    market_deviation: float | None = None
+
+
 class AuditLogInput(BaseModel):
     """Operational model for pipeline audit logging."""
 

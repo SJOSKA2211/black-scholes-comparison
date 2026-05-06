@@ -1,9 +1,9 @@
 [storage]
 enabled = true
  
-[storage.s3]
-enabled     = true
-endpoint    = "http://minio:9000"    # Docker Compose internal hostname
-region      = "us-east-1"           # Required by S3 API (any string)
-access_key  = "${MINIO_ACCESS_KEY}"
-secret_key  = "${MINIO_SECRET_KEY}"
+#[storage.s3]
+#enabled     = true
+#endpoint    = "http://minio:9000"    # Docker Compose internal hostname
+#region      = "us-east-1"           # Required by S3 API (any string)
+#access_key  = "${MINIO_ACCESS_KEY}"
+#secret_key  = "${MINIO_SECRET_KEY}"

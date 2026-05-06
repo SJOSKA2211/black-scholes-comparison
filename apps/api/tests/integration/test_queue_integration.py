@@ -5,8 +5,8 @@ Strictly zero-mock: uses real RabbitMQ instance.
 import asyncio
 import json
 import pytest
-from src.task_queues.publisher import publish_scrape_task, publish_experiment_task
-from src.task_queues.rabbitmq_client import get_rabbitmq_connection
+from src.queue.publisher import publish_scrape_task, publish_experiment_task
+from src.queue.rabbitmq_client import get_rabbitmq_connection
 
 @pytest.mark.integration
 class TestRabbitMQIntegration:

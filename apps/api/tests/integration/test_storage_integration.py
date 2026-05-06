@@ -66,7 +66,7 @@ class TestStorageIntegration:
         # Find the object name from the URL or reconstruct it
         # upload_export uses: exports/%Y/%m/%d/filename.gz
         import datetime
-        date_path = datetime.datetime.now(datetime.UTC).strftime("%Y/%m/%d")
+        date_path = datetime.datetime.now(datetime.timezone.utc).strftime("%Y/%m/%d")
         obj_name = f"exports/{date_path}/{filename}.gz"
         
         stat = client.stat_object("bs-exports", obj_name)

@@ -3,24 +3,21 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, cast
+from typing import Any
 
 import structlog
-from joblib import Parallel, delayed  # type: ignore
+from joblib import Parallel, delayed
 
 from src.database import repository
-from src.methods.analytical import BlackScholesAnalytical
-from src.methods.base import OptionParams, PriceResult
-from src.methods.finite_difference.crank_nicolson import CrankNicolsonFDM
-from src.methods.finite_difference.explicit import ExplicitFDM
-from src.methods.finite_difference.implicit import ImplicitFDM
-from src.methods.monte_carlo.antithetic import AntitheticMC
-from src.methods.monte_carlo.control_variates import ControlVariateMC
-from src.methods.monte_carlo.quasi_mc import QuasiMC
-from src.methods.monte_carlo.standard import StandardMC
-from src.methods.tree_methods.binomial_crr import BinomialCRR
-from src.methods.tree_methods.richardson import BinomialCRRRichardson, TrinomialRichardson
-from src.methods.tree_methods.trinomial import TrinomialTree
+from src.methods import (
+    MethodType,
+    OptionParams,
+    PriceResult,
+    BlackScholesAnalytical,
+    CrankNicolson,
+    QuasiMC,
+    BinomialCRRRichardson,
+)
 from src.metrics import (
     EXPERIMENT_ERRORS,
     EXPERIMENT_PROGRESS,
@@ -30,47 +27,31 @@ from src.metrics import (
 logger = structlog.get_logger(__name__)
 
 
-def compute_single_experiment(method_name: str, params: OptionParams) -> tuple[Any, OptionParams]:
+def compute_single_experiment(method_type: MethodType, params: OptionParams) -> tuple[Any, OptionParams]:
     """
     Worker function for parallel execution.
     Returns (PriceResult or error_dict, OptionParams).
     """
     try:
-        if method_name == "analytical":
-            res = BlackScholesAnalytical().price(params)
-        elif method_name == "explicit_fdm":
-            # Set high time steps to satisfy CFL condition for most grid points
-            res = ExplicitFDM(num_time_steps=2000, num_price_steps=100).price(params)
-        elif method_name == "implicit_fdm":
-            res = ImplicitFDM().price(params)
-        elif method_name == "crank_nicolson":
-            res = CrankNicolsonFDM().price(params)
-        elif method_name == "standard_mc":
-            res = StandardMC(num_simulations=200000).price(params)
-        elif method_name == "antithetic_mc":
-            res = AntitheticMC().price(params)
-        elif method_name == "control_variate_mc":
-            res = ControlVariateMC().price(params)
-        elif method_name == "quasi_mc":
-            res = QuasiMC().price(params)
-        elif method_name == "binomial_crr":
-            res = BinomialCRR().price(params)
-        elif method_name == "trinomial":
-            res = TrinomialTree().price(params)
-        elif method_name == "binomial_crr_richardson":
-            res = BinomialCRRRichardson().price(params)
-        elif method_name == "trinomial_richardson":
-            res = TrinomialRichardson().price(params)
+        if method_type == MethodType.ANALYTICAL:
+            engine = BlackScholesAnalytical()
+        elif method_type == MethodType.CRANK_NICOLSON:
+            engine = CrankNicolson()
+        elif method_type == MethodType.QUASI_MC:
+            engine = QuasiMC()
+        elif method_type == MethodType.BINOMIAL_CRR_RICHARDSON:
+            engine = BinomialCRRRichardson()
         else:
-            raise ValueError(f"Unknown method type: {method_name}")
+            raise ValueError(f"Unsupported method: {method_type}")
 
-        EXPERIMENTS_TOTAL.labels(method_type=method_name, market_source=params.market_source).inc()
+        res = engine.price(params)
+        EXPERIMENTS_TOTAL.labels(method_type=method_type, market_source=params.market_source).inc()
         return res, params
     except Exception as error:
-        logger.warning("worker_task_failed", method=method_name, error=str(error))
+        logger.warning("worker_task_failed", method=method_type, error=str(error))
         EXPER_ERROR_TYPE = type(error).__name__
-        EXPERIMENT_ERRORS.labels(method_type=method_name, error_type=EXPER_ERROR_TYPE).inc()
-        return {"method": method_name, "error": str(error), "params": params.model_dump()}, params
+        EXPERIMENT_ERRORS.labels(method_type=method_type, error_type=EXPER_ERROR_TYPE).inc()
+        return {"method": method_type, "error": str(error), "params": params.model_dump()}, params
 
 
 async def run_experiments(payload: dict[str, Any]) -> None:
@@ -85,9 +66,10 @@ async def run_experiments(payload: dict[str, Any]) -> None:
     volatilities = payload.get("volatilities", [0.1, 0.2, 0.3])
     maturities = payload.get("maturities", [0.25, 0.5, 1.0])
     methods = payload.get("methods", [
-        "analytical", "explicit_fdm", "implicit_fdm", "crank_nicolson",
-        "standard_mc", "antithetic_mc", "control_variate_mc", "quasi_mc",
-        "binomial_crr", "trinomial", "binomial_crr_richardson", "trinomial_richardson"
+        MethodType.ANALYTICAL,
+        MethodType.CRANK_NICOLSON,
+        MethodType.QUASI_MC,
+        MethodType.BINOMIAL_CRR_RICHARDSON,
     ])
 
     tasks = []
@@ -103,36 +85,46 @@ async def run_experiments(payload: dict[str, Any]) -> None:
                     option_type=payload.get("option_type", "call"),
                     market_source=payload.get("market_source", "synthetic")
                 )
-                for method_key in methods:
-                    tasks.append((method_key, params))
+                for method_type in methods:
+                    tasks.append((method_type, params))
 
     total_tasks = len(tasks)
+    if total_tasks == 0:
+        logger.warning("no_tasks_to_run")
+        return
+
     EXPERIMENT_PROGRESS.set(0.0)
 
-    # Run in parallel across CPU cores using threading backend to avoid pickling errors
+    # Run in parallel across CPU cores
+    # We use threading backend to avoid issues with pickling pydantic models if they are complex
     results = Parallel(n_jobs=4, backend="threading")(
-        delayed(compute_single_experiment)(method_key, params) for method_key, params in tasks
+        delayed(compute_single_experiment)(m, p) for m, p in tasks
     )
 
     EXPERIMENT_PROGRESS.set(1.0)
-
-    # Persist successful results to Supabase and broadcast via Redis
-    from src.cache.redis_client import get_redis
-    redis_client = get_redis()
-    user_id = payload.get("user_id")
 
     success_count = 0
     for i, (res, orig_params) in enumerate(results):
         if i % 20 == 0:
             logger.info("persistence_progress", current=i, total=total_tasks)
         
-        # res is PriceResult or dict (on error)
         if isinstance(res, PriceResult):
             try:
-                # Ensure the parameters that created this result are stored
-                option_id = await repository.upsert_option_parameters(orig_params.model_dump())
-                # Persist to Supabase (Section 2.1)
-                await repository.upsert_price_result(option_id, res, user_id=user_id)
+                # 1. Store option parameters
+                option_id = await repository.upsert_option_params(orig_params.model_dump())
+                
+                # 2. Store method result
+                result_dict = {
+                    "option_id": option_id,
+                    "method_type": res.method_type,
+                    "parameter_set": res.parameter_set,
+                    "computed_price": res.computed_price,
+                    "exec_seconds": res.exec_seconds,
+                    "converged": True,
+                    "replications": res.parameter_set.get("num_paths", res.parameter_set.get("num_steps", 1)),
+                    "run_by": payload.get("user_id")
+                }
+                await repository.insert_method_result(result_dict)
                 success_count += 1
             except Exception as db_error:
                 logger.error("persistence_failed", error=str(db_error))
@@ -142,10 +134,6 @@ async def run_experiments(payload: dict[str, Any]) -> None:
                 success_count=success_count)
 
 
-async def run_grid() -> None:
-    """Legacy entry point for backward compatibility."""
-    await run_experiments({})
-
-
 if __name__ == "__main__":
-    asyncio.run(run_grid())
+    # Test run
+    asyncio.run(run_experiments({}))

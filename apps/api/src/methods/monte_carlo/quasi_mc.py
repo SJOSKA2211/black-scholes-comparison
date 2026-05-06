@@ -7,16 +7,16 @@ import time
 import numpy as np
 from scipy.stats import norm, qmc
 
-from src.methods.base import OptionParams, PricingMethod, PricingResult
+from src.methods.base import OptionParams, NumericalMethod, PriceResult
 
 
-class QuasiMC(PricingMethod):
+class QuasiMC(NumericalMethod):
     """
     Quasi-Monte Carlo pricing using Sobol sequences with scrambling.
     Achieves O(N^-1) convergence.
     """
 
-    async def price(self, params: OptionParams) -> PricingResult:
+    def price(self, params: OptionParams) -> PriceResult:
         """Compute the option price using Quasi-Monte Carlo."""
         start_time = time.perf_counter()
 
@@ -48,8 +48,9 @@ class QuasiMC(PricingMethod):
         discount_factor = np.exp(-rate * expiry)
         final_price = discount_factor * np.mean(payoffs)
 
-        return PricingResult(
-            price=float(final_price),
+        return PriceResult(
+            method_type="quasi_mc",
+            computed_price=float(final_price),
             exec_seconds=time.perf_counter() - start_time,
             metadata={"num_paths": num_paths},
         )

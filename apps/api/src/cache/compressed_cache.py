@@ -1,57 +1,52 @@
-"""Compressed Redis cache utility."""
+"""Compressed Redis cache utility — stores serialized objects as compressed binary."""
 
 from __future__ import annotations
-
 import json
+from functools import lru_cache
 from typing import Any
-
 import redis.asyncio as aioredis
-
 from src.config import get_settings
 from src.utils.compression import compress_data, decompress_data
+import structlog
 
-_binary_redis_client: aioredis.Redis[Any] | None = None
+logger = structlog.get_logger(__name__)
 
 
-def get_binary_redis() -> aioredis.Redis[Any]:
-    """Return a Redis client that handles binary data (no auto-decoding)."""
-    global _binary_redis_client
-    if _binary_redis_client is None:
-        settings = get_settings()
-        _binary_redis_client = aioredis.from_url(
-            settings.redis_url,
-            password=settings.redis_password,
-            decode_responses=False,  # Crucial for binary/compressed data
-            socket_connect_timeout=5,
-            socket_timeout=5,
-        )
-    return _binary_redis_client
+@lru_cache(maxsize=1)
+def get_binary_redis() -> aioredis.Redis:
+    """Return a cached async Redis client configured for binary data."""
+    settings = get_settings()
+    # Note: decode_responses=False for binary data
+    client = aioredis.from_url(
+        settings.redis_url,
+        password=settings.redis_password,
+        encoding="utf-8",
+        decode_responses=False,
+        socket_connect_timeout=5,
+    )
+    return client
 
 
 def reset_binary_redis() -> None:
-    """Reset the global binary Redis client (used for tests)."""
-    global _binary_redis_client
-    _binary_redis_client = None
+    """Reset the binary Redis client singleton."""
+    get_binary_redis.cache_clear()
 
 
-async def set_compressed(key: str, value: object, expire: int = 3600) -> None:
-    """Serialize, compress, and store a value in Redis."""
+async def set_compressed(key: str, value: Any, expire: int = 3600) -> None:
+    """Serialize, compress, and store an object in Redis."""
     redis = get_binary_redis()
-
-    # Serialize to JSON then compress
-    json_data = json.dumps(value)
-    body = compress_data(json_data, method="gzip")
-
-    await redis.set(key, body, ex=expire)
+    serialized = json.dumps(value).encode("utf-8")
+    compressed = compress_data(serialized)
+    await redis.setex(key, expire, compressed)
+    logger.debug("compressed_cache_set", key=key, original_size=len(serialized), compressed_size=len(compressed))
 
 
-async def get_compressed(key: str) -> Any | None:  # noqa: ANN401
-    """Retrieve, decompress, and deserialize a value from Redis."""
+async def get_compressed(key: str) -> Any | None:
+    """Retrieve, decompress, and deserialize an object from Redis."""
     redis = get_binary_redis()
-
     compressed = await redis.get(key)
     if compressed is None:
         return None
-
-    json_data = decompress_data(compressed, as_str=True, method="gzip")
-    return json.loads(json_data)
+    
+    decompressed = decompress_data(compressed)
+    return json.loads(decompressed.decode("utf-8"))

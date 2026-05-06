@@ -43,9 +43,18 @@ async def start_consumers() -> None:
     channel = await connection.channel()
     await channel.set_qos(prefetch_count=1)
 
-    scrape_queue = await channel.get_queue("bs.scrape")
-    experiment_queue = await channel.get_queue("bs.experiment")
+    # 1. Declare exchanges
+    exchange = await channel.declare_exchange("bs.tasks", type=aio_pika.ExchangeType.DIRECT, durable=True)
 
+    # 2. Declare queues
+    scrape_queue = await channel.declare_queue("bs.scrape", durable=True)
+    experiment_queue = await channel.declare_queue("bs.experiment", durable=True)
+
+    # 3. Bind queues
+    await scrape_queue.bind(exchange, routing_key="scrape")
+    await experiment_queue.bind(exchange, routing_key="experiment")
+
+    # 4. Start consuming
     await scrape_queue.consume(handle_scrape_task)
     await experiment_queue.consume(handle_experiment_task)
     logger.info("consumers_started", step="init", rows=0)

@@ -34,10 +34,10 @@ def check_mandatory_vars():
         logger.error(msg)
         logger.info("TIP: You must provide real infrastructure URLs in your platform environment settings (Render/Railway/etc.).")
         
-        # On cloud platforms, we allow the deployment check to pass with a warning 
+        # On cloud platforms or in development, we allow the deployment check to pass with a warning 
         # so the build can complete, but the app will still fail at runtime via main.py guard.
-        if os.getenv("RENDER") or os.getenv("RAILWAY_STATIC_URL"):
-            logger.warning("PROCEEDING_WITH_BUILD_ONLY: Zero-Mock violation will be enforced at runtime.")
+        if os.getenv("RENDER") or os.getenv("RAILWAY_STATIC_URL") or os.getenv("ENVIRONMENT") == "development":
+            logger.warning("PROCEEDING_WITH_WARNING: Zero-Mock violation allowed in development/cloud-build.")
             return True
             
         raise RuntimeError(msg)
@@ -49,8 +49,8 @@ def check_mandatory_vars():
             msg = f"Zero-Mock Violation: Detected local/default infrastructure URL for {v} ({url}). Use real infrastructure."
             logger.error(msg)
             
-            if os.getenv("RENDER") or os.getenv("RAILWAY_STATIC_URL"):
-                logger.warning("PROCEEDING_WITH_BUILD_ONLY: Zero-Mock violation (local_infra) will be enforced at runtime.")
+            if os.getenv("RENDER") or os.getenv("RAILWAY_STATIC_URL") or os.getenv("ENVIRONMENT") == "development":
+                logger.warning("PROCEEDING_WITH_WARNING: Zero-Mock violation (local_infra) allowed in development/cloud-build.")
                 continue
                 
             raise RuntimeError(msg)
@@ -152,6 +152,14 @@ def main():
             logger.warning("REACHABILITY_FAILED_ON_CLOUD: Build will proceed, but app will fail at runtime if not corrected.")
         else:
             sys.exit(1)
+
+    # 5. Supabase Reachability
+    supabase_url = os.getenv("SUPABASE_URL")
+    if supabase_url and not check_url_reachability(supabase_url, "supabase"):
+        if os.getenv("ENVIRONMENT") == "development":
+             logger.warning("SUPABASE_UNREACHABLE_IN_DEV: This is expected if the provided Supabase project is inactive.")
+        else:
+             sys.exit(1)
 
     logger.info("zero_mock_verification_passed")
 

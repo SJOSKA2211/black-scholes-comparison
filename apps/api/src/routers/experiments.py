@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
 from src.database.repository import get_experiment_by_id, get_experiments
-from src.task_queues.publisher import publish_experiment_task
+from src.queue.publisher import publish_experiment_task
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
 logger = structlog.get_logger(__name__)

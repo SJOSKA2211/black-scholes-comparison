@@ -19,11 +19,11 @@ async def _fetch_data(resource: str) -> pd.DataFrame:
     """Fetch raw data from DB and return as DataFrame."""
     if resource == "experiments":
         results = await get_experiments(page_size=1000)
-        # get_experiments returns {"items": [...], "total": ...}
-        data = results.get("items", [])
+        # get_experiments returns {"data": [...], "page": ...}
+        data = results.get("data", [])
     elif resource == "market_data":
         results = await get_market_data(source="spy", limit=1000)
-        data = results.get("items", [])
+        data = results.get("data", [])
     else:
         raise ValueError(f"Unknown resource type: {resource}")
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -14,10 +15,7 @@ class MethodType(str, Enum):
 
 
 class OptionParams(BaseModel):
-    """
-    Standardized parameters for option pricing.
-    Uses descriptive names as per Section 17.4 of the mandate.
-    """
+    """Standardized parameters for option pricing."""
     underlying_price: float = Field(..., gt=0)
     strike_price: float = Field(..., gt=0)
     maturity_years: float = Field(..., gt=0)
@@ -40,7 +38,7 @@ class PriceResult(BaseModel):
     delta: float | None = None
     gamma: float | None = None
     vega: float | None = None
-    metadata: dict[str, float | str | int | bool] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class NumericalMethod(ABC):

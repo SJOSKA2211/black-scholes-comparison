@@ -25,9 +25,10 @@ def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable:
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             redis = get_redis()
-            # Construct a stable cache key based on sorted keyword arguments
+            # Construct a stable cache key based on args and sorted keyword arguments
             items = sorted(kwargs.items())
-            cache_key = f"{key_prefix}:{hash(str(items))}"
+            cache_basis = f"{args}:{items}"
+            cache_key = f"{key_prefix}:{hash(cache_basis)}"
 
             try:
                 cached = await redis.get(cache_key)

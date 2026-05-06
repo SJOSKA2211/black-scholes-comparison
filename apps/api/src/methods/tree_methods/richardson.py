@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import time
 
-from src.methods.base import OptionParams, PricingMethod, PricingResult
+from src.methods.base import OptionParams, NumericalMethod, PriceResult
 from src.methods.tree_methods.binomial_crr import BinomialCRR
 
 
-class BinomialCRRRichardson(PricingMethod):
+class BinomialCRRRichardson(NumericalMethod):
     """
     Combines CRR binomial tree with Richardson extrapolation.
     2 * Price(2N) - Price(N) improves convergence to O(N^-2).
     """
 
-    async def price(self, params: OptionParams) -> PricingResult:
+    def price(self, params: OptionParams) -> PriceResult:
         """Compute the price using Richardson Extrapolation."""
         start_time = time.perf_counter()
 
@@ -30,8 +30,9 @@ class BinomialCRRRichardson(PricingMethod):
         # Richardson Extrapolation
         final_price = 2.0 * price_2n - price_n
 
-        return PricingResult(
-            price=float(final_price),
+        return PriceResult(
+            method_type="binomial_crr_richardson",
+            computed_price=float(final_price),
             exec_seconds=time.perf_counter() - start_time,
             metadata={
                 "price_n": price_n,

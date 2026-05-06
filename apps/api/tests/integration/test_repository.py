@@ -26,9 +26,9 @@ async def cleanup_ids():
         "option_parameters": [],
     }
     yield to_cleanup
-    from src.database.supabase_client import get_supabase_client
+    from src.database.supabase_client import get_supabase
 
-    supabase = get_supabase_client()
+    supabase = get_supabase()
     # Clean up in reverse dependency order
     for table in [
         "notifications",
@@ -57,9 +57,9 @@ async def cleanup_ids():
 @pytest.fixture
 async def test_user_id():
     """Get a valid user_id from the database for FK references."""
-    from src.database.supabase_client import get_supabase_client
+    from src.database.supabase_client import get_supabase
 
-    supabase = get_supabase_client()
+    supabase = get_supabase()
     res = supabase.table("user_profiles").select("id").limit(1).execute()
     if res.data:
         return res.data[0]["id"]
@@ -295,9 +295,9 @@ async def test_price_result_with_user_id(sample_option_params, cleanup_ids, test
 async def test_push_subscriptions(cleanup_ids, test_user_id) -> None:
     """Test push subscription CRUD with real Supabase."""
     user_id = test_user_id
-    from src.database.supabase_client import get_supabase_client
+    from src.database.supabase_client import get_supabase
 
-    supabase = get_supabase_client()
+    supabase = get_supabase()
     sub_id = str(uuid.uuid4())
     supabase.table("push_subscriptions").insert(
         {

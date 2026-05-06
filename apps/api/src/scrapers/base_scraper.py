@@ -8,6 +8,10 @@ import pandas as pd
 class BaseScraper(ABC):
     """Abstract base class for scraping market data."""
 
+    def __init__(self, run_id: str | None = None) -> None:
+        self.run_id = run_id
+
+
     @abstractmethod
     async def scrape(self, trade_date: date) -> pd.DataFrame:
         """

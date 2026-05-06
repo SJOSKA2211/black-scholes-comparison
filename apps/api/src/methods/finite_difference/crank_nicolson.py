@@ -6,23 +6,27 @@ import time
 
 import numpy as np
 
-from src.methods.base import OptionParams, PricingMethod, PricingResult
+from src.methods.base import OptionParams, NumericalMethod, PriceResult
 
 
-class CrankNicolson(PricingMethod):
+class CrankNicolson(NumericalMethod):
     """
     Crank-Nicolson FDM implementation (theta=0.5).
     Uses Thomas Algorithm for O(M) tridiagonal solving.
     Uses Projected Successive Over-Relaxation (PSOR) for American options.
     """
 
-    async def price(self, params: OptionParams) -> PricingResult:
+    def __init__(self, num_time_steps: int = 100, num_price_steps: int = 200):
+        self.num_time_steps = num_time_steps
+        self.num_space_steps = num_price_steps
+
+    def price(self, params: OptionParams) -> PriceResult:
         """Compute the option price using Crank-Nicolson FDM."""
         start_time = time.perf_counter()
 
         # Grid configuration
-        num_space_steps = 200
-        num_time_steps = 100
+        num_space_steps = self.num_space_steps
+        num_time_steps = self.num_time_steps
 
         max_price = params.strike_price * 3.0
         time_step = params.maturity_years / num_time_steps
@@ -65,8 +69,9 @@ class CrankNicolson(PricingMethod):
         # Interpolate result
         final_price = np.interp(params.underlying_price, prices, grid)
 
-        return PricingResult(
-            price=float(final_price),
+        return PriceResult(
+            method_type="crank_nicolson",
+            computed_price=float(final_price),
             exec_seconds=time.perf_counter() - start_time,
             metadata={"num_space_steps": num_space_steps, "num_time_steps": num_time_steps},
         )

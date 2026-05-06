@@ -45,6 +45,7 @@ services:
       - playwright_cache:/home/app/.cache/ms-playwright
     command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
     networks: [bs_network]
+    dns: [8.8.8.8, 8.8.4.4]
 
 
 

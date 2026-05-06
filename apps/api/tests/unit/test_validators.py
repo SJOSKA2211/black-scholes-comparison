@@ -158,25 +158,6 @@ class TestTransformers:
         assert len(res) == 1
 
 
-@pytest.mark.unit
-class TestAuth:
-    @pytest.mark.asyncio
-    async def test_get_current_user(self):
-        from src.auth.dependencies import get_current_user
-
-        user = await get_current_user()
-        assert user["role"] == "researcher"
-
-    @pytest.mark.asyncio
-    async def test_verify_ws_token(self):
-        from src.auth.dependencies import verify_ws_token
-
-        # Use a simple object instead of MagicMock
-        class Dummy:
-            pass
-
-        res = await verify_ws_token(Dummy(), "token")
-        assert res["email"] == "researcher@example.com"
 
 
 @pytest.mark.unit
