@@ -2,10 +2,10 @@
 
 from typing import Any, cast
 
+import jwt
 import structlog
 from fastapi import HTTPException, Security, WebSocket
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt  # type: ignore[import-untyped]
 
 from src.config import get_settings
 
@@ -28,7 +28,7 @@ async def get_current_user(
             audience="authenticated",
         )
         return cast(dict[str, Any], payload)
-    except JWTError as e:
+    except jwt.PyJWTError as e:
         logger.warning("auth_failed", error=str(e))
         raise HTTPException(
             status_code=401, detail="Invalid authentication credentials"
@@ -48,6 +48,6 @@ async def verify_ws_token(websocket: WebSocket) -> dict[str, Any]:
             token, settings.supabase_key, algorithms=["HS256"], audience="authenticated"
         )
         return payload
-    except JWTError as e:
+    except jwt.PyJWTError as e:
         await websocket.close(code=4003, reason="Invalid token")
         raise HTTPException(status_code=401) from e

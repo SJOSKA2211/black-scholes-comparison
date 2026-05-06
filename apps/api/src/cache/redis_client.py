@@ -28,3 +28,10 @@ def get_redis() -> aioredis.Redis[str]:
     )
     logger.info("redis_client_created", url=settings.redis_url, step="init")
     return client
+
+
+async def reset_redis() -> None:
+    """Flush all keys in the current database."""
+    client = get_redis()
+    await client.flushdb()
+

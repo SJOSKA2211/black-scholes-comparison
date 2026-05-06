@@ -6,6 +6,7 @@ import pytest_asyncio
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from minio import Minio
+from src.methods.base import OptionParams, OptionType
 
 # Load environment variables
 load_dotenv()
@@ -68,8 +69,34 @@ def minio_client() -> Minio:
     return get_minio()
 
 @pytest.fixture
+def atm_call_params() -> OptionParams:
+    """Standard ATM Call: S=100, K=100, T=1, vol=0.2, r=0.05."""
+    return OptionParams(
+        underlying_price=100.0,
+        strike_price=100.0,
+        maturity_years=1.0,
+        volatility=0.2,
+        risk_free_rate=0.05,
+        option_type=OptionType.CALL,
+        is_american=False,
+    )
+
+@pytest.fixture
+def atm_put_params() -> OptionParams:
+    """Standard ATM Put: S=100, K=100, T=1, vol=0.2, r=0.05."""
+    return OptionParams(
+        underlying_price=100.0,
+        strike_price=100.0,
+        maturity_years=1.0,
+        volatility=0.2,
+        risk_free_rate=0.05,
+        option_type=OptionType.PUT,
+        is_american=False,
+    )
+
+@pytest.fixture
 def sample_option_params():
-    """Standard option parameters for testing."""
+    """Standard option parameters for testing (dict)."""
     return {
         "underlying_price": 100.0,
         "strike_price": 100.0,
