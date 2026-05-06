@@ -1,231 +1,59 @@
-"""Main FastAPI Application Entrypoint."""
+"""Main FastAPI application entry point."""
 
 from __future__ import annotations
-
-import os
-from collections.abc import AsyncGenerator
+import asyncio
 from contextlib import asynccontextmanager
-
-from dotenv import load_dotenv
-
-# Load environment variables early
-load_dotenv()
-load_dotenv("apps/api/.env")
-
 import structlog
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from brotli_asgi import BrotliMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
-
 from src.config import get_settings
 from src.logging_config import configure_logging
-from src.routers import (
-    downloads,
-    experiments,
-    health,
-    market_data,
-    notifications,
-    pricing,
-    scrapers,
-    websocket,
-    debug,
-)
-from src.task_queues.consumer import start_consumers
+from src.queue.consumer import start_consumers
+from src.routers import health, pricing, websocket
 
+# 1. Initialize logging
+configure_logging()
 logger = structlog.get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """
-    Handle application startup and shutdown events.
-    Boot background workers and initialize infrastructure clients.
-    """
+async def lifespan(app: FastAPI):
+    """Manage application lifecycle."""
     settings = get_settings()
-    logger.info("app_starting", env=settings.env, step="init")
-
-    # 1. Initialize infrastructure singletons (Mandatory per Zero-Mock Policy)
-    from src.cache.redis_client import get_redis
-    from src.storage.minio_client import get_minio
-
-    # Zero-Mock Mandatory Guard (Applies to all environments)
-    from src.metrics import ZERO_MOCK_VIOLATIONS
-
-    missing_vars = []
-    if not settings.redis_url:
-        missing_vars.append("REDIS_URL")
-    if not settings.rabbitmq_url:
-        missing_vars.append("RABBITMQ_URL")
-    if not settings.minio_endpoint:
-        missing_vars.append("MINIO_ENDPOINT")
-
-    if missing_vars:
-        ZERO_MOCK_VIOLATIONS.labels(violation_type="missing_variables").inc()
-        raise RuntimeError(
-            f"Zero-Mock Violation: Missing mandatory infrastructure variables: {', '.join(missing_vars)}"
-        )
-
-    for url in [settings.redis_url, settings.rabbitmq_url, settings.minio_endpoint]:
-        # Block localhost, 127.0.0.1, and common docker-compose defaults in production
-        if settings.env == "production":
-            if any(
-                bad in url.lower()
-                for bad in ["localhost", "127.0.0.1"]
-            ):
-                ZERO_MOCK_VIOLATIONS.labels(violation_type="local_infrastructure").inc()
-                
-                # For strict Zero-Mock, we raise a RuntimeError to prevent startup with invalid infrastructure
-                msg = f"Zero-Mock Violation: Detected local/default infrastructure URL ({url}) in production. Use real infrastructure."
-                logger.critical(msg)
-                raise RuntimeError(msg)
-
-
-
-    # Eager initialization triggers connection attempts
-    get_redis()
-    get_minio()
-
-    # 2. Start RabbitMQ consumers (Section 8.4)
-    # Background workers consume tasks from bs.scrape and bs.experiment
-    try:
-        import asyncio
-        # Wait at most 5 seconds for consumers to start
-        await asyncio.wait_for(start_consumers(), timeout=5.0)
-        logger.info("consumers_started", step="init")
-    except (TimeoutError, asyncio.TimeoutError):
-        logger.warning("consumers_start_timeout", step="init")
-        if settings.env == "production":
-            raise RuntimeError("Zero-Mock Violation: RabbitMQ consumers failed to start within timeout in production.")
-    except Exception as error:
-        logger.error("consumers_start_failed", error=str(error), step="init")
-        if settings.env == "production":
-            raise RuntimeError(f"Zero-Mock Violation: RabbitMQ connection failed in production: {error}")
-
-    # Premium Startup Banner
-    logger.info(
-        "app_ready",
-        env=settings.env,
-        compression="Brotli+GZip" if settings.gzip_enabled else "Disabled",
-        zero_mock="Strict (Production)" if settings.env == "production" else "Standard",
-        step="init"
-    )
-
+    logger.info("application_startup", environment=settings.environment)
+    # Start RabbitMQ consumers in the background and store reference
+    app.state.consumer_task = asyncio.create_task(start_consumers())
     yield
-
-    # Shutdown logic
-    logger.info("app_shutting_down", step="shutdown")
-    from src.task_queues.rabbitmq_client import close_rabbitmq_connection
-
-    await close_rabbitmq_connection()
-
-    from src.cache.redis_client import get_redis
-
-    redis = get_redis()
-    if redis:
-        await redis.aclose()  # type: ignore[attr-defined]
+    logger.info("application_shutdown")
+    app.state.consumer_task.cancel()
+    try:
+        await app.state.consumer_task
+    except asyncio.CancelledError:
+        pass
 
 
-def create_app() -> FastAPI:
-    """Initialize and configure the FastAPI application."""
-    configure_logging()
-    settings = get_settings()
+# 2. Create app instance
+app = FastAPI(
+    title="Black-Scholes Research Platform",
+    description="Full-stack option pricing and research system.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
-    app = FastAPI(
-        title="Black-Scholes Research Platform",
-        version="4.0.0",
-        description="Production-grade full-stack options pricing research system.",
-        docs_url="/api/docs",
-        openapi_url="/api/openapi.json",
-        lifespan=lifespan,
-    )
+# 3. Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-    # CORS configuration
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# 4. Routers
+app.include_router(pricing.router, prefix="/api/v1")
+app.include_router(health.router, prefix="/api/v1")
+app.include_router(websocket.router)
 
-    # Premium Compression (Brotli primary, GZip fallback)
-    if settings.gzip_enabled:
-        try:
-            from brotli_asgi import BrotliMiddleware
-            # Brotli is superior to Gzip for JSON and text
-            app.add_middleware(
-                BrotliMiddleware,
-                quality=settings.gzip_level,  # Reuse gzip_level for brotli quality
-                minimum_size=settings.gzip_min_size,
-            )
-            logger.info("compression_enabled", type="Brotli+GZip")
-        except ImportError:
-            logger.warning("brotli_not_found_falling_back_to_gzip")
-            logger.info("compression_enabled", type="GZip")
-
-        # GZip as a fallback for older clients
-        app.add_middleware(
-            GZipMiddleware,
-            minimum_size=settings.gzip_min_size,
-        )
-
-    # Prometheus Instrumentation (Section 12.1)
-    # Exposes /metrics for Prometheus scraping
-    Instrumentator().instrument(app).expose(app)
-
-    # Include routers (Section 17.2)
-    # Health check is exposed at /health for infrastructure probes
-    app.include_router(health.router)
-
-    # API v1 routes
-    api_v1_prefix = "/api/v1"
-    app.include_router(market_data.router, prefix=api_v1_prefix)
-    app.include_router(pricing.router, prefix=api_v1_prefix)
-    app.include_router(experiments.router, prefix=api_v1_prefix)
-    app.include_router(scrapers.router, prefix=api_v1_prefix)
-    app.include_router(downloads.router, prefix=api_v1_prefix)
-    app.include_router(notifications.router, prefix=api_v1_prefix)
-    app.include_router(websocket.router, prefix=api_v1_prefix)
-    app.include_router(debug.router)
-
-    @app.get("/")
-    async def root() -> dict[str, str]:
-        """Root endpoint with project identification."""
-        return {"message": "Black-Scholes Research API v4. Production Stable."}
-
-    # MinIO Proxy (Replaces Nginx /minio/ for platforms like Railway)
-    @app.api_route("/minio/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-    async def minio_proxy(path: str, request: Request) -> Response:
-        """Proxies requests to the internal MinIO endpoint."""
-        import httpx
-
-        settings = get_settings()
-        target_url = f"http://{settings.minio_endpoint}/{path}"
-
-        # Use a long timeout for file uploads/downloads
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            # Prepare headers (strip host)
-            headers = dict(request.headers)
-            headers.pop("host", None)
-
-            # Proxy request
-            proxy_res = await client.request(
-                method=request.method,
-                url=target_url,
-                headers=headers,
-                params=request.query_params,
-                content=await request.body(),
-            )
-
-            return Response(
-                content=proxy_res.content,
-                status_code=proxy_res.status_code,
-                headers=dict(proxy_res.headers),
-            )
-
-    return app
-
-
-app = create_app()
+# 5. Observability
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")

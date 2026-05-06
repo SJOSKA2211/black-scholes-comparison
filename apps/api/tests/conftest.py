@@ -1,24 +1,19 @@
 import asyncio
 import os
 from collections.abc import Generator
-
 import pytest
 import pytest_asyncio
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from minio import Minio
 
-# Load environment variables (Section 1.2)
+# Load environment variables
 load_dotenv()
-
 
 def _patch_env_for_host() -> None:
     """If running on host (not in docker), map docker hostnames to localhost."""
-    import os
-
     is_docker = os.path.exists("/.dockerenv")
     if not is_docker:
-
         # Redis
         redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
         if "redis:6379" in redis_url:
@@ -28,46 +23,37 @@ def _patch_env_for_host() -> None:
         if minio_endpoint == "minio:9000":
             os.environ["MINIO_ENDPOINT"] = "127.0.0.1:9000"
         # RabbitMQ
-        rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://rabbitmq_user:JKmaish2025@rabbitmq:5672/")
+        rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://rabbitmq_user:guest@rabbitmq:5672/")
         if "rabbitmq:5672" in rabbitmq_url:
             os.environ["RABBITMQ_URL"] = rabbitmq_url.replace("rabbitmq:5672", "127.0.0.1:5672")
-
 
 _patch_env_for_host()
 
 from src.cache.redis_client import get_redis, reset_redis
 from src.config import get_settings
-from src.database.supabase_client import get_supabase_client
+from src.database.supabase_client import get_supabase
 from src.main import app
 from src.storage.minio_client import get_minio
-from src.task_queues.rabbitmq_client import get_rabbitmq_connection, reset_rabbitmq
-
-
-
-
+from src.queue.rabbitmq_client import get_rabbitmq_connection
 
 @pytest.fixture(scope="session")
 def event_loop_policy():
     return asyncio.get_event_loop_policy()
 
-
 @pytest.fixture(scope="session")
 def client() -> TestClient:
-    """Session-scoped test client for the FastAPI application."""
+    """Session-scoped test client."""
     return TestClient(app)
-
 
 @pytest.fixture(scope="session")
 def supabase():
     """Session-scoped Supabase client."""
-    return get_supabase_client()
-
+    return get_supabase()
 
 @pytest.fixture(scope="session")
 def redis():
     """Session-scoped Redis client."""
     return get_redis()
-
 
 @pytest_asyncio.fixture(scope="session")
 async def rabbitmq():
@@ -76,30 +62,10 @@ async def rabbitmq():
     yield connection
     await connection.close()
 
-
 @pytest.fixture(scope="session")
 def minio_client() -> Minio:
     """Session-scoped MinIO client."""
     return get_minio()
-
-
-@pytest.fixture(scope="session")
-def base_url() -> str:
-    """Return the frontend base URL for E2E tests."""
-    return os.getenv("FRONTEND_URL", "http://localhost:3000")
-
-
-@pytest.fixture(scope="session")
-def api_url() -> str:
-    """Return the backend API URL for E2E tests."""
-    return os.getenv("API_URL", "http://localhost:8000")
-
-
-@pytest.fixture
-def auth_headers():
-    """Default auth headers for authorized requests."""
-    return {"Authorization": "Bearer fake-jwt-token"}
-
 
 @pytest.fixture
 def sample_option_params():
@@ -114,11 +80,3 @@ def sample_option_params():
         "market_source": "synthetic",
         "is_american": False,
     }
-
-
-@pytest.fixture(autouse=True)
-def ensure_infrastructure_configured(request) -> None:
-    """Ensure infrastructure is available for integration/e2e tests."""
-    if "integration" in request.keywords or "e2e" in request.keywords:
-        if not os.getenv("SUPABASE_URL") or not os.getenv("SUPABASE_KEY"):
-            pytest.fail("SUPABASE_URL and SUPABASE_KEY must be set for integration tests")

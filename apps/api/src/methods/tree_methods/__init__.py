@@ -1,5 +1,6 @@
-from .binomial_crr import BinomialCRR
-from .richardson import BinomialCRRRichardson, TrinomialRichardson
-from .trinomial import TrinomialTree
+"""Tree-based methods."""
+from __future__ import annotations
+from src.methods.tree_methods.binomial_crr import BinomialCRR
+from src.methods.tree_methods.richardson import BinomialCRRRichardson
 
-__all__ = ["BinomialCRR", "BinomialCRRRichardson", "TrinomialRichardson", "TrinomialTree"]
+__all__ = ["BinomialCRR", "BinomialCRRRichardson"]

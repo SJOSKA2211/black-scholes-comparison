@@ -1,6 +1,5 @@
-from .antithetic import AntitheticMC
-from .control_variates import ControlVariateMC
-from .quasi_mc import QuasiMC
-from .standard import StandardMC
+"""Monte Carlo methods."""
+from __future__ import annotations
+from src.methods.monte_carlo.quasi_mc import QuasiMC
 
-__all__ = ["AntitheticMC", "ControlVariateMC", "QuasiMC", "StandardMC"]
+__all__ = ["QuasiMC"]

@@ -1,20 +1,21 @@
-import structlog
+"""Supabase client singleton initialization."""
+
+from __future__ import annotations
+
 from functools import lru_cache
+
+import structlog
 from supabase import Client, create_client
+
 from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
 
-@lru_cache
-def get_supabase_client() -> Client:
-    """Returns a singleton Supabase client using service_role key."""
+@lru_cache(maxsize=1)
+def get_supabase() -> Client:
+    """Return a cached singleton Supabase client."""
     settings = get_settings()
-    url = settings.supabase_url
-    key = settings.supabase_key
-    if not url or url == "None" or not key or key == "dummy_service_key":
-        logger.error("supabase_config_missing", url=url)
-        raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set.")
-    
-    logger.info("supabase_client_init", url=url)
-    return create_client(url, key)
+    client = create_client(settings.supabase_url, settings.supabase_key)
+    logger.info("supabase_client_created", url=settings.supabase_url, step="init")
+    return client

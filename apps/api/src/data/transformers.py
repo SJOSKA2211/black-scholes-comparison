@@ -1,48 +1,32 @@
-"""Data transformers — cleans and converts raw market data into canonical models."""
+"""Data transformation utilities for market data pipelines."""
 
 from __future__ import annotations
 
-from typing import Any, Literal, cast
-
 import pandas as pd
-import structlog
-
-from src.methods.base import OptionParams
-
-logger = structlog.get_logger(__name__)
 
 
-def transform_market_row(row: dict[str, Any], market_source: str = "synthetic") -> OptionParams:
+def clean_market_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Converts a raw market data row into an OptionParams instance.
-    Expected row keys: underlying_price, strike_price, maturity_years, volatility,
-    risk_free_rate, option_type, is_american.
+    Clean raw scraped data: handle NaNs, convert types, and calculate mid price.
+    Descriptive variable names used.
     """
-    try:
-        return OptionParams(
-            underlying_price=float(row["underlying_price"]),
-            strike_price=float(row["strike_price"]),
-            maturity_years=float(row["maturity_years"]),
-            volatility=float(row["volatility"]),
-            risk_free_rate=float(row["risk_free_rate"]),
-            option_type=row["option_type"],
-            is_american=bool(row.get("is_american", False)),
-            market_source=cast("Literal['synthetic', 'spy', 'nse']", market_source),
-        )
-    except (KeyError, ValueError, TypeError) as error:
-        logger.error("transformation_error", error=str(error), row=row)
-        raise
+    # Drop rows with missing critical prices
+    df = df.dropna(subset=["bid_price", "ask_price", "underlying_price"])
+
+    # Ensure numeric types
+    df["bid_price"] = pd.to_numeric(df["bid_price"])
+    df["ask_price"] = pd.to_numeric(df["ask_price"])
+    df["underlying_price"] = pd.to_numeric(df["underlying_price"])
+
+    # Calculate mid price
+    df["mid_price"] = (df["bid_price"] + df["ask_price"]) / 2.0
+
+    # Filter out invalid prices
+    df = df[df["mid_price"] > 0]
+
+    return df
 
 
-def transform_batch_df(df: pd.DataFrame, market_source: str = "synthetic") -> list[OptionParams]:
-    """Converts a DataFrame of market data into a list of OptionParams."""
-    params_list: list[OptionParams] = []
-    for _, row in df.iterrows():
-        try:
-            params_list.append(
-                transform_market_row(cast("dict[str, Any]", row.to_dict()), market_source)
-            )
-        except Exception as error:
-            logger.warning("batch_transform_row_skipped", error=str(error))
-            continue
-    return params_list
+def prepare_for_upsert(df: pd.DataFrame) -> list[dict[str, any]]:
+    """Convert DataFrame to list of dicts for Supabase upsert."""
+    return df.to_dict(orient="records")

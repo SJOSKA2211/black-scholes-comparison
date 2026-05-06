@@ -1,5 +1,5 @@
-from .crank_nicolson import CrankNicolsonFDM
-from .explicit import ExplicitFDM
-from .implicit import ImplicitFDM
+"""Finite difference methods."""
+from __future__ import annotations
+from src.methods.finite_difference.crank_nicolson import CrankNicolson
 
-__all__ = ["CrankNicolsonFDM", "ExplicitFDM", "ImplicitFDM"]
+__all__ = ["CrankNicolson"]

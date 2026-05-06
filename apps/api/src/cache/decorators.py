@@ -14,43 +14,36 @@ from src.cache.redis_client import get_redis
 logger = structlog.get_logger(__name__)
 
 
-def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any]:
+def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable:
     """
-    Decorator: check Redis for cached compressed JSON response; compute and cache on miss.
-    Uses src.cache.compressed_cache for binary-safe zlib compression.
+    Decorator: check Redis for cached JSON response; compute and cache on miss.
     Cache key: f"{key_prefix}:{hash(str(sorted(kwargs.items())))}"
     TTL default: 300 seconds (5 minutes).
     """
 
-    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+    def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        async def wrapper(*args: object, **kwargs: object) -> object:
-            from src.cache.compressed_cache import get_compressed, set_compressed
-            import hashlib
-
-            # Create a deterministic cache key from args and sorted kwargs
-            key_parts = f"{args}:{sorted(kwargs.items())}".encode()
-            cache_key = f"{key_prefix}:{hashlib.sha256(key_parts).hexdigest()}"
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
+            redis = get_redis()
+            # Construct a stable cache key based on sorted keyword arguments
+            items = sorted(kwargs.items())
+            cache_key = f"{key_prefix}:{hash(str(items))}"
 
             try:
-                cached = await get_compressed(cache_key)
+                cached = await redis.get(cache_key)
                 if cached is not None:
                     logger.debug("cache_hit", key=cache_key, step="cache")
-                    return cached
-            except Exception as error:
-                logger.warning("cache_lookup_failed", error=str(error), step="cache")
+                    return json.loads(cached)
+            except Exception as e:
+                logger.warning("cache_lookup_failed", error=str(e), key=cache_key)
 
             result = await func(*args, **kwargs)
 
             try:
-                # Handle Pydantic models (Section 4.1)
-                from pydantic import BaseModel
-
-                dumped = result.model_dump() if isinstance(result, BaseModel) else result
-                await set_compressed(cache_key, dumped, expire=ttl_seconds)
+                await redis.setex(cache_key, ttl_seconds, json.dumps(result, default=str))
                 logger.debug("cache_miss_stored", key=cache_key, step="cache")
-            except Exception as error:
-                logger.warning("cache_store_failed", error=str(error), step="cache")
+            except Exception as e:
+                logger.warning("cache_store_failed", error=str(e), key=cache_key)
 
             return result
 

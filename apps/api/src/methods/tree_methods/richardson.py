@@ -1,95 +1,42 @@
-"""Richardson extrapolation for tree methods."""
+"""Binomial CRR with Richardson Extrapolation."""
 
 from __future__ import annotations
 
 import time
 
-from src.methods.base import MethodType, OptionParams, PriceResult
+from src.methods.base import OptionParams, PricingMethod, PricingResult
 from src.methods.tree_methods.binomial_crr import BinomialCRR
-from src.methods.tree_methods.trinomial import TrinomialTree
 
 
-class BinomialCRRRichardson:
-    """CRR with Richardson extrapolation wrapper with Greeks."""
+class BinomialCRRRichardson(PricingMethod):
+    """
+    Combines CRR binomial tree with Richardson extrapolation.
+    2 * Price(2N) - Price(N) improves convergence to O(N^-2).
+    """
 
-    def __init__(self, num_steps: int = 500) -> None:
-        self.num_steps = num_steps
-        self.method_type: MethodType = "binomial_crr_richardson"
+    async def price(self, params: OptionParams) -> PricingResult:
+        """Compute the price using Richardson Extrapolation."""
+        start_time = time.perf_counter()
 
-    def price(self, params: OptionParams) -> PriceResult:
-        """CRR with Richardson extrapolation: 2*V(2N) - V(N)."""
-        start_time = time.time()
+        # Standard steps as per mandate
+        num_steps_n = 500
+        num_steps_2n = 1000
 
-        pricer_base = BinomialCRR(num_steps=self.num_steps)
-        pricer_refined = BinomialCRR(num_steps=2 * self.num_steps)
+        tree = BinomialCRR()
 
-        result_base = pricer_base.price(params)
-        result_refined = pricer_refined.price(params)
+        price_n = tree.price_tree(params, num_steps_n)
+        price_2n = tree.price_tree(params, num_steps_2n)
 
-        def extrapolate(value_base: float, value_refined: float) -> float:
-            return 2 * value_refined - value_base
+        # Richardson Extrapolation
+        final_price = 2.0 * price_2n - price_n
 
-        def extrapolate_greek(
-            greek_base: float | None, greek_refined: float | None
-        ) -> float | None:
-            if greek_base is None or greek_refined is None:
-                return None
-            return 2 * greek_refined - greek_base
-
-        exec_seconds = time.time() - start_time
-        return PriceResult(
-            method_type=self.method_type,
-            computed_price=extrapolate(result_base.computed_price, result_refined.computed_price),
-            exec_seconds=exec_seconds,
-            delta=extrapolate_greek(result_base.delta, result_refined.delta),
-            gamma=extrapolate_greek(result_base.gamma, result_refined.gamma),
-            vega=extrapolate_greek(result_base.vega, result_refined.vega),
-            theta=extrapolate_greek(result_base.theta, result_refined.theta),
-            rho=extrapolate_greek(result_base.rho, result_refined.rho),
-            parameter_set={
-                "num_steps_base": self.num_steps,
-            },
-        )
-
-
-class TrinomialRichardson:
-    """Trinomial with Richardson extrapolation wrapper with Greeks."""
-
-    def __init__(self, num_steps: int = 500) -> None:
-        self.num_steps = num_steps
-        self.method_type: MethodType = "trinomial_richardson"
-
-    def price(self, params: OptionParams) -> PriceResult:
-        """Trinomial with Richardson extrapolation: 2*V(2N) - V(N)."""
-        start_time = time.time()
-
-        pricer_base = TrinomialTree(num_steps=self.num_steps)
-        pricer_refined = TrinomialTree(num_steps=2 * self.num_steps)
-
-        result_base = pricer_base.price(params)
-        result_refined = pricer_refined.price(params)
-
-        def extrapolate(value_base: float, value_refined: float) -> float:
-            return 2 * value_refined - value_base
-
-        def extrapolate_greek(
-            greek_base: float | None, greek_refined: float | None
-        ) -> float | None:
-            if greek_base is None or greek_refined is None:
-                return None
-            return 2 * greek_refined - greek_base
-
-        exec_seconds = time.time() - start_time
-        return PriceResult(
-            method_type=self.method_type,
-            computed_price=extrapolate(result_base.computed_price, result_refined.computed_price),
-            exec_seconds=exec_seconds,
-            delta=extrapolate_greek(result_base.delta, result_refined.delta),
-            gamma=extrapolate_greek(result_base.gamma, result_refined.gamma),
-            vega=extrapolate_greek(result_base.vega, result_refined.vega),
-            theta=extrapolate_greek(result_base.theta, result_refined.theta),
-            rho=extrapolate_greek(result_base.rho, result_refined.rho),
-            parameter_set={
-                "num_steps_base": self.num_steps,
+        return PricingResult(
+            price=float(final_price),
+            exec_seconds=time.perf_counter() - start_time,
+            metadata={
+                "price_n": price_n,
+                "price_2n": price_2n,
+                "num_steps_n": num_steps_n,
+                "num_steps_2n": num_steps_2n,
             },
         )

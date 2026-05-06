@@ -1,44 +1,41 @@
-"""Router for WebSocket connections."""
+"""WebSocket router for real-time notifications and experiment updates."""
 
 from __future__ import annotations
 
-import structlog
-from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+import asyncio
 
-from src.auth.dependencies import verify_ws_token
-from src.websocket.channels import ALLOWED_CHANNELS
+import structlog
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from src.websocket.manager import ws_manager
 
-router = APIRouter(prefix="/ws", tags=["WebSockets"])
+router = APIRouter(tags=["websocket"])
 logger = structlog.get_logger(__name__)
 
+ALLOWED_CHANNELS = frozenset(["experiments", "scrapers", "notifications", "metrics"])
 
-@router.websocket("/{channel}")
-async def websocket_endpoint(
-    websocket: WebSocket, channel: str, token: str | None = Query(None)
-) -> None:
+
+@router.websocket("/ws/{channel}")
+async def websocket_endpoint(websocket: WebSocket, channel: str) -> None:
     """
-    WebSocket endpoint. Clients connect to /ws/{channel}?token={jwt}.
-    Validates token and subscribes to Redis pub/sub for the channel.
+    WebSocket endpoint for real-time data push.
+    Each channel maps to a Redis pub/sub channel.
     """
     if channel not in ALLOWED_CHANNELS:
         await websocket.close(code=4004, reason="Unknown channel")
         return
 
-    # Verify token
-    user = await verify_ws_token(websocket, token)
-    if not user:
-        # verify_ws_token should have closed the socket already
-        return
+    await ws_manager.connect(websocket, channel)
+
+    listener_task = asyncio.create_task(ws_manager.start_redis_listener(channel))
 
     try:
-        await ws_manager.connect(websocket, channel)
         while True:
-            # Keep connection alive; client can send pings
             await websocket.receive_text()
-            # Handle optional incoming messages if needed
     except WebSocketDisconnect:
         await ws_manager.disconnect(websocket, channel)
-    except Exception as error:
-        logger.error("ws_connection_error", error=str(error), channel=channel)
+        listener_task.cancel()
+    except Exception as e:
+        logger.error("websocket_error", channel=channel, error=str(e))
         await ws_manager.disconnect(websocket, channel)
+        listener_task.cancel()
