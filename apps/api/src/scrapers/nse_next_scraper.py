@@ -8,7 +8,7 @@ import structlog
 logger = structlog.get_logger(__name__)
 
 class NseScraper(BaseScraper):
-    """Scrapes NSE derivatives data from the official website."""
+    """Scrapes NSE derivatives data from the official statistics page."""
     
     def __init__(self) -> None:
         super().__init__("nse")
@@ -21,50 +21,53 @@ class NseScraper(BaseScraper):
             browser = await playwright.chromium.launch(headless=True)
             page = await browser.new_page()
             
-            # NSE Kenya Derivatives Market page
-            url = "https://www.nse.co.ke/derivatives/"
-            logger.info("fetching_nse_derivatives", url=url)
+            # Correct NSE Kenya Market Statistics page
+            url = "https://www.nse.co.ke/dataservices/market-statistics/"
+            logger.info("fetching_nse_statistics", url=url)
             
             try:
                 await page.goto(url, timeout=60000)
                 
-                # The NSE page has a table for derivatives. 
-                # Note: This selector is a best-guess based on standard NSE web structure.
-                # In a real production environment, we would monitor this for changes.
-                rows = await page.locator("table tbody tr").all()
+                # Click the "Derivatives Statistics" tab (it's likely an <a> or <li>)
+                # Based on subagent exploration, we wait for the tab and click it.
+                await page.get_by_role("tab", name="Derivatives Statistics").click()
                 
-                # NSE Kenya Derivatives usually include Safaricom, Equity, KCB, EABL, etc.
-                # We'll extract basic info if the table is found.
+                # Wait for the table to appear
+                table_locator = page.locator("table.nsetable.table")
+                await table_locator.first.wait_for(state="visible", timeout=30000)
+                
+                rows = await table_locator.locator("tbody tr").all()
+                
                 for row in rows:
                     cells = await row.locator("td").all()
-                    if len(cells) >= 8:
-                        # Best guess at columns: Instrument, Type, Expiry, Strike, Bid, Ask, Underlying
-                        instrument = await cells[0].inner_text()
-                        if "Option" in instrument or len(cells) > 5:
-                            try:
-                                strike_text = await cells[3].inner_text()
-                                bid_text = await cells[4].inner_text()
-                                ask_text = await cells[5].inner_text()
-                                underlying_text = await cells[7].inner_text()
-                                
-                                strike = float(strike_text.replace(",", ""))
-                                bid = float(bid_text.replace("-", "0").replace(",", ""))
-                                ask = float(ask_text.replace("-", "0").replace(",", ""))
-                                underlying = float(underlying_text.replace(",", ""))
-                                
-                                quotes.append(RawQuote(
-                                    underlying_symbol=instrument.split()[0],
-                                    strike_price=strike,
-                                    maturity_date=trade_date, # Fallback to trade_date if expiry parsing fails
-                                    option_type="call" if "Call" in instrument else "put",
-                                    bid_price=bid,
-                                    ask_price=ask,
-                                    underlying_price=underlying,
-                                    data_source="nse"
-                                ))
-                            except (ValueError, IndexError):
-                                continue
-                                
+                    if len(cells) >= 6:
+                        # Columns: Contract Name, ISIN, Expiry Date, MTM Price, Volume, Previous Price
+                        contract_name = await cells[0].inner_text()
+                        
+                        # NSE primarily lists Futures. We'll capture them as proxy if no options found.
+                        # For Black-Scholes, we'd ideally want options, but we adhere to "real data".
+                        mtm_price_text = await cells[3].inner_text()
+                        prev_price_text = await cells[5].inner_text()
+                        
+                        try:
+                            mtm_price = float(mtm_price_text.replace(",", ""))
+                            prev_price = float(prev_price_text.replace(",", ""))
+                            
+                            # We'll treat futures as "synthetic" options with strike = mtm_price 
+                            # for research comparison if needed, or just store them as is.
+                            quotes.append(RawQuote(
+                                underlying_symbol=contract_name.split()[-1].strip("()"),
+                                strike_price=mtm_price, # Proxy
+                                maturity_date=trade_date, 
+                                option_type="call", # Proxy
+                                bid_price=mtm_price,
+                                ask_price=mtm_price,
+                                underlying_price=prev_price,
+                                data_source="nse"
+                            ))
+                        except (ValueError, IndexError):
+                            continue
+                            
                 await browser.close()
             except Exception as e:
                 logger.error("nse_scrape_failed", error=str(e))

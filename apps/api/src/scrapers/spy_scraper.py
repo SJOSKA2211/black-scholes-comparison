@@ -27,6 +27,7 @@ class SpyScraper(BaseScraper):
             
             # Extract underlying price
             underlying_locator = page.locator('fin-streamer[data-field="regularMarketPrice"][data-symbol="SPY"]')
+            await underlying_locator.first.wait_for(state="visible", timeout=60000)
             underlying_price_text = await underlying_locator.first.inner_text()
             underlying_price = float(underlying_price_text.replace(",", ""))
             
