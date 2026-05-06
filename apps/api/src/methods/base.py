@@ -33,12 +33,15 @@ class OptionParameters(BaseModel):
 
 class PricingResult(BaseModel):
     """Output result from a pricing method."""
-    computed_price: float
+    computed_price: float = Field(..., serialization_alias="price")
     exec_seconds: float
     converged: bool = True
-    method_type: str
+    method_type: str = Field(..., serialization_alias="method")
     parameter_set: dict[str, Any]
     replications: int | None = None
+
+    class Config:
+        populate_by_name = True
 
 class BasePricingMethod(ABC):
     """Abstract base class for pricing methods."""

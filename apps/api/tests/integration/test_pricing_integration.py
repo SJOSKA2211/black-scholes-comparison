@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.auth.dependencies import get_current_user
+from src.methods.base import OptionParameters
 from src.main import app
 
 

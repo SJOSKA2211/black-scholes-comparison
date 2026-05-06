@@ -1,5 +1,4 @@
 """API router for option pricing."""
-from __future__ import annotations
 from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from src.methods.base import OptionParameters, PricingResult, BasePricingMethod
@@ -11,10 +10,10 @@ from src.auth.dependencies import get_current_user
 from src.cache.decorators import cache_response
 import structlog
 
-router = APIRouter(prefix="/api/v1/price", tags=["pricing"])
+router = APIRouter(prefix="/api/v1/pricing", tags=["pricing"])
 logger = structlog.get_logger(__name__)
 
-@router.post("/", response_model=PricingResult)
+@router.post("/compute", response_model=PricingResult)
 @cache_response("price", ttl_seconds=300)
 async def compute_price(
     params: OptionParameters,
@@ -37,3 +36,7 @@ async def compute_price(
         raise HTTPException(status_code=400, detail=f"Unsupported method: {method}")
         
     return solver.price(params)
+
+# Force rebuild to resolve forward refs during collection
+OptionParameters.model_rebuild()
+PricingResult.model_rebuild()
