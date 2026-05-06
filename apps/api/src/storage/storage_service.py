@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import datetime
 import io
-from typing import Any
 
 import structlog
 from minio import Minio
@@ -27,11 +26,11 @@ def upload_export(
     URL valid for 1 hour — sufficient for browser-direct download.
     """
     client: Minio = get_minio()
-    
+
     # Automatic compression if > 1KB or explicitly requested
     should_compress = compress if compress is not None else (len(data) > 1024)
 
-    metadata = {}
+    metadata: dict[str, str | list[str] | tuple[str]] = {}
     if should_compress:
         data = compress_data(data)
         if not filename.endswith(".gz"):
@@ -40,8 +39,7 @@ def upload_export(
         metadata["Content-Encoding"] = "gzip"
 
     # Use UTC for object path partitioning
-    # Python 3.10 compatible: use datetime.timezone.utc
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     object_name = f"exports/{now:%Y/%m/%d}/{filename}"
 
     client.put_object(
@@ -58,5 +56,12 @@ def upload_export(
         object_name=object_name,
         expires=datetime.timedelta(hours=1),
     )
-    logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage", size=len(data), compressed=compress)
+    logger.info(
+        "export_uploaded",
+        object=object_name,
+        bucket=bucket,
+        step="storage",
+        size=len(data),
+        compressed=compress,
+    )
     return url

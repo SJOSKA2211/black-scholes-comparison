@@ -56,7 +56,7 @@ class WebSocketManager:
                 await ws.send_json(message)
             except Exception:
                 dead_connections.append(ws)
-        
+
         for ws in dead_connections:
             await self.disconnect(ws, channel)
 
@@ -65,13 +65,17 @@ class WebSocketManager:
         redis = get_redis()
         pubsub = redis.pubsub()
         await pubsub.psubscribe("ws:*")
-        
+
         logger.info("ws_global_consumer_started")
         try:
             async for message in pubsub.listen():
                 if message["type"] == "pmessage":
                     # Channel format from Redis: ws:experiments
-                    full_channel = message["channel"].decode() if isinstance(message["channel"], bytes) else message["channel"]
+                    full_channel = (
+                        message["channel"].decode()
+                        if isinstance(message["channel"], bytes)
+                        else message["channel"]
+                    )
                     channel = full_channel.replace("ws:", "")
                     data = json.loads(message["data"])
                     await self.broadcast(channel, data)

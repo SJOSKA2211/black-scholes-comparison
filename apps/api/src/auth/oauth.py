@@ -1,11 +1,15 @@
 """OAuth and JWT verification logic for Supabase Auth."""
+
 from __future__ import annotations
+
 import jwt
 import structlog
 from fastapi import HTTPException, status
+
 from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
+
 
 async def verify_jwt(token: str) -> dict[str, str]:
     """
@@ -18,9 +22,9 @@ async def verify_jwt(token: str) -> dict[str, str]:
         # Supabase JWTs are signed with the project's JWT secret
         payload = jwt.decode(
             token,
-            settings.supabase_key, # In development, Supabase uses the service_role/anon key for verification if configured
+            settings.supabase_key,  # In development, Supabase uses the service_role/anon key for verification if configured
             algorithms=["HS256"],
-            audience="authenticated"
+            audience="authenticated",
         )
         return payload
     except jwt.ExpiredSignatureError:

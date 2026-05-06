@@ -7,7 +7,7 @@ import time
 import numpy as np
 from scipy.stats import norm, qmc
 
-from src.methods.base import OptionParams, NumericalMethod, PriceResult
+from src.methods.base import NumericalMethod, OptionParams, PriceResult
 
 
 class QuasiMC(NumericalMethod):

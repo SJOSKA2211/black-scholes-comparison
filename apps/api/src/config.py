@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     @field_validator("rabbitmq_url", mode="before")
     @classmethod
-    def validate_rabbitmq_url(cls, v: Any) -> str:
+    def validate_rabbitmq_url(cls, v: str | None) -> str:
         if v is None:
             return "amqp://guest:guest@localhost:5672/"
         return str(v)

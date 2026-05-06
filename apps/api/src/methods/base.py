@@ -1,13 +1,17 @@
 """Base interface for all Black-Scholes pricing methods."""
+
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any
+
 from pydantic import BaseModel, Field
 
 
 class MethodType(str, Enum):
     """Supported numerical pricing methods."""
+
     ANALYTICAL = "analytical"
     CRANK_NICOLSON = "crank_nicolson"
     QUASI_MC = "quasi_mc"
@@ -16,6 +20,7 @@ class MethodType(str, Enum):
 
 class OptionParams(BaseModel):
     """Standardized parameters for option pricing."""
+
     underlying_price: float = Field(..., gt=0)
     strike_price: float = Field(..., gt=0)
     maturity_years: float = Field(..., gt=0)
@@ -31,6 +36,7 @@ class OptionParams(BaseModel):
 
 class PriceResult(BaseModel):
     """Result container for pricing calculations."""
+
     method_type: str
     computed_price: float
     exec_seconds: float

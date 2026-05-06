@@ -14,7 +14,7 @@ from src.queue.rabbitmq_client import get_rabbitmq_connection
 logger = structlog.get_logger(__name__)
 
 
-async def handle_scrape_task(message: aio_pika.IncomingMessage) -> None:
+async def handle_scrape_task(message: aio_pika.abc.AbstractIncomingMessage) -> None:
     """Process a market data scrape task."""
     async with message.process():
         payload = json.loads(message.body)
@@ -25,7 +25,7 @@ async def handle_scrape_task(message: aio_pika.IncomingMessage) -> None:
         await pipeline.run(trade_date)
 
 
-async def handle_experiment_task(message: aio_pika.IncomingMessage) -> None:
+async def handle_experiment_task(message: aio_pika.abc.AbstractIncomingMessage) -> None:
     """Process an experiment grid run task."""
     async with message.process():
         payload = json.loads(message.body)
@@ -44,7 +44,9 @@ async def start_consumers() -> None:
     await channel.set_qos(prefetch_count=1)
 
     # 1. Declare exchanges
-    exchange = await channel.declare_exchange("bs.tasks", type=aio_pika.ExchangeType.DIRECT, durable=True)
+    exchange = await channel.declare_exchange(
+        "bs.tasks", type=aio_pika.ExchangeType.DIRECT, durable=True
+    )
 
     # 2. Declare queues
     scrape_queue = await channel.declare_queue("bs.scrape", durable=True)

@@ -1,6 +1,6 @@
 """Router for real-time option pricing."""
 
-from __future__ import annotations
+
 
 import time
 from typing import Any
@@ -11,11 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from src.auth.dependencies import get_current_user
 from src.cache.decorators import cache_response
 from src.database.repository import upsert_option_parameters, upsert_price_result
-from src.methods import (
-    MethodType,
-    OptionParams,
-    get_method_instance,
-)
+from src.methods.base import MethodType, OptionParams
+from src.methods import get_method_instance
 
 router = APIRouter(prefix="/pricing", tags=["Pricing"])
 logger = structlog.get_logger(__name__)
@@ -81,33 +78,31 @@ async def compare_methods(
     """
     params_dict = payload.get("params")
     methods = payload.get("methods", [])
-    
+
     if not params_dict or not methods:
         raise HTTPException(status_code=400, detail="Missing params or methods")
-    
+
     params = OptionParams(**params_dict)
-    
+
     # Get analytical reference first
     analytical_engine = get_method_instance(MethodType.ANALYTICAL)
     ref_result = analytical_engine.price(params)
     ref_price = ref_result.computed_price
-    
+
     results = []
     for m_str in methods:
         try:
             m_type = MethodType(m_str)
             engine = get_method_instance(m_type)
             res = engine.price(params)
-            
+
             res_dict = res.model_dump()
             res_dict["abs_error"] = abs(res.computed_price - ref_price)
-            res_dict["pct_error"] = (res_dict["abs_error"] / ref_price) * 100 if ref_price != 0 else 0
+            res_dict["pct_error"] = (
+                (res_dict["abs_error"] / ref_price) * 100 if ref_price != 0 else 0
+            )
             results.append(res_dict)
         except Exception as e:
             logger.warning("comparison_method_failed", method=m_str, error=str(e))
-            
-    return {
-        "analytical_reference": ref_price,
-        "results": results,
-        "params": params.model_dump()
-    }
+
+    return {"analytical_reference": ref_price, "results": results, "params": params.model_dump()}

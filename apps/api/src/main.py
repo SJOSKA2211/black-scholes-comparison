@@ -36,21 +36,21 @@ async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
     settings = get_settings()
     logger.info("application_startup", environment=settings.environment)
-    
+
     # 1. Start RabbitMQ consumers
     app.state.consumer_task = asyncio.create_task(start_consumers())
-    
+
     # 2. Start global WebSocket manager consumer
     app.state.ws_task = asyncio.create_task(ws_manager.start_consumer())
-    
+
     yield
-    
+
     logger.info("application_shutdown")
-    
+
     # Cancel background tasks
     app.state.consumer_task.cancel()
     app.state.ws_task.cancel()
-    
+
     try:
         await asyncio.gather(app.state.consumer_task, app.state.ws_task, return_exceptions=True)
     except asyncio.CancelledError:
@@ -75,6 +75,7 @@ app.add_middleware(
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+
 @app.get("/")
 async def root():
     """Project metadata and status."""
@@ -82,7 +83,7 @@ async def root():
         "message": "Black-Scholes Research API",
         "version": "1.0.0",
         "methods_supported": 12,
-        "infrastructure": "Supabase, Redis, RabbitMQ, MinIO"
+        "infrastructure": "Supabase, Redis, RabbitMQ, MinIO",
     }
 
 

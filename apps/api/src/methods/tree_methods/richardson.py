@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-from src.methods.base import OptionParams, NumericalMethod, PriceResult
+from src.methods.base import NumericalMethod, OptionParams, PriceResult
 from src.methods.tree_methods.binomial_crr import BinomialCRR
 
 
