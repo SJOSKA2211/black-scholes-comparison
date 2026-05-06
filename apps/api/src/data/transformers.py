@@ -1,7 +1,8 @@
 """Data transformation logic for market data."""
 
-import pandas as pd
 from typing import Any
+
+import pandas as pd
 
 
 def transform_yahoo_finance_data(raw_data: list[dict[str, Any]]) -> pd.DataFrame:

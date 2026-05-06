@@ -1,4 +1,5 @@
 """Custom exceptions for the Black-Scholes Research Platform."""
+
 from typing import Any
 
 

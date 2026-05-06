@@ -3,10 +3,10 @@
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_experiment_by_id, get_experiments
+from src.database.repository import Repository
 from src.queue.publisher import publish_experiment_task
 
 router = APIRouter(prefix="/experiments", tags=["Experiments"])
@@ -34,17 +34,12 @@ async def run_experiment(
 
 @router.get("/results")
 async def get_results(
-    method_type: str | None = Query(None),
-    market_source: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=500),
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """Retrieves paginated experiment results from the database."""
+) -> list[dict[str, Any]]:
+    """Retrieves experiment results from the database."""
+    repo = Repository()
     try:
-        results = await get_experiments(
-            method_type=method_type, market_source=market_source, page=page, page_size=page_size
-        )
+        results = await repo.get_experiments(user_id=current_user["id"])
         return results
     except Exception as error:
         logger.error("results_fetch_failed", error=str(error), step="router")
@@ -56,8 +51,9 @@ async def get_result_detail(
     experiment_id: str, current_user: dict[str, Any] = Depends(get_current_user)
 ) -> dict[str, Any]:
     """Retrieves specific experiment results by ID."""
+    repo = Repository()
     try:
-        result = await get_experiment_by_id(experiment_id)
+        result = await repo.get_experiment_by_id(experiment_id)
         if not result:
             raise HTTPException(status_code=404, detail="Experiment result not found")
         return result

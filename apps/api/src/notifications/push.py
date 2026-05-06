@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import structlog
 
-from src.database import repository
+from src.database.repository import Repository
 
 logger = structlog.get_logger(__name__)
 
@@ -13,8 +13,9 @@ async def send_push_notification(user_id: str, title: str, body: str) -> bool:
     """
     Sends a Web Push notification to all active subscriptions of a user.
     """
+    repo = Repository()
     try:
-        subscriptions = await repository.get_push_subscriptions(user_id)
+        subscriptions = await repo.get_push_subscriptions(user_id)
         if not subscriptions:
             logger.debug("no_push_subscriptions", user_id=user_id)
             return False

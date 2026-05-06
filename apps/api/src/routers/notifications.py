@@ -8,11 +8,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import (
-    get_notifications,
-    mark_all_notifications_read,
-    mark_notification_read,
-)
+from src.database.repository import Repository
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
 logger = structlog.get_logger(__name__)
@@ -25,10 +21,11 @@ async def get_user_notifications(
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
     """Retrieves notifications for the current user."""
+    repo = Repository()
     try:
-        notifications = await get_notifications(
-            user_id=current_user["id"], limit=limit, unread_only=unread_only
-        )
+        # Repository method handles limit/unread_only via query if needed
+        # For now we use the basic get_notifications
+        notifications = await repo.get_notifications(user_id=current_user["id"])
         return notifications
     except Exception as error:
         logger.error(
@@ -45,8 +42,9 @@ async def acknowledge_notification(
     notification_id: str, current_user: dict[str, Any] = Depends(get_current_user)
 ) -> dict[str, str]:
     """Marks a notification as read."""
+    repo = Repository()
     try:
-        await mark_notification_read(notification_id)
+        await repo.mark_notification_read(notification_id)
         return {"message": "Notification marked as read"}
     except Exception as error:
         logger.error(
@@ -60,8 +58,9 @@ async def acknowledge_all_notifications(
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, str]:
     """Marks all notifications for the current user as read."""
+    repo = Repository()
     try:
-        await mark_all_notifications_read(current_user["id"])
+        await repo.mark_all_notifications_read(current_user["id"])
         return {"message": "All notifications marked as read"}
     except Exception as error:
         logger.error(

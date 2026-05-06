@@ -1,7 +1,7 @@
 """Black-Scholes analytical closed-form implementation."""
 
 import time
-from typing import Any, cast
+from typing import cast
 
 import numpy as np
 from scipy.optimize import brentq
@@ -29,17 +29,28 @@ class BlackScholesAnalytical(NumericalMethod):
 
         if params.option_type == OptionType.CALL:
             price = underlying * norm.cdf(d1) - strike * np.exp(-rate * maturity) * norm.cdf(d2)
+            delta = norm.cdf(d1)
         else:
             price = strike * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying * norm.cdf(-d1)
+            delta = norm.cdf(d1) - 1
+
+        gamma = norm.pdf(d1) / (underlying * vol * np.sqrt(maturity))
+        vega = underlying * norm.pdf(d1) * np.sqrt(maturity)
 
         exec_time = time.perf_counter() - start_time
-        return PriceResult(price=float(price), exec_seconds=exec_time)
+        return PriceResult(
+            price=float(price),
+            exec_seconds=exec_time,
+            metadata={"delta": float(delta), "gamma": float(gamma), "vega": float(vega)},
+        )
 
     def implied_volatility(self, market_price: float, params: OptionParams) -> float:
         """Invert Black-Scholes to find implied volatility using Brent's method."""
 
         def objective(sigma: float) -> float:
             # Synchronous version for optimization
+            if sigma <= 0:
+                return -market_price
             d1 = (
                 np.log(params.underlying_price / params.strike_price)
                 + (params.risk_free_rate + 0.5 * sigma**2) * params.maturity_years

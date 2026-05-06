@@ -1,6 +1,7 @@
 """Main FastAPI application entry point."""
 
 import asyncio
+from typing import Any
 
 import structlog
 from fastapi import FastAPI
@@ -9,7 +10,16 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.logging_config import setup_logging
 from src.queue.consumer import start_consumers
-from src.routers import pricing, websocket
+from src.routers import (
+    downloads,
+    experiments,
+    health,
+    market_data,
+    notifications,
+    pricing,
+    scrapers,
+    websocket,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -35,10 +45,16 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(pricing.router, prefix="/api/v1")
+    app.include_router(experiments.router, prefix="/api/v1")
+    app.include_router(market_data.router, prefix="/api/v1")
+    app.include_router(scrapers.router, prefix="/api/v1")
+    app.include_router(downloads.router, prefix="/api/v1")
+    app.include_router(notifications.router, prefix="/api/v1")
+    app.include_router(health.router, prefix="/api/v1")
     app.include_router(websocket.router)
 
     # Store background tasks to avoid garbage collection
-    background_tasks = set()
+    background_tasks: set[asyncio.Task[Any]] = set()
 
     @app.on_event("startup")
     async def startup_event() -> None:
@@ -48,11 +64,6 @@ def create_app() -> FastAPI:
         task = asyncio.create_task(start_consumers())
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
-
-    @app.get("/health")
-    async def health_check() -> dict[str, str]:
-        """Basic health check endpoint."""
-        return {"status": "ok", "db": "connected"}  # DB check logic can be added
 
     # Prometheus Instrumentation
     Instrumentator().instrument(app).expose(app)

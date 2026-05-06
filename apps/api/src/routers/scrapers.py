@@ -9,7 +9,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_scrape_runs
+from src.database.repository import Repository
 from src.queue.publisher import publish_scrape_task
 
 router = APIRouter(prefix="/scrapers", tags=["Scrapers"])
@@ -43,11 +43,12 @@ async def trigger_scraper(
 
 @router.get("/runs")
 async def get_runs(
-    limit: int = Query(20, ge=1, le=100), current_user: dict[str, Any] = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
     """Retrieves the history of scraper runs."""
+    repo = Repository()
     try:
-        runs = await get_scrape_runs(limit=limit)
+        runs = await repo.get_scrape_runs()
         return runs
     except Exception as error:
         logger.error("scraper_runs_fetch_failed", error=str(error), step="router")

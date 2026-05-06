@@ -34,4 +34,3 @@ async def reset_redis() -> None:
     """Flush all keys in the current database."""
     client = get_redis()
     await client.flushdb()
-

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import structlog
 from fastapi import APIRouter
 
@@ -13,26 +15,29 @@ logger = structlog.get_logger(__name__)
 
 
 @router.get("/health")
-async def health_check() -> dict:
+async def health_check() -> dict[str, Any]:
     """Check connectivity to all backend services."""
-    status = {"status": "ok", "services": {}}
+    services: dict[str, str] = {}
+    overall_status = "ok"
 
     # 1. Database
     try:
-        get_supabase().table("option_parameters").select("id", count="exact").limit(1).execute()
-        status["services"]["supabase"] = "connected"
+        # Pydantic/Supabase types might be tricky, we just want to know if it executes
+        get_supabase().table("option_parameters").select("id").limit(1).execute()
+        services["supabase"] = "connected"
     except Exception as e:
-        status["status"] = "error"
-        status["services"]["supabase"] = f"error: {e!s}"
+        overall_status = "error"
+        services["supabase"] = f"error: {e!s}"
 
     # 2. Redis
     try:
         redis = get_redis()
         await redis.ping()
-        status["services"]["redis"] = "connected"
+        services["redis"] = "connected"
     except Exception as e:
-        status["status"] = "error"
-        status["services"]["redis"] = f"error: {e!s}"
+        overall_status = "error"
+        services["redis"] = f"error: {e!s}"
 
-    logger.info("health_check_performed", status=status["status"])
+    status = {"status": overall_status, "services": services}
+    logger.info("health_check_performed", status=overall_status)
     return status

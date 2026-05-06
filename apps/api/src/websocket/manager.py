@@ -1,6 +1,5 @@
 """WebSocket connection manager backed by Redis pub/sub."""
 
-import asyncio
 import json
 from typing import Any
 

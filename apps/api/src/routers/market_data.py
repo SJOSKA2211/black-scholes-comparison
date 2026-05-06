@@ -1,13 +1,12 @@
 """Router for accessing historical and real-time market data."""
 
-import datetime
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_market_data
+from src.database.repository import Repository
 
 router = APIRouter(prefix="/market-data", tags=["Market Data"])
 logger = structlog.get_logger(__name__)
@@ -15,25 +14,16 @@ logger = structlog.get_logger(__name__)
 
 @router.get("/")
 async def get_market_quotes(
-    source: str = Query("synthetic", pattern="^(synthetic|spy|nse)$"),
-    trade_date: datetime.date | None = Query(None),
-    from_date: str | None = Query(None, alias="from"),
-    to_date: str | None = Query(None, alias="to"),
-    page: int = Query(1, ge=1),
-    limit: int = Query(100, ge=1, le=1000),
+    option_id: str,
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> dict[str, Any]:
-    """Retrieves market data quotes based on source and date range."""
+) -> list[dict[str, Any]]:
+    """Retrieves market data quotes for a specific option."""
+    repo = Repository()
     try:
-        data = await get_market_data(
-            source=source,
-            trade_date=trade_date,
-            from_date=from_date,
-            to_date=to_date,
-            page=page,
-            limit=limit,
-        )
+        data = await repo.get_market_data(option_id=option_id)
         return data
     except Exception as error:
-        logger.error("market_data_fetch_failed", error=str(error), source=source, step="router")
+        logger.error(
+            "market_data_fetch_failed", error=str(error), option_id=option_id, step="router"
+        )
         raise HTTPException(status_code=500, detail="Failed to fetch market data") from error

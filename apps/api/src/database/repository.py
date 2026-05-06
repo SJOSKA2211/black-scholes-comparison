@@ -50,7 +50,89 @@ class Repository:
         """Fetch market data for a specific option."""
         query = self.client.table("market_data").select("*").eq("option_id", option_id)
         result = await self._execute("market_data", "select", query)
-        return result.data or []
+        return cast(list[dict[str, Any]], result.data or [])
+
+    async def get_notifications(self, user_id: str) -> list[dict[str, Any]]:
+        """Fetch unread notifications for a user."""
+        query = (
+            self.client.table("notifications").select("*").eq("user_id", user_id).eq("read", False)
+        )
+        result = await self._execute("notifications", "select", query)
+        return cast(list[dict[str, Any]], result.data or [])
+
+    async def mark_notification_read(self, notification_id: str) -> None:
+        """Mark a notification as read."""
+        query = self.client.table("notifications").update({"read": True}).eq("id", notification_id)
+        await self._execute("notifications", "update", query)
+
+    async def mark_all_notifications_read(self, user_id: str) -> None:
+        """Mark all notifications as read for a user."""
+        query = self.client.table("notifications").update({"read": True}).eq("user_id", user_id)
+        await self._execute("notifications", "update", query)
+
+    async def insert_notification(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Insert a new notification."""
+        query = self.client.table("notifications").insert(data)
+        result = await self._execute("notifications", "insert", query)
+        return cast(dict[str, Any], result.data[0] if result.data else {})
+
+    async def get_experiments(self, user_id: str) -> list[dict[str, Any]]:
+        """Fetch all experiments for a user."""
+        query = (
+            self.client.table("method_results")
+            .select("*, option_parameters(*)")
+            .eq("run_by", user_id)
+        )
+        result = await self._execute("method_results", "select", query)
+        return cast(list[dict[str, Any]], result.data or [])
+
+    async def get_experiment_by_id(self, experiment_id: str) -> dict[str, Any]:
+        """Fetch a specific experiment by ID."""
+        query = (
+            self.client.table("method_results")
+            .select("*, option_parameters(*)")
+            .eq("id", experiment_id)
+        )
+        result = await self._execute("method_results", "select", query)
+        return cast(dict[str, Any], result.data[0] if result.data else {})
+
+    async def get_scrape_runs(self) -> list[dict[str, Any]]:
+        """Fetch all scrape runs."""
+        query = self.client.table("scrape_runs").select("*").order("started_at", desc=True)
+        result = await self._execute("scrape_runs", "select", query)
+        return cast(list[dict[str, Any]], result.data or [])
+
+    async def get_push_subscriptions(self, user_id: str) -> list[dict[str, Any]]:
+        """Fetch all push subscriptions for a user."""
+        query = (
+            self.client.table("user_profiles").select("notification_preferences").eq("id", user_id)
+        )
+        result = await self._execute("user_profiles", "select", query)
+        if result.data:
+            prefs = result.data[0].get("notification_preferences", {})
+            return cast(list[dict[str, Any]], prefs.get("push_subscriptions", []))
+        return []
+
+    async def insert_scrape_run(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Insert a new scrape run record."""
+        query = self.client.table("scrape_runs").insert(data)
+        result = await self._execute("scrape_runs", "insert", query)
+        return cast(dict[str, Any], result.data[0] if result.data else {})
+
+    async def update_scrape_run(self, run_id: str, data: dict[str, Any]) -> None:
+        """Update an existing scrape run record."""
+        query = self.client.table("scrape_runs").update(data).eq("id", run_id)
+        await self._execute("scrape_runs", "update", query)
+
+    async def insert_audit_log(self, data: dict[str, Any]) -> None:
+        """Insert an audit log entry."""
+        query = self.client.table("audit_log").insert(data)
+        await self._execute("audit_log", "insert", query)
+
+    async def insert_scrape_error(self, data: dict[str, Any]) -> None:
+        """Insert a scrape error record."""
+        query = self.client.table("scrape_errors").insert(data)
+        await self._execute("scrape_errors", "insert", query)
 
     async def delete_test_data(self, table: str, column: str, value: Any) -> None:  # noqa: ANN401
         """Helper to clean up test data."""

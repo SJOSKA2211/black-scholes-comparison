@@ -7,7 +7,7 @@ import json
 import structlog
 
 from src.cache.redis_client import get_redis
-from src.database.repository import insert_notification
+from src.database.repository import Repository
 from src.metrics import NOTIFICATIONS_SENT
 from src.notifications.email import send_email
 from src.notifications.push import send_push_notification
@@ -26,32 +26,31 @@ async def notify_user(
     """
     Orchestrates notification delivery across multiple tiers.
     """
+    repo = Repository()
     try:
         # 1. In-app notification (DB) - Always persistent
-        await insert_notification(
-            user_id=user_id,
-            title=title,
-            body=body,
-            severity=severity,
-            channel=channel,
-            action_url=action_url,
+        await repo.insert_notification(
+            {
+                "user_id": user_id,
+                "title": title,
+                "body": body,
+                "severity": severity,
+                "channel": channel,
+                "action_url": action_url,
+            }
         )
 
         # 2. WebSocket Push (Pub/Sub) - Always real-time
         redis = get_redis()
-        if redis:
-            await redis.publish(
-                "ws:notifications",
-                json.dumps(
-                    {"user_id": str(user_id), "title": title, "body": body, "severity": severity}
-                ),
-            )
+        await redis.publish(
+            "ws:notifications",
+            json.dumps(
+                {"user_id": str(user_id), "title": title, "body": body, "severity": severity}
+            ),
+        )
 
         # 3. Channel specific delivery
         if channel == "email" or severity in ["error", "critical"]:
-            # Assume user has email if we are to send email
-            # In a real app, we'd fetch user email from DB/Auth
-            # For this prototype, we'll assume a placeholder if not provided
             await send_email("placeholder@example.com", title, body)
             NOTIFICATIONS_SENT.labels(channel="email", severity=severity).inc()
 

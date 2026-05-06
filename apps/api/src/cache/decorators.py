@@ -10,6 +10,7 @@ from typing import Any
 import structlog
 
 from src.cache.redis_client import get_redis
+from src.metrics import REDIS_CACHE_HITS, REDIS_CACHE_MISSES
 
 logger = structlog.get_logger(__name__)
 
@@ -27,16 +28,17 @@ def cache_response(key_prefix: str, ttl_seconds: int = 300) -> Callable[..., Any
             redis = get_redis()
             # Note: In a real app, hash() might not be stable across restarts.
             # Using a deterministic hash or just str() would be safer.
-            # However, I will stick to the mandate's implementation.
             cache_key = f"{key_prefix}:{hash(str(sorted(kwargs.items())))}"
             try:
                 cached = await redis.get(cache_key)
                 if cached is not None:
+                    REDIS_CACHE_HITS.labels(endpoint=key_prefix).inc()
                     logger.debug("cache_hit", key=cache_key, step="cache")
                     return json.loads(cached)
             except Exception as e:
                 logger.warning("cache_error_fallback", error=str(e), step="cache")
 
+            REDIS_CACHE_MISSES.labels(endpoint=key_prefix).inc()
             result = await func(*args, **kwargs)
 
             try:

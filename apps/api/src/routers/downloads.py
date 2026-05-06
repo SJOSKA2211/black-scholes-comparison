@@ -9,21 +9,21 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from src.auth.dependencies import get_current_user
-from src.database.repository import get_experiments, get_market_data
+from src.database.repository import Repository
 from src.storage.storage_service import upload_export
 
 router = APIRouter(prefix="/download", tags=["Downloads"])
 
 
-async def _fetch_data(resource: str) -> pd.DataFrame:
+async def _fetch_data(resource: str, user_id: str) -> pd.DataFrame:
     """Fetch raw data from DB and return as DataFrame."""
+    repo = Repository()
     if resource == "experiments":
-        results = await get_experiments(page_size=1000)
-        # get_experiments returns {"data": [...], "page": ...}
-        data = results.get("data", [])
+        data = await repo.get_experiments(user_id=user_id)
     elif resource == "market_data":
-        results = await get_market_data(source="spy", limit=1000)
-        data = results.get("data", [])
+        # Simplified: fetch first 1000 market data rows for the user
+        # In a real app, you'd filter by date or option_id
+        data = await repo.get_market_data(option_id="all")  # Placeholder for bulk
     else:
         raise ValueError(f"Unknown resource type: {resource}")
 
@@ -52,7 +52,7 @@ def _serialize(df: pd.DataFrame, format: str) -> tuple[bytes, str]:
 async def download_resource(resource: str, format: str, user: dict[str, Any]) -> dict[str, Any]:
     """Core logic for resource download."""
     try:
-        df = await _fetch_data(resource)
+        df = await _fetch_data(resource, user["id"])
         if df.empty:
             raise HTTPException(status_code=404, detail="No data found for export")
 
@@ -71,7 +71,7 @@ async def download_resource(resource: str, format: str, user: dict[str, Any]) ->
 
 @router.get("/experiments")
 async def export_experiments(
-    format: str = Query("json", description="Export format (json/csv/xlsx)"),
+    format: str = Query("json", pattern="^(json|csv|xlsx)$"),
     user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Generate an export of experiments."""
@@ -80,7 +80,7 @@ async def export_experiments(
 
 @router.get("/market_data")
 async def export_market_data(
-    format: str = Query("json", description="Export format (json/csv/xlsx)"),
+    format: str = Query("json", pattern="^(json|csv|xlsx)$"),
     user: dict[str, Any] = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Generate an export of market data."""

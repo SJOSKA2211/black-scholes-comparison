@@ -30,9 +30,7 @@ async def get_current_user(
         return cast(dict[str, Any], payload)
     except jwt.PyJWTError as e:
         logger.warning("auth_failed", error=str(e))
-        raise HTTPException(
-            status_code=401, detail="Invalid authentication credentials"
-        ) from e
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials") from e
 
 
 async def verify_ws_token(websocket: WebSocket) -> dict[str, Any]:
