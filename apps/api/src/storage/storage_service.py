@@ -1,67 +1,57 @@
 """Storage service — uploads files to MinIO, returns presigned download URLs."""
-
 from __future__ import annotations
-
-import datetime
 import io
-
-import structlog
+import datetime
+import gzip
+from typing import Literal
 from minio import Minio
-
 from src.storage.minio_client import get_minio
-from src.utils.compression import compress_data
+import structlog
 
 logger = structlog.get_logger(__name__)
-
 
 def upload_export(
     data: bytes,
     filename: str,
     content_type: str,
     bucket: str = "bs-exports",
-    compress: bool | None = None,
+    compress: bool = True,
 ) -> str:
     """
     Upload binary data to MinIO and return a presigned URL.
+    Optionally compresses data using gzip.
     URL valid for 1 hour — sufficient for browser-direct download.
     """
     client: Minio = get_minio()
+    
+    final_data = data
+    final_filename = filename
+    final_content_type = content_type
+    
+    if compress:
+        buffer = io.BytesIO()
+        with gzip.GzipFile(fileobj=buffer, mode="wb") as f:
+            f.write(data)
+        final_data = buffer.getvalue()
+        final_filename = f"{filename}.gz"
+        final_content_type = "application/gzip"
+        logger.info("data_compressed", original_size=len(data), compressed_size=len(final_data))
 
-    # Automatic compression if > 1KB or explicitly requested
-    should_compress = compress if compress is not None else (len(data) > 1024)
-
-    metadata: dict[str, str | list[str] | tuple[str]] = {}
-    if should_compress:
-        data = compress_data(data)
-        if not filename.endswith(".gz"):
-            filename += ".gz"
-        content_type = "application/gzip"
-        metadata["Content-Encoding"] = "gzip"
-
-    # Use UTC for object path partitioning
-    now = datetime.datetime.now(datetime.UTC)
-    object_name = f"exports/{now:%Y/%m/%d}/{filename}"
-
+    object_name = f"exports/{datetime.datetime.utcnow():%Y/%m/%d}/{final_filename}"
+    
     client.put_object(
         bucket_name=bucket,
         object_name=object_name,
-        data=io.BytesIO(data),
-        length=len(data),
-        content_type=content_type,
-        metadata=metadata,
+        data=io.BytesIO(final_data),
+        length=len(final_data),
+        content_type=final_content_type,
     )
-
+    
     url = client.presigned_get_object(
         bucket_name=bucket,
         object_name=object_name,
         expires=datetime.timedelta(hours=1),
     )
-    logger.info(
-        "export_uploaded",
-        object=object_name,
-        bucket=bucket,
-        step="storage",
-        size=len(data),
-        compressed=compress,
-    )
+    
+    logger.info("export_uploaded", object=object_name, bucket=bucket, step="storage", rows=1)
     return url

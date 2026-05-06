@@ -1,64 +1,71 @@
-"""Cox-Ross-Rubinstein binomial tree implementation."""
+"""Cox-Ross-Rubinstein Binomial Tree implementation."""
 
-from __future__ import annotations
+import time
 
 import numpy as np
 
-from src.methods.base import OptionParams
+from src.methods.base import NumericalMethod, OptionParams, OptionType, PriceResult
 
 
-class BinomialCRR:
-    """Standard Cox-Ross-Rubinstein binomial tree implementation."""
+def price_binomial_crr(params: OptionParams, num_steps: int) -> float:
+    """Core CRR binomial tree logic."""
+    underlying = params.underlying_price
+    strike = params.strike_price
+    maturity = params.maturity_years
+    vol = params.volatility
+    rate = params.risk_free_rate
 
-    def price_tree(self, params: OptionParams, num_steps: int) -> float:
-        """
-        Compute the price using a CRR binomial tree with N steps.
-        Uses descriptive variable names.
-        """
-        expiry = params.maturity_years
-        rate = params.risk_free_rate
-        sigma = params.volatility
-        underlying = params.underlying_price
-        strike = params.strike_price
+    delta_time = maturity / num_steps
+    up_factor = np.exp(vol * np.sqrt(delta_time))
+    down_factor = 1 / up_factor
+    risk_neutral_prob = (np.exp(rate * delta_time) - down_factor) / (up_factor - down_factor)
+    discount = np.exp(-rate * delta_time)
 
-        time_step = expiry / num_steps
-        up_factor = np.exp(sigma * np.sqrt(time_step))
-        down_factor = 1.0 / up_factor
+    # Initialize asset prices at maturity
+    asset_prices = (
+        underlying
+        * (up_factor ** np.arange(num_steps, -1, -1))
+        * (down_factor ** np.arange(0, num_steps + 1))
+    )
 
-        # Risk-neutral probability
-        # prob = (exp(r*dt) - d) / (u - d)
-        exp_rt = np.exp(rate * time_step)
-        prob_up = (exp_rt - down_factor) / (up_factor - down_factor)
-        prob_down = 1.0 - prob_up
+    # Initialize option values at maturity
+    if params.option_type == OptionType.CALL:
+        option_values = np.maximum(asset_prices - strike, 0)
+    else:
+        option_values = np.maximum(strike - asset_prices, 0)
 
-        # Terminal payoffs
-        # S_nj = S0 * u^j * d^(n-j)
-        j_indices = np.arange(num_steps + 1)
-        terminal_prices = (
-            underlying * (up_factor**j_indices) * (down_factor ** (num_steps - j_indices))
+    # Step back through the tree
+    for step in range(num_steps - 1, -1, -1):
+        option_values = discount * (
+            risk_neutral_prob * option_values[:-1] + (1 - risk_neutral_prob) * option_values[1:]
         )
 
-        if params.is_call:
-            grid = np.maximum(terminal_prices - strike, 0.0)
-        else:
-            grid = np.maximum(strike - terminal_prices, 0.0)
+        if params.is_american:
+            # Asset prices at the current step
+            current_asset_prices = (
+                underlying
+                * (up_factor ** np.arange(step, -1, -1))
+                * (down_factor ** np.arange(0, step + 1))
+            )
+            if params.option_type == OptionType.CALL:
+                option_values = np.maximum(option_values, current_asset_prices - strike)
+            else:
+                option_values = np.maximum(option_values, strike - current_asset_prices)
 
-        # Backward induction
-        discount = np.exp(-rate * time_step)
-        for _ in range(num_steps - 1, -1, -1):
-            grid = discount * (prob_up * grid[1:] + prob_down * grid[:-1])
+    return float(option_values[0])
 
-            # American exercise
-            if params.is_american:
-                # Need prices at this step
-                step_prices = (
-                    underlying
-                    * (up_factor ** np.arange(_ + 1))
-                    * (down_factor ** (_ - np.arange(_ + 1)))
-                )
-                if params.is_call:
-                    grid = np.maximum(grid, step_prices - strike)
-                else:
-                    grid = np.maximum(grid, strike - step_prices)
 
-        return float(grid[0])
+class BinomialCRR(NumericalMethod):
+    """Standard Cox-Ross-Rubinstein Binomial Tree pricing."""
+
+    async def price(self, params: OptionParams) -> PriceResult:
+        start_time = time.perf_counter()
+
+        # Default to 1000 steps for standard resolution
+        num_steps = 1000
+        price = price_binomial_crr(params, num_steps)
+
+        exec_time = time.perf_counter() - start_time
+        return PriceResult(
+            price=float(price), exec_seconds=exec_time, metadata={"num_steps": num_steps}
+        )

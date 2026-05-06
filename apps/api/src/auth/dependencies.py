@@ -1,65 +1,53 @@
-"""Authentication dependencies for FastAPI routes."""
+"""Authentication and authorization dependencies."""
 
-from __future__ import annotations
-
-from typing import Any
+from typing import Any, cast
 
 import structlog
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, Security, WebSocket
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt  # type: ignore[import-untyped]
 
 from src.config import get_settings
-from src.database.supabase_client import get_supabase
 
 logger = structlog.get_logger(__name__)
-
-# auto_error=False allows us to handle missing tokens manually for dev/test bypass
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+security = HTTPBearer()
 
 
-async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict[str, Any]:
-    """
-    Validate the Supabase JWT and return the user profile.
-    In development mode, bypasses validation if no token is provided.
-    """
+async def get_current_user(
+    auth: HTTPAuthorizationCredentials = Security(security),
+) -> dict[str, Any]:
+    """Validate JWT and return user info from Supabase."""
     settings = get_settings()
-
-    # 1. Development/Test Bypass
-    if settings.environment == "development" and not token:
-        logger.warning("auth_bypassed", mode="development")
-        return {
-            "id": "de34e0d4-ad52-4ffe-9f75-1d41c83a4fb2",
-            "email": "researcher@example.com",
-            "role": "researcher",
-        }
-
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication token required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # 2. Real Supabase Validation
     try:
-        supabase = get_supabase()
-        # verify_session is not directly in supabase-py client anymore?
-        # We use auth.get_user(token)
-        user_resp = supabase.auth.get_user(token)
-        if not user_resp.user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-            )
-
-        return {
-            "id": user_resp.user.id,
-            "email": user_resp.user.email,
-            "role": user_resp.user.user_metadata.get("role", "researcher"),
-        }
-    except Exception as e:
-        logger.error("auth_validation_failed", error=str(e))
+        # Supabase uses standard JWTs. We can verify them using the JWT secret
+        # or just call auth.get_user. For efficiency, we verify the JWT locally.
+        payload = jwt.decode(
+            auth.credentials,
+            settings.supabase_key,  # In Supabase, the service_role key can be used
+            algorithms=["HS256"],
+            audience="authenticated",
+        )
+        return cast(dict[str, Any], payload)
+    except JWTError as e:
+        logger.warning("auth_failed", error=str(e))
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            status_code=401, detail="Invalid authentication credentials"
         ) from e
+
+
+async def verify_ws_token(websocket: WebSocket) -> dict[str, Any]:
+    """Validate JWT from query parameter for WebSockets."""
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4003, reason="Missing token")
+        raise HTTPException(status_code=401)
+
+    settings = get_settings()
+    try:
+        payload: dict[str, Any] = jwt.decode(
+            token, settings.supabase_key, algorithms=["HS256"], audience="authenticated"
+        )
+        return payload
+    except JWTError as e:
+        await websocket.close(code=4003, reason="Invalid token")
+        raise HTTPException(status_code=401) from e

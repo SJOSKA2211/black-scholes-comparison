@@ -1,6 +1,4 @@
-"""Base interface for all Black-Scholes pricing methods."""
-
-from __future__ import annotations
+"""Base classes for numerical option pricing methods."""
 
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -10,46 +8,43 @@ from pydantic import BaseModel, Field
 
 
 class MethodType(str, Enum):
-    """Supported numerical pricing methods."""
-
     ANALYTICAL = "analytical"
     CRANK_NICOLSON = "crank_nicolson"
     QUASI_MC = "quasi_mc"
     BINOMIAL_CRR_RICHARDSON = "binomial_crr_richardson"
 
 
+class OptionType(str, Enum):
+    CALL = "call"
+    PUT = "put"
+
+
 class OptionParams(BaseModel):
-    """Standardized parameters for option pricing."""
+    """Standard parameters for Black-Scholes option pricing."""
 
-    underlying_price: float = Field(..., gt=0)
-    strike_price: float = Field(..., gt=0)
-    maturity_years: float = Field(..., gt=0)
-    volatility: float = Field(..., gt=0)
-    risk_free_rate: float = Field(..., ge=0)
-    option_type: str = Field("call")
-    is_american: bool = Field(False)
-
-    @property
-    def is_call(self) -> bool:
-        return self.option_type.lower() == "call"
+    underlying_price: float = Field(..., gt=0, description="S")
+    strike_price: float = Field(..., gt=0, description="K")
+    maturity_years: float = Field(..., gt=0, description="T")
+    volatility: float = Field(..., gt=0, description="sigma")
+    risk_free_rate: float = Field(..., ge=0, description="r")
+    option_type: OptionType
+    is_american: bool = False
 
 
 class PriceResult(BaseModel):
-    """Result container for pricing calculations."""
+    """Result of an option pricing computation."""
 
-    method_type: str
-    computed_price: float
+    price: float
     exec_seconds: float
     converged: bool = True
-    delta: float | None = None
-    gamma: float | None = None
-    vega: float | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    error_message: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class NumericalMethod(ABC):
-    """Abstract base class for all pricing method implementations."""
+    """Abstract base class for all pricing methods."""
 
     @abstractmethod
-    def price(self, params: OptionParams) -> PriceResult:
-        """Compute the option price given parameters."""
+    async def price(self, params: OptionParams) -> PriceResult:
+        """Compute the price of the option."""
+        pass

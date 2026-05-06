@@ -1,6 +1,8 @@
+"""Prometheus metrics registry for monitoring the application."""
+
 from prometheus_client import Counter, Gauge, Histogram
 
-# Price Computations
+# Pricing Metrics
 PRICE_COMPUTATIONS_TOTAL = Counter(
     "black_scholes_price_computations_total",
     "Total pricing computations.",
@@ -18,7 +20,7 @@ PRICE_MAPE_GAUGE = Gauge(
     "black_scholes_price_mape_percent", "Latest MAPE vs analytical per method.", ["method_type"]
 )
 
-# Experiments
+# Experiment Metrics
 EXPERIMENTS_TOTAL = Counter(
     "black_scholes_experiments_run_total", "Grid experiments.", ["method_type", "market_source"]
 )
@@ -31,7 +33,7 @@ EXPERIMENT_ERRORS = Counter(
     "black_scholes_experiment_errors_total", "Non-finite results.", ["method_type", "error_type"]
 )
 
-# Scraper
+# Scraper Metrics
 SCRAPE_RUNS_TOTAL = Counter(
     "black_scholes_scrape_runs_total", "Scrape executions.", ["market", "status"]
 )
@@ -51,7 +53,7 @@ SCRAPE_ERRORS_TOTAL = Counter(
     "black_scholes_scrape_errors_total", "Non-fatal scraper errors.", ["market", "error_type"]
 )
 
-# Infrastructure
+# Infrastructure Metrics
 SUPABASE_QUERY_DURATION = Histogram(
     "black_scholes_supabase_query_duration_seconds",
     "Supabase call duration.",
@@ -64,6 +66,7 @@ SUPABASE_ERRORS = Counter(
 )
 
 REDIS_CACHE_HITS = Counter("black_scholes_redis_cache_hits_total", "Cache hits.", ["endpoint"])
+
 REDIS_CACHE_MISSES = Counter(
     "black_scholes_redis_cache_misses_total", "Cache misses.", ["endpoint"]
 )
@@ -71,6 +74,7 @@ REDIS_CACHE_MISSES = Counter(
 RABBITMQ_TASKS_PUBLISHED = Counter(
     "black_scholes_rabbitmq_tasks_published_total", "Tasks queued.", ["queue"]
 )
+
 RABBITMQ_TASKS_CONSUMED = Counter(
     "black_scholes_rabbitmq_tasks_consumed_total", "Tasks processed.", ["queue", "status"]
 )
@@ -84,10 +88,3 @@ NOTIFICATIONS_SENT = Counter(
 )
 
 MINIO_UPLOADS_TOTAL = Counter("black_scholes_minio_uploads_total", "MinIO uploads.", ["bucket"])
-
-# Policy Enforcement
-ZERO_MOCK_VIOLATIONS = Counter(
-    "black_scholes_zero_mock_violations_total",
-    "Total Zero-Mock policy violations detected at startup.",
-    ["violation_type"],
-)

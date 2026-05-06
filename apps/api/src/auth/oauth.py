@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import jwt
 import structlog
 from fastapi import HTTPException, status
@@ -22,11 +24,11 @@ async def verify_jwt(token: str) -> dict[str, str]:
         # Supabase JWTs are signed with the project's JWT secret
         payload = jwt.decode(
             token,
-            settings.supabase_key,  # In development, Supabase uses the service_role/anon key for verification if configured
+            settings.supabase_key,  # Supabase uses service_role key for verification if configured
             algorithms=["HS256"],
             audience="authenticated",
         )
-        return payload
+        return cast(dict[str, str], payload)
     except jwt.ExpiredSignatureError:
         logger.warning("auth_token_expired")
         raise HTTPException(

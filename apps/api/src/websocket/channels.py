@@ -1,13 +1,13 @@
-"""WebSocket channel definitions and permissions."""
+"""WebSocket channel definitions and message routing."""
 
-from __future__ import annotations
+from enum import Enum
 
-ALLOWED_CHANNELS = frozenset(
-    [
-        "experiments",  # Real-time experiment results
-        "scrapers",  # Scraper progress and logs
-        "notifications",  # User-specific notifications
-        "metrics",  # Live performance metrics
-        "market_data",  # Live market data updates
-    ]
-)
+
+class ChannelName(str, Enum):
+    EXPERIMENTS = "experiments"
+    SCRAPERS = "scrapers"
+    NOTIFICATIONS = "notifications"
+    METRICS = "metrics"
+
+
+ALLOWED_CHANNELS = frozenset([c.value for c in ChannelName])

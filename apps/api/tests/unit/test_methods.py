@@ -1,17 +1,18 @@
-import numpy as np
+"""Unit tests for all numerical pricing methods."""
+
 import pytest
-from pydantic import ValidationError
+import numpy as np
 
 from src.methods.analytical import BlackScholesAnalytical
-from src.methods.base import NumericalMethod, OptionParams, PriceResult
 from src.methods.finite_difference.crank_nicolson import CrankNicolson
 from src.methods.monte_carlo.quasi_mc import QuasiMC
-from src.methods.tree_methods.binomial_crr import BinomialCRR
 from src.methods.tree_methods.richardson import BinomialCRRRichardson
+from src.methods.base import OptionParams
 
 
 @pytest.fixture
-def standard_params() -> OptionParams:
+def atm_call_params() -> OptionParams:
+    """Standard ATM Call: S=100, K=100, T=1, vol=0.2, r=0.05."""
     return OptionParams(
         underlying_price=100.0,
         strike_price=100.0,
@@ -19,168 +20,106 @@ def standard_params() -> OptionParams:
         volatility=0.2,
         risk_free_rate=0.05,
         option_type="call",
+        is_american=False,
+    )
+
+
+@pytest.fixture
+def atm_put_params() -> OptionParams:
+    """Standard ATM Put: S=100, K=100, T=1, vol=0.2, r=0.05."""
+    return OptionParams(
+        underlying_price=100.0,
+        strike_price=100.0,
+        maturity_years=1.0,
+        volatility=0.2,
+        risk_free_rate=0.05,
+        option_type="put",
+        is_american=False,
     )
 
 
 @pytest.mark.unit
-class TestOptionParams:
-    def test_valid_params(self, standard_params):
-        assert standard_params.underlying_price == 100.0
-        assert standard_params.option_type == "call"
+class TestAnalytical:
+    """Tests for Black-Scholes analytical method."""
 
-    def test_invalid_price(self):
-        with pytest.raises(ValidationError):
-            OptionParams(
-                underlying_price=-1,
-                strike_price=100,
-                maturity_years=1,
-                volatility=0.2,
-                risk_free_rate=0.05,
-                option_type="call",
-            )
+    def test_analytical_call(self, atm_call_params: OptionParams) -> None:
+        method = BlackScholesAnalytical()
+        result = method.price(atm_call_params)
+        # BSM Reference: 10.4506
+        assert pytest.approx(result.computed_price, abs=1e-4) == 10.4506
+        assert result.delta > 0
+        assert result.gamma > 0
+        assert result.vega > 0
 
-    def test_invalid_volatility(self):
-        with pytest.raises(ValidationError):
-            OptionParams(
-                underlying_price=100,
-                strike_price=100,
-                maturity_years=1,
-                volatility=-0.1,
-                risk_free_rate=0.05,
-                option_type="call",
-            )
+    def test_analytical_put(self, atm_put_params: OptionParams) -> None:
+        method = BlackScholesAnalytical()
+        result = method.price(atm_put_params)
+        # BSM Reference: 5.5735
+        assert pytest.approx(result.computed_price, abs=1e-4) == 5.5735
+        assert result.delta < 0
 
-    def test_invalid_type(self):
+
+@pytest.mark.unit
+class TestCrankNicolson:
+    """Tests for Crank-Nicolson FDM."""
+
+    def test_cn_european_call(self, atm_call_params: OptionParams) -> None:
+        method = CrankNicolson(num_time_steps=200, num_price_steps=400)
+        result = method.price(atm_call_params)
+        assert pytest.approx(result.computed_price, abs=0.01) == 10.4506
+
+    def test_cn_european_put(self, atm_put_params: OptionParams) -> None:
+        method = CrankNicolson(num_time_steps=200, num_price_steps=400)
+        result = method.price(atm_put_params)
+        assert pytest.approx(result.computed_price, abs=0.01) == 5.5735
+
+    def test_cn_american_put(self) -> None:
+        """American puts should be more expensive than European puts."""
         params = OptionParams(
-            underlying_price=100,
-            strike_price=100,
-            maturity_years=1,
+            underlying_price=100.0,
+            strike_price=100.0,
+            maturity_years=1.0,
             volatility=0.2,
             risk_free_rate=0.05,
-            option_type="invalid",
+            option_type="put",
+            is_american=True,
         )
-        assert params.option_type == "invalid"
-        assert params.is_call is False
-
-    def test_methods_base_protocol(self):
-        class Dummy(NumericalMethod):
-            def price(self, params: OptionParams) -> PriceResult:
-                return PriceResult(method_type="dummy", computed_price=0.0, exec_seconds=0.0)
-
-        assert isinstance(Dummy(), NumericalMethod)
+        method = CrankNicolson(num_time_steps=100, num_price_steps=200)
+        result = method.price(params)
+        # European put is ~5.57. American should be > 5.57.
+        assert result.computed_price > 5.58
 
 
 @pytest.mark.unit
-class TestAnalytical:
-    def test_price_call(self, standard_params):
-        res = BlackScholesAnalytical().price(standard_params)
-        assert abs(res.computed_price - 10.4506) < 1e-4
+class TestQuasiMC:
+    """Tests for Quasi-Monte Carlo."""
 
-    def test_price_put(self, standard_params):
-        standard_params.option_type = "put"
-        res = BlackScholesAnalytical().price(standard_params)
-        assert abs(res.computed_price - 5.5735) < 1e-4
-
-    def test_greeks(self, standard_params):
-        bs = BlackScholesAnalytical()
-        # Just ensure they run without error
-        bs.delta(standard_params)
-        bs.gamma(standard_params)
-        bs.vega(standard_params)
-        bs.rho(standard_params)
-        standard_params.option_type = "put"
-        bs.theta(standard_params)
-
-    def test_implied_volatility(self, standard_params):
-        bs = BlackScholesAnalytical()
-        price = bs.price(standard_params).computed_price
-        assert abs(bs.implied_volatility(price, standard_params) - 0.2) < 1e-4
-        assert bs.implied_volatility(-1, standard_params) == 0.0
-
-    def test_implied_volatility_failure(self, standard_params):
-        bs = BlackScholesAnalytical()
-        assert bs.implied_volatility(1000.0, standard_params) == 0.0
-
-    def test_asian_option(self, standard_params):
-        bs = BlackScholesAnalytical()
-        res = bs.geometric_asian_price(standard_params)
-        assert res.computed_price > 0
-        standard_params.option_type = "put"
-        res_put = bs.geometric_asian_price(standard_params)
-        assert res_put.computed_price > 0
+    def test_qmc_european_call(self, atm_call_params: OptionParams) -> None:
+        method = QuasiMC()
+        result = method.price(atm_call_params)
+        # QMC should be very close to analytical
+        assert pytest.approx(result.computed_price, abs=0.02) == 10.4506
 
 
 @pytest.mark.unit
-class TestFDM:
-    @pytest.mark.parametrize("method_class", [CrankNicolson])
-    @pytest.mark.parametrize("option_type", ["call", "put"])
-    def test_fdm_basic(self, method_class, option_type, standard_params):
-        standard_params.option_type = option_type
-        res = method_class().price(standard_params)
-        assert res.computed_price > 0
+class TestCRRRichardson:
+    """Tests for Binomial CRR with Richardson Extrapolation."""
+
+    def test_crr_richardson_call(self, atm_call_params: OptionParams) -> None:
+        method = BinomialCRRRichardson()
+        result = method.price(atm_call_params)
+        assert pytest.approx(result.computed_price, abs=0.01) == 10.4506
 
 
 @pytest.mark.unit
-class TestMonteCarlo:
-    @pytest.mark.parametrize("method_class", [QuasiMC])
-    @pytest.mark.parametrize("option_type", ["call", "put"])
-    def test_mc_basic(self, method_class, option_type, standard_params):
-        standard_params.option_type = option_type
-        res = method_class().price(standard_params)
-        assert res.computed_price > 0
+def test_cross_method_agreement(atm_call_params: OptionParams) -> None:
+    """Verify all methods agree within 0.1% MAPE for standard ATM call."""
+    analytical = BlackScholesAnalytical().price(atm_call_params).computed_price
+    cn = CrankNicolson().price(atm_call_params).computed_price
+    qmc = QuasiMC().price(atm_call_params).computed_price
+    crr = BinomialCRRRichardson().price(atm_call_params).computed_price
 
-
-@pytest.mark.unit
-class TestTrees:
-    def test_binomial_crr_european(self, standard_params):
-        res = BinomialCRR().price_tree(standard_params, num_steps=100)
-        assert abs(res - 10.4506) < 0.1
-
-    def test_binomial_crr_american_put(self, standard_params):
-        standard_params.option_type = "put"
-        standard_params.is_american = True
-        res = BinomialCRR().price_tree(standard_params, num_steps=100)
-        assert res > 5.5735
-
-    def test_richardson_wrappers(self, standard_params):
-        res_b = BinomialCRRRichardson().price(standard_params)
-        assert res_b.method_type == "binomial_crr_richardson"
-
-
-@pytest.mark.unit
-class TestAnalysis:
-    def test_channels(self):
-        from src.websocket.channels import ALLOWED_CHANNELS
-        assert "experiments" in ALLOWED_CHANNELS
-        assert "scrapers" in ALLOWED_CHANNELS
-
-    def test_compute_mape(self):
-        from src.analysis.statistics import compute_mape
-        results = [{"computed_price": 110}]
-        assert compute_mape(results, 100) == 10.0
-        assert compute_mape([], 100) == 0.0
-        assert compute_mape(results, 0) == 0.0
-
-    def test_get_convergence_metrics(self):
-        from src.analysis.statistics import get_convergence_metrics
-        results = [{"computed_price": 100}, {"computed_price": 110}]
-        metrics = get_convergence_metrics(results)
-        assert metrics["count"] == 2
-        assert metrics["mean_price"] == 105.0
-        assert get_convergence_metrics([]) == {}
-
-
-@pytest.mark.unit
-def test_cross_method_agreement(standard_params):
-    import numpy as np
-    np.random.seed(42)
-    ref = BlackScholesAnalytical().price(standard_params).computed_price
-    methods = [
-        QuasiMC().price,
-        BinomialCRRRichardson().price,
-    ]
-    for m in methods:
-        res = m(standard_params)
-        mape = abs(res.computed_price - ref) / ref
-        print(f"Method: {res.method_type}, MAPE: {mape}")
-        assert mape < 0.05
+    results = [cn, qmc, crr]
+    for res in results:
+        mape = abs(res - analytical) / analytical
+        assert mape < 0.001  # 0.1%

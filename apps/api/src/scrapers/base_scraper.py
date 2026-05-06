@@ -1,24 +1,18 @@
 """Base class for all market data scrapers."""
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from datetime import date
+from typing import Any
 
-import pandas as pd
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 
 class BaseScraper(ABC):
-    """Abstract base class for scraping market data."""
-
-    def __init__(self, run_id: str | None = None) -> None:
-        self.run_id = run_id
+    """Abstract base class for scrapers."""
 
     @abstractmethod
-    async def scrape(self, trade_date: date) -> pd.DataFrame:
-        """
-        Scrape data for a specific date.
-        Returns a DataFrame with columns:
-        [underlying_price, strike_price, maturity_years, option_type, bid_price, ask_price]
-        """
+    async def scrape(self, trade_date: date) -> list[dict[str, Any]]:
+        """Scrape data for the given date and return a list of records."""
         pass
