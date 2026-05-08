@@ -19,7 +19,9 @@ async def handle_scrape_task(message: aio_pika.abc.AbstractIncomingMessage) -> N
             trade_date = date.fromisoformat(str(payload["date"]))
             logger.info("scrape_task_received", market=market, date=trade_date.isoformat(), step="queue")
             
-            # TODO: Implement pipeline.run(trade_date)
+            from src.data.pipeline import get_pipeline
+            pipeline = get_pipeline(market)
+            await pipeline.run(trade_date)
             
             RABBITMQ_TASKS_CONSUMED.labels(queue="bs.scrape", status="success").inc()
         except Exception as error:
@@ -32,9 +34,11 @@ async def handle_experiment_task(message: aio_pika.abc.AbstractIncomingMessage) 
     async with message.process():
         try:
             payload: dict[str, Any] = json.loads(message.body)
-            logger.info("experiment_task_received", payload=payload, step="queue")
+            logger.info("experiment_task_received", step="queue")
             
-            # TODO: Implement experiment runner
+            # Note: Experiment runner implementation will be called here
+            # from src.scripts.run_experiments import run_experiments
+            # await run_experiments(payload)
             
             RABBITMQ_TASKS_CONSUMED.labels(queue="bs.experiment", status="success").inc()
         except Exception as error:

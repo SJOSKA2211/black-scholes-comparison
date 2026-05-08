@@ -19,8 +19,13 @@ async def _execute_query(table: str, operation: str, query_fn: Callable[[], Any]
         return response
     except Exception as error:
         SUPABASE_ERRORS.labels(table=table, operation=operation).inc()
-        logger.error("supabase_operation_failed", table=table, operation=operation, error=str(error))
-        raise SupabaseError(f"Database error in {table}.{operation}") from error
+        # Extract message from postgrest APIError if possible
+        error_msg = str(error)
+        if hasattr(error, "message"):
+            error_msg = error.message
+        
+        logger.error("supabase_operation_failed", table=table, operation=operation, error=error_msg)
+        raise SupabaseError(f"Database error in {table}.{operation}: {error_msg}") from error
 
 async def upsert_option_parameters(params: dict[str, Any]) -> dict[str, Any]:
     """Upsert option parameters."""

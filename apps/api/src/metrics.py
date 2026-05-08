@@ -42,6 +42,10 @@ SCRAPE_ROWS_INSERTED = Gauge(
     "black_scholes_scrape_rows_inserted", "Rows in latest scrape.", ["market"]
 )
 
+SCRAPE_ROWS_TOTAL = Counter(
+    "black_scholes_scrape_rows_total", "Rows processed.", ["market", "status"]
+)
+
 SCRAPE_DURATION = Histogram(
     "black_scholes_scrape_duration_seconds",
     "Scrape duration.",

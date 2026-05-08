@@ -1,19 +1,25 @@
 """Redis client singleton using async redis."""
 from __future__ import annotations
 from functools import lru_cache
-from redis.asyncio import Redis
+import redis.asyncio as aioredis
 from src.config import get_settings
 import structlog
 
 logger = structlog.get_logger(__name__)
 
 @lru_cache(maxsize=1)
-def get_redis() -> Redis[bytes]:
+def get_redis() -> aioredis.Redis:
     """Return a cached async Redis client."""
     settings = get_settings()
-    client: Redis[bytes] = Redis.from_url(
-        settings.redis_url, 
-        decode_responses=False # We handle JSON encoding/decoding ourselves
+    client = aioredis.from_url(
+        settings.redis_url,
+        password=settings.redis_password,
+        encoding="utf-8",
+        decode_responses=True,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        retry_on_timeout=True,
+        health_check_interval=30,
     )
     logger.info("redis_client_created", url=settings.redis_url, step="init")
     return client

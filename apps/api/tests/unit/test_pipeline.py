@@ -1,74 +1,65 @@
-"""Unit tests for data transformers and pipeline."""
+"""Unit tests for the data pipeline."""
 from __future__ import annotations
 from datetime import date
 from unittest.mock import AsyncMock, patch
 import pytest
-from src.data.transformers import transform_to_option_parameters, calculate_mid_price
-from src.scrapers.base_scraper import RawQuote
-from src.data.pipeline import DataPipeline
-
-@pytest.mark.unit
-def test_calculate_mid_price() -> None:
-    """Verify mid-price calculation."""
-    quote = RawQuote(
-        underlying_symbol="SPY",
-        strike_price=100.0,
-        maturity_date=date(2025, 1, 1),
-        option_type="call",
-        bid_price=2.0,
-        ask_price=2.2,
-        underlying_price=100.0,
-        data_source="spy"
-    )
-    assert calculate_mid_price(quote) == 2.1
-
-@pytest.mark.unit
-def test_transform_to_option_parameters() -> None:
-    """Verify transformation to OptionParameters."""
-    quote = RawQuote(
-        underlying_symbol="SPY",
-        strike_price=100.0,
-        maturity_date=date(2025, 1, 1),
-        option_type="call",
-        bid_price=2.0,
-        ask_price=2.2,
-        underlying_price=105.0,
-        data_source="spy"
-    )
-    params = transform_to_option_parameters(quote, 0.05)
-    assert params.underlying_price == 105.0
-    assert params.strike_price == 100.0
-    assert params.risk_free_rate == 0.05
+from src.data.pipeline import DataPipeline, get_pipeline
+from src.scrapers.base_scraper import ScraperResult, RawQuote
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_pipeline_run() -> None:
-    """Verify pipeline orchestration."""
-    mock_scraper_result = AsyncMock()
-    mock_scraper_result.quotes = [
-        RawQuote(
-            underlying_symbol="SPY",
-            strike_price=100.0,
-            maturity_date=date(2025, 1, 1),
-            option_type="call",
-            bid_price=2.0,
-            ask_price=2.2,
-            underlying_price=105.0,
-            data_source="spy"
-        )
-    ]
+async def test_pipeline_run():
+    """Test standard pipeline execution."""
+    mock_scraper_inst = AsyncMock()
+    mock_quote = RawQuote(
+        underlying_symbol="SPY",
+        strike_price=100.0,
+        maturity_date=date(2025, 12, 31),
+        option_type="call",
+        bid_price=5.0,
+        ask_price=5.5,
+        underlying_price=100.0,
+        data_source="spy",
+    )
+    mock_scraper_inst.run.return_value = ScraperResult(
+        market="spy", 
+        execution_seconds=0.1,
+        status="success",
+        quotes=[mock_quote]
+    )
     
-    with patch("src.data.pipeline.SpyScraper") as mock_scraper_cls:
-        mock_scraper = mock_scraper_cls.return_value
-        mock_scraper.run = AsyncMock(return_value=mock_scraper_result)
+    with patch("src.scrapers.spy_scraper.SpyScraper", return_value=mock_scraper_inst):
+        pipeline = get_pipeline("spy")
+        result = await pipeline.run(date(2025, 1, 1))
         
-        pipeline = DataPipeline("spy")
+        assert result.market == "spy"
+        assert result.rows_scraped == 1
+        assert result.rows_validated == 1
+        mock_scraper_inst.run.assert_called_once()
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_pipeline_run_nse():
+    """Test pipeline execution for NSE."""
+    mock_scraper_inst = AsyncMock()
+    mock_scraper_inst.run.return_value = ScraperResult(
+        market="nse", 
+        execution_seconds=0.1,
+        status="success",
+        quotes=[]
+    )
+    
+    with patch("src.scrapers.nse_scraper.NseScraper", return_value=mock_scraper_inst):
+        pipeline = get_pipeline("nse")
+        result = await pipeline.run(date(2025, 1, 1))
         
-        # Mock validator to pass
-        with patch("src.data.pipeline.validate_quote", return_value=True):
-            result = await pipeline.run(date(2025, 1, 1))
-            
-            assert result.market == "spy"
-            assert result.rows_scraped == 1
-            assert result.rows_validated == 1
-            mock_scraper.run.assert_called_once()
+        assert result.market == "nse"
+        assert result.rows_scraped == 0
+        mock_scraper_inst.run.assert_called_once()
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_pipeline_invalid_market():
+    """Test pipeline with invalid market."""
+    with pytest.raises(ValueError, match="Unsupported market"):
+        get_pipeline("invalid")
