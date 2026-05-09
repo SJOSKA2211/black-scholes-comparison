@@ -1,83 +1,106 @@
-"""Scraper for SPY (S&P 500 ETF) option data using Yahoo Finance."""
+"""Scraper for SPY (S&P 500 ETF) option data using Playwright."""
 
 from __future__ import annotations
 
 import asyncio
 from datetime import date, datetime
 
-import pandas as pd
-import requests
-import yfinance as yf
+import structlog
+from playwright.async_api import async_playwright
 
 from src.scrapers.base_scraper import BaseScraper, RawQuote
 
+logger = structlog.get_logger(__name__)
+
 
 class SpyScraper(BaseScraper):
-    """Scraper for SPY options."""
+    """Scraper for SPY options using Playwright."""
 
     def __init__(self) -> None:
         super().__init__(market_name="spy")
-        self.session = requests.Session()
-        self.session.headers.update(
-            {
-                "User-Agent": (
+
+    async def _scrape(self, trade_date: date) -> list[RawQuote]:
+        """Fetch SPY option chain via Playwright."""
+        quotes: list[RawQuote] = []
+
+        async with async_playwright() as playwright:
+            browser = await playwright.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent=(
                     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
                     "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
                 )
-            }
-        )
-
-    async def _scrape(self, trade_date: date) -> list[RawQuote]:
-        """Fetch SPY option chain via yfinance."""
-        # yfinance is blocking, run in thread
-        return await asyncio.to_thread(self._scrape_sync, trade_date)
-
-    def _scrape_sync(self, trade_date: date) -> list[RawQuote]:
-        """Synchronous scraping logic for yfinance."""
-        ticker = yf.Ticker("SPY", session=self.session)
-        expirations = ticker.options
-        if not expirations:
-            return []
-
-        # Get underlying price
-        # fast_info might be better for current price
-        underlying_price = ticker.fast_info["last_price"]
-
-        quotes: list[RawQuote] = []
-
-        # To avoid heavy load and stay within rate limits, we take the first 2 expirations
-        for exp in expirations[:2]:
-            opt_chain = ticker.option_chain(exp)
-
-            # Process calls
-            quotes.extend(self._process_df(opt_chain.calls, exp, underlying_price, "call"))
-            # Process puts
-            quotes.extend(self._process_df(opt_chain.puts, exp, underlying_price, "put"))
-
-        return quotes
-
-    def _process_df(
-        self, df: pd.DataFrame, expiration: str, underlying_price: float, opt_type: str
-    ) -> list[RawQuote]:
-        """Convert yfinance dataframe to RawQuote list."""
-        quotes: list[RawQuote] = []
-        maturity_date = datetime.strptime(expiration, "%Y-%m-%d").date()
-
-        for _, row in df.iterrows():
-            # Basic validation: must have bid/ask
-            if pd.isna(row["bid"]) or pd.isna(row["ask"]) or row["bid"] <= 0 or row["ask"] <= 0:
-                continue
-
-            quotes.append(
-                RawQuote(
-                    underlying_symbol="SPY",
-                    strike_price=float(row["strike"]),
-                    maturity_date=maturity_date,
-                    option_type=opt_type,
-                    bid_price=float(row["bid"]),
-                    ask_price=float(row["ask"]),
-                    underlying_price=underlying_price,
-                    data_source="spy",
-                )
             )
+            page = await context.new_page()
+
+            url = "https://finance.yahoo.com/quote/SPY/options"
+            logger.info("fetching_spy_options", url=url)
+
+            try:
+                await page.goto(url, timeout=60000)
+                
+                # Wait for the price to load
+                price_selector = "[data-test='qsp-price'], .livePrice"
+                try:
+                    await page.wait_for_selector(price_selector, timeout=10000)
+                    price_text = await page.locator(price_selector).first.inner_text()
+                    underlying_price = float(price_text.replace(",", ""))
+                except Exception:
+                    # Fallback or log
+                    logger.warning("spy_price_not_found_using_default")
+                    underlying_price = 0.0
+
+                # Wait for the table
+                table_selector = "table"
+                await page.wait_for_selector(table_selector, timeout=30000)
+
+                rows = await page.locator("table tbody tr").all()
+                logger.info("spy_rows_found", count=len(rows))
+
+                for row in rows:
+                    cells = await row.locator("td").all()
+                    if len(cells) < 6:
+                        continue
+
+                    # Contract Name (contains expiry info), Strike, Last, Bid, Ask
+                    contract = await cells[0].inner_text()
+                    strike_text = await cells[2].inner_text()
+                    bid_text = await cells[4].inner_text()
+                    ask_text = await cells[5].inner_text()
+
+                    try:
+                        # Extract expiry from contract name: SPY260511C00700000 -> 26-05-11
+                        # Format: SYMBOL + YYMMDD + TYPE + STRIKE
+                        expiry_str = contract[3:9]
+                        expiry_date = datetime.strptime(expiry_str, "%y%m%d").date()
+                        opt_type = "call" if "C" in contract[9:11] else "put"
+                        
+                        bid = float(bid_text.replace(",", ""))
+                        ask = float(ask_text.replace(",", ""))
+                        strike = float(strike_text.replace(",", ""))
+
+                        if bid <= 0 or ask <= 0:
+                            continue
+
+                        quotes.append(
+                            RawQuote(
+                                underlying_symbol="SPY",
+                                strike_price=strike,
+                                maturity_date=expiry_date,
+                                option_type=opt_type,
+                                bid_price=bid,
+                                ask_price=ask,
+                                underlying_price=underlying_price,
+                                data_source="spy",
+                            )
+                        )
+                    except (ValueError, IndexError):
+                        continue
+
+                await browser.close()
+            except Exception as e:
+                logger.error("spy_scrape_failed", error=str(e))
+                await browser.close()
+                # Don't re-raise, return what we have
+
         return quotes

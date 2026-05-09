@@ -53,7 +53,11 @@ async def get_option_parameters(option_id: str) -> dict[str, Any]:
     response = await _execute_query(
         "option_parameters",
         "select",
-        lambda: client.table("option_parameters").select("*").eq("id", option_id).single().execute(),
+        lambda: client.table("option_parameters")
+        .select("*")
+        .eq("id", option_id)
+        .single()
+        .execute(),
     )
     return cast(dict[str, Any], response.data)
 

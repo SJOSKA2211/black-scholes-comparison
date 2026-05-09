@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import date
-from typing import TYPE_CHECKING, Any
+from datetime import date  # noqa: TCH003
+from typing import Any
 
 import structlog
 from pydantic import BaseModel

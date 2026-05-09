@@ -43,43 +43,64 @@ class NseScraper(BaseScraper):
 
                 # Use the exact CSS selector for the Derivatives Statistics tab
                 tab_selector = "a[href='#tab-1639079360113-10']"
-                await page.wait_for_selector(tab_selector, timeout=30000)
-                await page.click(tab_selector)
+                # Find all tables and look for the one with 'Contract Name'
+                tables = await page.locator("table.nsetable").all()
+                target_table = None
+                for table in tables:
+                    header_text = await table.inner_text()
+                    if "Contract Name" in header_text:
+                        target_table = table
+                        break
+                
+                if not target_table:
+                    logger.error("nse_table_not_found")
+                    await browser.close()
+                    return []
 
-                # Wait for the AJAX-loaded table to appear
-                table_row_selector = "table.nsetable.table tbody tr"
-                await page.wait_for_selector(table_row_selector, timeout=30000)
-
-                rows = await page.locator(table_row_selector).all()
+                rows = await target_table.locator("tr").all()
                 logger.info("nse_rows_found", count=len(rows))
 
-                for row in rows:
+                for i, row in enumerate(rows):
                     cells = await row.locator("td").all()
-                    if len(cells) >= 6:
-                        # Columns: Name, ISIN, Expiry, MTM, Volume, Prev Price
-                        contract_name = await cells[0].inner_text()
-                        mtm_price_text = await cells[3].inner_text()
-                        prev_price_text = await cells[5].inner_text()
+                    if len(cells) < 6:
+                        continue
+                    
+                    texts = [await c.inner_text() for c in cells]
+                    contract_name = texts[0].strip()
+                    if not contract_name or contract_name == "Contract Name":
+                        continue
 
+                    try:
+                        # Parsing "INDEX (N25I)" or "EQ (Safaricom)"
+                        symbol = contract_name
+                        if "(" in contract_name:
+                            symbol = contract_name.split("(")[1].split(")")[0]
+                        
+                        mtm_price = float(texts[3].strip().replace(",", ""))
+                        prev_price = float(texts[5].strip().replace(",", ""))
+                        
+                        # Expiry Date: "18-Jun-2026"
+                        from datetime import datetime
                         try:
-                            mtm_price = float(mtm_price_text.replace(",", ""))
-                            prev_price = float(prev_price_text.replace(",", ""))
+                            expiry_date = datetime.strptime(texts[2].strip(), "%d-%b-%Y").date()
+                        except ValueError:
+                            expiry_date = trade_date
 
-                            # Treat futures as proxy for now (NSE NEXT is mainly futures)
-                            quotes.append(
-                                RawQuote(
-                                    underlying_symbol=contract_name.split()[-1].strip("()"),
-                                    strike_price=mtm_price,
-                                    maturity_date=trade_date,
-                                    option_type="call",
-                                    bid_price=mtm_price,
-                                    ask_price=mtm_price,
-                                    underlying_price=prev_price,
-                                    data_source="nse",
-                                )
+                        quotes.append(
+                            RawQuote(
+                                underlying_symbol=symbol,
+                                strike_price=mtm_price,
+                                maturity_date=expiry_date,
+                                option_type="call", 
+                                bid_price=mtm_price,
+                                ask_price=mtm_price,
+                                underlying_price=prev_price,
+                                data_source="nse",
                             )
-                        except (ValueError, IndexError):
-                            continue
+                        )
+                    except (ValueError, IndexError) as e:
+                        logger.warning("row_parse_failed", index=i, error=str(e))
+                        continue
 
                 await browser.close()
             except Exception as e:

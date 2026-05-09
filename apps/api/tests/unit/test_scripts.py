@@ -8,7 +8,6 @@ from src.scripts.run_experiments import main
 @pytest.mark.asyncio
 async def test_run_experiments_main() -> None:
     """Verify experiment runner main logic."""
-    # Patch the publisher to avoid real RabbitMQ calls
-    with patch("src.scripts.run_experiments.publish_experiment_task", new_callable=AsyncMock) as mock_publish:
+    with patch("src.scripts.run_experiments.run_experiments", new_callable=AsyncMock) as mock_run:
         await main()
-        assert mock_publish.called
+        assert mock_run.called

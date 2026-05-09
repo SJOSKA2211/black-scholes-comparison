@@ -47,7 +47,9 @@ async def test_handle_experiment_task_success():
     mock_message.process.return_value = AsyncContextManagerMock()
     mock_message.body = json.dumps({"grid": "params"}).encode()
     
-    await handle_experiment_task(mock_message)
+    with patch("src.scripts.run_experiments.run_experiments", new_callable=AsyncMock) as mock_run:
+        await handle_experiment_task(mock_message)
+        mock_run.assert_called_once()
 
 @pytest.mark.unit
 @pytest.mark.asyncio

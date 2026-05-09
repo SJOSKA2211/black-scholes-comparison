@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.logging_config import setup_logging
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Black-Scholes Research Platform API", version="1.0.0", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Instrument Prometheus
 Instrumentator().instrument(app).expose(app)

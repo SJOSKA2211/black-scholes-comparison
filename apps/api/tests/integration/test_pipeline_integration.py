@@ -53,4 +53,5 @@ async def test_pipeline_persistence_real_supabase() -> None:
     assert len(db_opt.data) >= 1, f"Option not found for price {unique_price}. Recent: {db_all.data}"
     option_id = db_opt.data[0]["id"]
     
+    client.table("market_data").delete().eq("option_id", option_id).execute()
     client.table("option_parameters").delete().eq("id", option_id).execute()

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Callable
 from functools import lru_cache
-from typing import Any
 
 import redis.asyncio as aioredis
 import structlog

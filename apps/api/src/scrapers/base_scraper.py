@@ -4,15 +4,12 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from datetime import date  # noqa: TCH003
 
 import structlog
 from pydantic import BaseModel
 
 from src.metrics import SCRAPE_DURATION, SCRAPE_RUNS_TOTAL
-
-from datetime import date
-from typing import TYPE_CHECKING
 
 logger = structlog.get_logger(__name__)
 
@@ -67,4 +64,6 @@ class BaseScraper(ABC):
             duration = time.perf_counter() - start_time
             SCRAPE_RUNS_TOTAL.labels(market=self.market_name, status="failed").inc()
             logger.error("scraper_failed", market=self.market_name, error=str(error))
-            raise
+            return ScraperResult(
+                quotes=[], execution_seconds=duration, market=self.market_name, status="failed"
+            )

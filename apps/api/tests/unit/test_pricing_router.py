@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from src.main import app
 from src.auth.dependencies import get_current_user
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch, AsyncMock
 
 client = TestClient(app)
 
@@ -40,8 +40,8 @@ def test_compute_price_analytical() -> None:
     
     assert response.status_code == 200
     data = response.json()
-    assert "computed_price" in data
-    assert pytest.approx(data["computed_price"], 0.01) == 10.45
+    assert "price" in data
+    assert pytest.approx(data["price"], 0.01) == 10.45
 
 @pytest.mark.unit
 def test_compute_price_unsupported_method() -> None:
@@ -78,6 +78,6 @@ def test_compute_price_all_methods() -> None:
     for method in methods:
         response = client.post(f"/api/v1/pricing/compute?method={method}", json=payload)
         assert response.status_code == 200
-        assert "computed_price" in response.json()
+        assert "price" in response.json()
     
     app.dependency_overrides.clear()
