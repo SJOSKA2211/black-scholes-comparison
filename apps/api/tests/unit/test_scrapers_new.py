@@ -1,0 +1,52 @@
+"""New scraper tests."""
+from __future__ import annotations
+from datetime import date
+from unittest.mock import AsyncMock, MagicMock, patch
+import pytest
+from src.scrapers.spy_scraper import SpyScraper
+from src.scrapers.nse_next_scraper import NseScraper
+
+class CM:
+    def __init__(self, v): self.v = v
+    async def __aenter__(self): return self.v
+    async def __aexit__(self, *a): pass
+
+def mk(t):
+    c = MagicMock(); c.inner_text = AsyncMock(return_value=str(t)); return c
+
+@pytest.fixture
+def p():
+    m = MagicMock(); pg = MagicMock()
+    m.chromium.launch = AsyncMock(return_value=AsyncMock(new_context=AsyncMock(return_value=AsyncMock(new_page=AsyncMock(return_value=pg)))))
+    pg.goto = AsyncMock(); pg.wait_for_selector = AsyncMock()
+    return m, pg
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_spy_new(p):
+    m, pg = p; s = SpyScraper()
+    pg.locator.return_value.first.inner_text = AsyncMock(return_value="500")
+    r = MagicMock(); r.locator.return_value.all = AsyncMock(return_value=[mk("S1"), mk(0), mk(700), mk(0), mk(10), mk(11)])
+    rows = MagicMock(); rows.all = AsyncMock(return_value=[r])
+    pg.locator.side_effect = lambda sel: MagicMock(all=AsyncMock(return_value=[r])) if "quote" in sel else MagicMock(first=MagicMock(inner_text=AsyncMock(return_value="500")))
+    with patch("src.scrapers.spy_scraper.async_playwright", return_value=CM(m)):
+        res = await s.run(date.today()); assert res.status == "success"
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_nse_new(p):
+    m, pg = p; s = NseScraper()
+    h = MagicMock(inner_text=AsyncMock(return_value="Contract Name"))
+    d = MagicMock(inner_text=AsyncMock(return_value="KCB"))
+    d.locator.return_value.all = AsyncMock(return_value=[mk("KCB"), mk("K1"), mk("18-Jun-2026"), mk(4500), mk(0), mk(4400)])
+    h.locator.return_value.all = AsyncMock(return_value=[])
+    pg.locator.return_value.all = AsyncMock(side_effect=[[h], [h, d]])
+    with patch("src.scrapers.nse_next_scraper.async_playwright", return_value=CM(m)):
+        res = await s.run(date.today()); assert res.status == "success"
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_err_new():
+    s = SpyScraper()
+    with patch("src.scrapers.spy_scraper.async_playwright", side_effect=Exception("err")):
+        res = await s.run(date.today()); assert res.status == "failed"

@@ -34,6 +34,7 @@ class ScraperResult(BaseModel):
     execution_seconds: float
     market: str
     status: str
+    error: str | None = None
 
 
 class BaseScraper(ABC):
@@ -65,5 +66,9 @@ class BaseScraper(ABC):
             SCRAPE_RUNS_TOTAL.labels(market=self.market_name, status="failed").inc()
             logger.error("scraper_failed", market=self.market_name, error=str(error))
             return ScraperResult(
-                quotes=[], execution_seconds=duration, market=self.market_name, status="failed"
+                quotes=[],
+                execution_seconds=duration,
+                market=self.market_name,
+                status="failed",
+                error=str(error),
             )
