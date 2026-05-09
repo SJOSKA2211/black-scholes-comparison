@@ -6,6 +6,9 @@ from src.main import app
 from src.auth.dependencies import get_current_user
 from unittest.mock import MagicMock, patch, AsyncMock
 
+def mock_user():
+    return {"id": "u1"}
+
 @pytest.fixture
 def client():
     # Use dependency override inside the fixture for isolation
@@ -25,7 +28,7 @@ def mock_redis():
         yield r
 
 @pytest.mark.unit
-def test_health():
+def test_health(client):
     with patch("src.routers.health.get_supabase") as su:
         # Success path
         mock_table = MagicMock()
@@ -64,12 +67,14 @@ def test_notifications(client):
         assert res.status_code == 200
 
 @pytest.mark.unit
-def test_notifications_no_user_id():
-    app.dependency_overrides[get_current_user] = lambda: {"id": ""}
+def test_notifications_no_user_id(client):
+    app.dependency_overrides[get_current_user] = lambda: {}
     res = client.get("/api/v1/notifications")
     assert res.status_code == 200
     assert res.json() == []
-    app.dependency_overrides.clear()
+    # No need to clear manually here as the fixture does it, 
+    # but we should restore mock_user if we continue using client in this test
+    app.dependency_overrides[get_current_user] = mock_user
 
 @pytest.mark.unit
 def test_scrapers(client):
