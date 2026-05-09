@@ -25,8 +25,7 @@ export default function ScrapersPage() {
   });
 
   const triggerMutation = useMutation({
-    mutationFn: (market: string) =>
-      post("/api/v1/scrapers/trigger", { market }),
+    mutationFn: (market: string) => post("/api/v1/scrapers/run", { market }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["scrape-runs"] }),
   });

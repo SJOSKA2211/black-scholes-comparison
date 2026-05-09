@@ -9,7 +9,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // If user is not logged in and trying to access dashboard, redirect to login
-  if (!user && !request.nextUrl.pathname.startsWith("/login") && !request.nextUrl.pathname.startsWith("/callback")) {
+  if (
+    !user &&
+    !request.nextUrl.pathname.startsWith("/login") &&
+    !request.nextUrl.pathname.startsWith("/callback")
+  ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

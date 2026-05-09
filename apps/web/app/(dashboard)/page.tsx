@@ -25,7 +25,8 @@ export default function DashboardPage() {
   const stats = [
     {
       name: "Total Experiments",
-      value: totalExperiments?.toLocaleString() ?? experiments.length.toString(),
+      value:
+        totalExperiments?.toLocaleString() ?? experiments.length.toString(),
       icon: Zap,
       color: "text-yellow-500",
     },
@@ -65,14 +66,18 @@ export default function DashboardPage() {
             className="glass-card p-6 shadow-sm group hover:border-blue-500/30 transition-all"
           >
             <div className="flex items-center gap-4">
-              <div className={`rounded-xl bg-slate-800 p-2.5 ${stat.color} group-hover:scale-110 transition-transform`}>
+              <div
+                className={`rounded-xl bg-slate-800 p-2.5 ${stat.color} group-hover:scale-110 transition-transform`}
+              >
                 <stat.icon className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   {stat.name}
                 </p>
-                <p className="text-2xl font-black text-white font-outfit">{stat.value}</p>
+                <p className="text-2xl font-black text-white font-outfit">
+                  {stat.value}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -98,10 +103,10 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-3">
             {experiments.length === 0 ? (
-               <div className="h-64 flex flex-col items-center justify-center text-slate-600">
-                 <Zap className="w-12 h-12 mb-2 opacity-10" />
-                 <p className="text-sm">No research activity recorded yet</p>
-               </div>
+              <div className="h-64 flex flex-col items-center justify-center text-slate-600">
+                <Zap className="w-12 h-12 mb-2 opacity-10" />
+                <p className="text-sm">No research activity recorded yet</p>
+              </div>
             ) : (
               experiments.slice(0, 6).map((exp) => (
                 <div
@@ -117,13 +122,21 @@ export default function DashboardPage() {
                         {exp.method_type.replace(/_/g, " ")}
                       </p>
                       <p className="text-[10px] text-slate-500 font-medium">
-                        Price: <span className="text-white font-bold">{exp.computed_price.toFixed(4)}</span> · Latency: <span className="text-slate-400">{(exp.exec_seconds * 1000).toFixed(1)}ms</span>
+                        Price:{" "}
+                        <span className="text-white font-bold">
+                          {exp.computed_price.toFixed(4)}
+                        </span>{" "}
+                        · Latency:{" "}
+                        <span className="text-slate-400">
+                          {(exp.exec_seconds * 1000).toFixed(1)}ms
+                        </span>
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-mono text-slate-500 font-bold">
-                      S:{exp.option_parameters.underlying_price} K:{exp.option_parameters.strike_price}
+                      S:{exp.option_parameters.underlying_price} K:
+                      {exp.option_parameters.strike_price}
                     </p>
                     <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">
                       {new Date(exp.run_at).toLocaleTimeString()}
@@ -136,10 +149,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Market Status & Live Feed */}
-        <motion.div
-          variants={item}
-          className="space-y-6"
-        >
+        <motion.div variants={item} className="space-y-6">
           <div className="glass-card p-6 shadow-sm">
             <h3 className="mb-6 text-lg font-bold text-white font-outfit">
               Market Ingestion
@@ -152,7 +162,9 @@ export default function DashboardPage() {
                     SPY (Yahoo Finance)
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-500 uppercase">Live</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">
+                  Live
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -171,7 +183,7 @@ export default function DashboardPage() {
                   <span className="text-emerald-500">Optimal</span>
                 </div>
                 <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
-                  <motion.div 
+                  <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: "94%" }}
                     className="bg-blue-600 h-full"

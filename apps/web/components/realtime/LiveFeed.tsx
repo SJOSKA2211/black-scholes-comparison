@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRealtime } from "@/hooks/useRealtime";
 import { motion, AnimatePresence } from "framer-motion";
-import { Database, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Database, Clock, CheckCircle2 } from "lucide-react";
 
 interface ScrapeRun {
   id: string;
@@ -50,9 +50,13 @@ export function LiveFeed() {
                 className="glass-card p-3 flex items-center justify-between group"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${
-                    run.status === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-blue-500/10 text-blue-500"
-                  }`}>
+                  <div
+                    className={`p-2 rounded-lg ${
+                      run.status === "success"
+                        ? "bg-emerald-500/10 text-emerald-500"
+                        : "bg-blue-500/10 text-blue-500"
+                    }`}
+                  >
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                   <div>
@@ -61,13 +65,19 @@ export function LiveFeed() {
                     </p>
                     <div className="flex items-center gap-2 text-[10px] text-slate-500">
                       <Clock className="w-3 h-3" />
-                      {new Date(run.finished_at || Date.now()).toLocaleTimeString()}
+                      {run.finished_at
+                        ? new Date(run.finished_at).toLocaleTimeString()
+                        : "Pending"}
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-black text-white">+{run.rows_scraped}</p>
-                  <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Rows</p>
+                  <p className="text-xs font-black text-white">
+                    +{run.rows_scraped}
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">
+                    Rows
+                  </p>
                 </div>
               </motion.div>
             ))

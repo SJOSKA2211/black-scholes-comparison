@@ -69,7 +69,7 @@ export function useWebSocket<T>({
 
       ws.onerror = () => ws.close();
     },
-    [channel],
+    [channel, supabase.auth],
   );
 
   useEffect(() => {

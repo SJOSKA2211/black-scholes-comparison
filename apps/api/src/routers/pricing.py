@@ -44,13 +44,37 @@ async def compute_price(
 
 @router.get("/methods")
 @cache_response("methods", ttl_seconds=3600)
-async def list_pricing_methods() -> list[dict[str, str]]:
+async def list_pricing_methods() -> list[dict[str, Any]]:
     """Return a list of supported pricing methods."""
     return [
-        {"id": "analytical", "name": "Analytical (Black-Scholes)"},
-        {"id": "crank_nicolson", "name": "Crank-Nicolson (FDM)"},
-        {"id": "quasi_mc", "name": "Quasi-Monte Carlo (Sobol)"},
-        {"id": "binomial_crr_richardson", "name": "CRR + Richardson Extrapolation"},
+        {
+            "id": "analytical",
+            "name": "Analytical (Black-Scholes)",
+            "american_suitable": False,
+            "convergence_order": "Exact",
+            "stability_class": "Unconditional"
+        },
+        {
+            "id": "crank_nicolson",
+            "name": "Crank-Nicolson (FDM)",
+            "american_suitable": True,
+            "convergence_order": "Δt², Δx²",
+            "stability_class": "Unconditional"
+        },
+        {
+            "id": "quasi_mc",
+            "name": "Quasi-Monte Carlo (Sobol)",
+            "american_suitable": False,
+            "convergence_order": "1/N",
+            "stability_class": "Conditional"
+        },
+        {
+            "id": "binomial_crr_richardson",
+            "name": "CRR + Richardson Extrapolation",
+            "american_suitable": True,
+            "convergence_order": "Δt²",
+            "stability_class": "Unconditional"
+        },
     ]
 
 

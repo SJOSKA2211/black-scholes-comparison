@@ -3,7 +3,14 @@
 import React, { useState } from "react";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { motion } from "framer-motion";
-import { Github, Mail, ArrowRight, Activity, TrendingUp, ShieldCheck } from "lucide-react";
+import {
+  Github,
+  Mail,
+  ArrowRight,
+  Activity,
+  TrendingUp,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -29,8 +36,10 @@ export default function LoginPage() {
   const handleMagicLink = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const email = (e.currentTarget.elements.namedItem("email") as HTMLInputElement).value;
-    
+    const email = (
+      e.currentTarget.elements.namedItem("email") as HTMLInputElement
+    ).value;
+
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email,
@@ -62,7 +71,7 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-8">
           {/* Header */}
           <div className="text-center space-y-2">
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               className="inline-flex items-center justify-center p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 mb-4"
@@ -95,7 +104,9 @@ export default function LoginPage() {
               <span className="w-full border-t border-white/5" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-slate-950 px-3 text-slate-500">Or continue with email</span>
+              <span className="bg-slate-950 px-3 text-slate-500">
+                Or continue with email
+              </span>
             </div>
           </div>
 
@@ -127,15 +138,21 @@ export default function LoginPage() {
           <div className="grid grid-cols-3 gap-2 pt-4">
             <div className="flex flex-col items-center gap-1">
               <Activity className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Realtime</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                Realtime
+              </span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <TrendingUp className="w-4 h-4 text-blue-400" />
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Live Data</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                Live Data
+              </span>
             </div>
             <div className="flex flex-col items-center gap-1">
               <ShieldCheck className="w-4 h-4 text-purple-400" />
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">Secure</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
+                Secure
+              </span>
             </div>
           </div>
         </div>
