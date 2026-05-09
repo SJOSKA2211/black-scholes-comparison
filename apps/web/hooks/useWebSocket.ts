@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useCallback, useState } from "react";
+import { createBrowserClient } from "@/lib/supabase/client";
 
 type WsChannel = "experiments" | "scrapers" | "notifications" | "metrics";
 
@@ -18,6 +19,7 @@ export function useWebSocket<T>({
   onMessage,
 }: UseWebSocketOptions<T>) {
   const wsRef = useRef<WebSocket | null>(null);
+  const supabase = createBrowserClient();
   const [status, setStatus] = useState<"connecting" | "open" | "closed">(
     "connecting",
   );
@@ -30,9 +32,16 @@ export function useWebSocket<T>({
 
   const connect = useCallback(
     async function connectImpl() {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setStatus("closed");
+        return;
+      }
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const base = apiUrl.replace(/^http/, "ws");
-      const ws = new WebSocket(`${base}/ws/${channel}`);
+      const ws = new WebSocket(`${base}/ws/${channel}?token=${token}`);
 
       wsRef.current = ws;
 

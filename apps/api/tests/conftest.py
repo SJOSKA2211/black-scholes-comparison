@@ -14,6 +14,8 @@ from fastapi.testclient import TestClient
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for each test case."""
+    # Clear the redis client cache to avoid loop issues
+    get_redis.cache_clear()
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
@@ -51,3 +53,20 @@ def sample_option_params() -> dict:
 def client() -> TestClient:
     """Session-scoped FastAPI test client."""
     return TestClient(app)
+
+
+@pytest.fixture
+async def async_client():
+    """Async client for integration tests."""
+    from httpx import AsyncClient, ASGITransport
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        yield ac
+
+
+@pytest.fixture(autouse=True)
+async def cleanup_infra(request):
+    """Flush Redis before each integration test."""
+    if "integration" in request.keywords:
+        redis = get_redis()
+        await redis.flushdb()
+    yield

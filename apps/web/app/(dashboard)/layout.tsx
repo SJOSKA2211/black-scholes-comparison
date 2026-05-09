@@ -1,18 +1,19 @@
-// Auth stripped mode
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
+import { createServerClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Auth stripped mode: always provide a default researcher user
-  const user = {
-    id: "a24fb1a2-700a-4590-8d43-2930596a14f2",
-    email: "researcher@example.com",
-    user_metadata: { full_name: "Researcher" },
-  } as any;
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-50">

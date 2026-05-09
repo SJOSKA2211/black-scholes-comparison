@@ -1,0 +1,439 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.9, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/.local/share/mise/installs/python/3.11.9/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: timeout-2.3.1, mock-3.14.0, asyncio-0.23.6, anyio-4.13.0, cov-5.0.0, base-url-2.1.0, playwright-0.5.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 157 items / 10 deselected / 147 selected
+
+apps/api/tests/integration/test_infra_integration.py::test_redis_reachability PASSED [  0%]
+apps/api/tests/integration/test_infra_integration.py::test_rabbitmq_reachability FAILED [  1%]
+apps/api/tests/integration/test_infra_integration.py::test_minio_reachability PASSED [  2%]
+apps/api/tests/integration/test_pipeline_integration.py::test_pipeline_persistence_real_supabase PASSED [  2%]
+apps/api/tests/integration/test_pipeline_manual.py::test_pipeline_step_by_step PASSED [  3%]
+apps/api/tests/integration/test_pricing_integration.py::test_compute_price_endpoint FAILED [  4%]
+apps/api/tests/integration/test_pricing_integration.py::test_compute_price_crr PASSED [  4%]
+apps/api/tests/integration/test_repository.py::test_option_parameters_lifecycle PASSED [  5%]
+apps/api/tests/integration/test_repository.py::test_method_results_lifecycle PASSED [  6%]
+apps/api/tests/integration/test_repository.py::test_market_data_lifecycle PASSED [  6%]
+apps/api/tests/integration/test_repository.py::test_validation_metrics_lifecycle PASSED [  7%]
+apps/api/tests/integration/test_repository.py::test_scrape_run_lifecycle PASSED [  8%]
+apps/api/tests/integration/test_repository.py::test_audit_and_errors PASSED [  8%]
+apps/api/tests/integration/test_repository.py::test_notifications_lifecycle PASSED [  9%]
+apps/api/tests/integration/test_repository.py::test_user_profile_lifecycle PASSED [ 10%]
+apps/api/tests/integration/test_scrapers_live.py::test_spy_scraper_live FAILED [ 10%]
+apps/api/tests/integration/test_scrapers_live.py::test_nse_scraper_live PASSED [ 11%]
+apps/api/tests/integration/test_storage_compression.py::test_storage_compression_roundtrip PASSED [ 12%]
+apps/api/tests/integration/test_storage_compression.py::test_storage_no_compression_roundtrip PASSED [ 12%]
+apps/api/tests/integration/test_websocket.py::test_websocket_invalid_channel PASSED [ 13%]
+apps/api/tests/integration/test_websocket.py::test_websocket_broadcast FAILED [ 14%]
+apps/api/tests/unit/test_analysis.py::test_calculate_mape PASSED         [ 14%]
+apps/api/tests/unit/test_analysis.py::test_calculate_mape_zero_mask PASSED [ 15%]
+apps/api/tests/unit/test_analysis.py::test_calculate_errors PASSED       [ 16%]
+apps/api/tests/unit/test_analysis.py::test_summarize_convergence PASSED  [ 17%]
+apps/api/tests/unit/test_analysis.py::test_analyze_convergence_order PASSED [ 17%]
+apps/api/tests/unit/test_analysis.py::test_oauth_coverage PASSED         [ 18%]
+apps/api/tests/unit/test_auth.py::test_get_current_user_success PASSED   [ 19%]
+apps/api/tests/unit/test_auth.py::test_get_current_user_invalid PASSED   [ 19%]
+apps/api/tests/unit/test_auth.py::test_get_current_user_exception PASSED [ 20%]
+apps/api/tests/unit/test_auth.py::test_verify_ws_token_success PASSED    [ 21%]
+apps/api/tests/unit/test_auth.py::test_verify_ws_token_missing PASSED    [ 21%]
+apps/api/tests/unit/test_auth.py::test_verify_ws_token_invalid PASSED    [ 22%]
+apps/api/tests/unit/test_cache.py::test_cache_decorator_hit PASSED       [ 23%]
+apps/api/tests/unit/test_cache.py::test_cache_decorator_miss PASSED      [ 23%]
+apps/api/tests/unit/test_consumer.py::test_handle_scrape_task_success PASSED [ 24%]
+apps/api/tests/unit/test_consumer.py::test_handle_scrape_task_failure PASSED [ 25%]
+apps/api/tests/unit/test_consumer.py::test_handle_experiment_task_success PASSED [ 25%]
+apps/api/tests/unit/test_consumer.py::test_handle_experiment_task_failure PASSED [ 26%]
+apps/api/tests/unit/test_consumer.py::test_start_consumers PASSED        [ 27%]
+apps/api/tests/unit/test_coverage_gap.py::test_analyze_convergence_order PASSED [ 27%]
+apps/api/tests/unit/test_coverage_gap.py::test_lifespan_startup_failure PASSED [ 28%]
+apps/api/tests/unit/test_coverage_gap.py::test_pipeline_persistence_failure PASSED [ 29%]
+apps/api/tests/unit/test_coverage_gap.py::test_pipeline_run_failure PASSED [ 29%]
+apps/api/tests/unit/test_coverage_gap.py::test_oauth_placeholder PASSED  [ 30%]
+apps/api/tests/unit/test_coverage_gap.py::test_base_scraper_timing PASSED [ 31%]
+apps/api/tests/unit/test_coverage_gap.py::test_repository_list_market_data_filtering PASSED [ 31%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_error_branches PASSED [ 32%]
+apps/api/tests/unit/test_coverage_gap.py::test_spy_scraper_error_branches PASSED [ 33%]
+apps/api/tests/unit/test_coverage_gap.py::test_spy_scraper_low_prices PASSED [ 34%]
+apps/api/tests/unit/test_coverage_gap.py::test_spy_scraper_price_exception PASSED [ 34%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_fallback_loop PASSED [ 35%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_date_parse_error PASSED [ 36%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_tab_click_fail PASSED [ 36%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_parse_errors PASSED [ 37%]
+apps/api/tests/unit/test_downloads_router.py::test_download_resource_csv PASSED [ 38%]
+apps/api/tests/unit/test_downloads_router.py::test_download_resource_json PASSED [ 38%]
+apps/api/tests/unit/test_downloads_router.py::test_download_resource_xlsx PASSED [ 39%]
+apps/api/tests/unit/test_downloads_router.py::test_download_unknown_resource PASSED [ 40%]
+apps/api/tests/unit/test_downloads_router.py::test_download_empty_data PASSED [ 40%]
+apps/api/tests/unit/test_downloads_router.py::test_download_exception_handling PASSED [ 41%]
+apps/api/tests/unit/test_main.py::test_root_endpoint PASSED              [ 42%]
+apps/api/tests/unit/test_main.py::test_health_check PASSED               [ 42%]
+apps/api/tests/unit/test_methods.py::test_analytical_price PASSED        [ 43%]
+apps/api/tests/unit/test_methods.py::test_crank_nicolson_agreement PASSED [ 44%]
+apps/api/tests/unit/test_methods.py::test_quasi_mc_agreement PASSED      [ 44%]
+apps/api/tests/unit/test_methods.py::test_crr_richardson_agreement PASSED [ 45%]
+apps/api/tests/unit/test_methods.py::test_option_params_validation PASSED [ 46%]
+apps/api/tests/unit/test_methods.py::test_base_pricing_method_exception PASSED [ 46%]
+apps/api/tests/unit/test_minio_client.py::test_get_minio PASSED          [ 47%]
+apps/api/tests/unit/test_minio_client.py::test_get_minio_bucket_exists PASSED [ 48%]
+apps/api/tests/unit/test_minio_client.py::test_get_minio_exception PASSED [ 48%]
+apps/api/tests/unit/test_notifications.py::test_notification_enums PASSED [ 49%]
+apps/api/tests/unit/test_notifications.py::test_send_email_mock PASSED   [ 50%]
+apps/api/tests/unit/test_notifications.py::test_send_push_mock PASSED    [ 51%]
+apps/api/tests/unit/test_notifications_extended.py::test_send_email_success PASSED [ 51%]
+apps/api/tests/unit/test_notifications_extended.py::test_send_email_no_key PASSED [ 52%]
+apps/api/tests/unit/test_notifications_extended.py::test_send_email_fail PASSED [ 53%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_run PASSED           [ 53%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_run_nse PASSED       [ 54%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_failed_scraper PASSED [ 55%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_failed_persistence PASSED [ 55%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_invalid_market PASSED [ 56%]
+apps/api/tests/unit/test_pricing_router.py::test_compute_price_analytical PASSED [ 57%]
+apps/api/tests/unit/test_pricing_router.py::test_compute_price_unsupported_method PASSED [ 57%]
+apps/api/tests/unit/test_pricing_router.py::test_compute_price_all_methods PASSED [ 58%]
+apps/api/tests/unit/test_queue.py::test_publish_scrape_task PASSED       [ 59%]
+apps/api/tests/unit/test_queue.py::test_publish_experiment_task PASSED   [ 59%]
+apps/api/tests/unit/test_rabbitmq_client.py::test_get_rabbitmq_connection PASSED [ 60%]
+apps/api/tests/unit/test_redis_client.py::test_get_redis PASSED          [ 61%]
+apps/api/tests/unit/test_repository.py::test_upsert_option_parameters_unit PASSED [ 61%]
+apps/api/tests/unit/test_repository.py::test_get_option_parameters_unit PASSED [ 62%]
+apps/api/tests/unit/test_repository.py::test_upsert_method_result PASSED [ 63%]
+apps/api/tests/unit/test_repository.py::test_upsert_market_data PASSED   [ 63%]
+apps/api/tests/unit/test_repository.py::test_list_functions PASSED       [ 64%]
+apps/api/tests/unit/test_repository.py::test_operational_tables PASSED   [ 65%]
+apps/api/tests/unit/test_repository.py::test_user_and_notifications PASSED [ 65%]
+apps/api/tests/unit/test_repository_extended.py::test_execute_query_error_with_message PASSED [ 66%]
+apps/api/tests/unit/test_repository_extended.py::test_execute_query_error_with_args PASSED [ 67%]
+apps/api/tests/unit/test_repository_extended.py::test_execute_query_error_generic PASSED [ 68%]
+apps/api/tests/unit/test_repository_extended.py::test_get_method_results PASSED [ 68%]
+apps/api/tests/unit/test_repository_extended.py::test_upsert_validation_metrics PASSED [ 69%]
+apps/api/tests/unit/test_repository_extended.py::test_update_scrape_run PASSED [ 70%]
+apps/api/tests/unit/test_repository_extended.py::test_get_user_profile PASSED [ 70%]
+apps/api/tests/unit/test_repository_extended.py::test_list_option_parameters_with_market PASSED [ 71%]
+apps/api/tests/unit/test_repository_extended.py::test_list_market_data_with_market PASSED [ 72%]
+apps/api/tests/unit/test_repository_extended.py::test_notifications_and_profile PASSED [ 72%]
+apps/api/tests/unit/test_routers_extended.py::test_health PASSED         [ 73%]
+apps/api/tests/unit/test_routers_extended.py::test_experiments PASSED    [ 74%]
+apps/api/tests/unit/test_routers_extended.py::test_market_data PASSED    [ 74%]
+apps/api/tests/unit/test_routers_extended.py::test_notifications PASSED  [ 75%]
+apps/api/tests/unit/test_routers_extended.py::test_notifications_no_user_id PASSED [ 76%]
+apps/api/tests/unit/test_routers_extended.py::test_scrapers PASSED       [ 76%]
+apps/api/tests/unit/test_routers_extended.py::test_methods_list PASSED   [ 77%]
+apps/api/tests/unit/test_scraper_factory.py::test_get_scraper_spy PASSED [ 78%]
+apps/api/tests/unit/test_scraper_factory.py::test_get_scraper_nse PASSED [ 78%]
+apps/api/tests/unit/test_scraper_factory.py::test_get_scraper_invalid PASSED [ 79%]
+apps/api/tests/unit/test_scrapers.py::test_spy_scraper_coverage PASSED   [ 80%]
+apps/api/tests/unit/test_scrapers.py::test_nse_scraper_coverage PASSED   [ 80%]
+apps/api/tests/unit/test_scrapers.py::test_scrapers_fail_coverage PASSED [ 81%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_success PASSED [ 82%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_no_params PASSED [ 82%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_invalid_row PASSED [ 83%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_step_fail PASSED [ 84%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_metrics_fail PASSED [ 85%]
+apps/api/tests/unit/test_scripts.py::test_main PASSED                    [ 85%]
+apps/api/tests/unit/test_statistics.py::test_calculate_mape PASSED       [ 86%]
+apps/api/tests/unit/test_statistics.py::test_summarize_convergence PASSED [ 87%]
+apps/api/tests/unit/test_storage.py::test_upload_export PASSED           [ 87%]
+apps/api/tests/unit/test_storage.py::test_upload_export_with_compression PASSED [ 88%]
+apps/api/tests/unit/test_storage.py::test_upload_export_exception PASSED [ 89%]
+apps/api/tests/unit/test_storage.py::test_upload_scraper_artifact PASSED [ 89%]
+apps/api/tests/unit/test_transformers.py::test_calculate_mid_price PASSED [ 90%]
+apps/api/tests/unit/test_transformers.py::test_transform_to_db_params PASSED [ 91%]
+apps/api/tests/unit/test_transformers.py::test_calculate_maturity_years_none_trade_date PASSED [ 91%]
+apps/api/tests/unit/test_validators.py::test_validate_positive_prices PASSED [ 92%]
+apps/api/tests/unit/test_validators.py::test_validate_bid_ask_spread PASSED [ 93%]
+apps/api/tests/unit/test_validators.py::test_validate_strike_price PASSED [ 93%]
+apps/api/tests/unit/test_validators.py::test_validate_maturity_date PASSED [ 94%]
+apps/api/tests/unit/test_validators.py::test_validate_symbol PASSED      [ 95%]
+apps/api/tests/unit/test_validators.py::test_validate_quote_composite PASSED [ 95%]
+apps/api/tests/unit/test_websocket.py::test_lifecycle PASSED             [ 96%]
+apps/api/tests/unit/test_websocket.py::test_broadcast PASSED             [ 97%]
+apps/api/tests/unit/test_websocket.py::test_listener PASSED              [ 97%]
+apps/api/tests/unit/test_websocket.py::test_auth PASSED                  [ 98%]
+apps/api/tests/unit/test_websocket.py::test_ws_token PASSED              [ 99%]
+apps/api/tests/unit/test_websocket.py::test_ws_router PASSED             [100%]
+
+=================================== FAILURES ===================================
+__________________________ test_rabbitmq_reachability __________________________
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/abc.py:44: in __inner
+    return await self.task
+E   asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+apps/api/tests/integration/test_infra_integration.py:27: in test_rabbitmq_reachability
+    connection = await get_rabbitmq_connection()
+apps/api/src/queue/rabbitmq_client.py:16: in get_rabbitmq_connection
+    connection = await aio_pika.connect_robust(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aio_pika/robust_connection.py:340: in connect_robust
+    await connection.connect(timeout=timeout)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aio_pika/robust_connection.py:186: in connect
+    await self.__fail_fast_future
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aio_pika/robust_connection.py:141: in __connection_factory
+    await Connection.connect(self, self.__connect_timeout)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aio_pika/connection.py:118: in connect
+    self.transport = await UnderlayConnection.connect(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aio_pika/abc.py:671: in connect
+    connection = await cls.make_connection(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aio_pika/abc.py:659: in make_connection
+    connection: aiormq.abc.AbstractConnection = await asyncio.wait_for(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/tasks.py:489: in wait_for
+    return fut.result()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/connection.py:920: in connect
+    await connection.connect(client_properties or {})
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/base.py:164: in wrap
+    return await self.create_task(func(self, *args, **kwargs))
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/abc.py:46: in __inner
+    raise self._exception from e
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/tasks.py:694: in _wrap_awaitable
+    return (yield from awaitable.__await__())
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/abc.py:46: in __inner
+    raise self._exception from e
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/connection.py:484: in connect
+    frame = await self._rpc(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/connection.py:436: in _rpc
+    raise ProbableAuthenticationError(frame.reply_text)
+E   aiormq.exceptions.ProbableAuthenticationError: ACCESS_REFUSED - Login was refused using authentication mechanism PLAIN. For details see the broker logfile.
+_________________________ test_compute_price_endpoint __________________________
+apps/api/tests/integration/test_pricing_integration.py:22: in test_compute_price_endpoint
+    response = client.post(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/testclient.py:633: in post
+    return super().post(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/httpx/_client.py:1145: in post
+    return self.request(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/testclient.py:516: in request
+    return super().request(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/httpx/_client.py:827: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/httpx/_client.py:1015: in _send_single_request
+    response = transport.handle_request(request)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/testclient.py:398: in handle_request
+    raise exc
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/testclient.py:395: in handle_request
+    portal.call(self.app, scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/anyio/from_thread.py:334: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/anyio/from_thread.py:259: in _call_func
+    retval = await retval_or_awaitable
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/fastapi/applications.py:1054: in __call__
+    await super().__call__(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/applications.py:123: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py:174: in __call__
+    raise exc
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py:172: in __call__
+    await self.app(scope, receive, send_wrapper)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/middleware/gzip.py:24: in __call__
+    await responder(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/middleware/gzip.py:44: in __call__
+    await self.app(scope, receive, self.send_with_gzip)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/middleware/exceptions.py:65: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/routing.py:756: in __call__
+    await self.middleware_stack(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/routing.py:776: in app
+    await route.handle(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/routing.py:297: in handle
+    await self.app(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/routing.py:77: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/_exception_handler.py:64: in wrapped_app
+    raise exc
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    await app(scope, receive, sender)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/starlette/routing.py:72: in app
+    response = await func(request)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/fastapi/routing.py:278: in app
+    raw_response = await run_endpoint_function(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/fastapi/routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+apps/api/src/cache/decorators.py:34: in wrapper
+    cached = await redis.get(cache_key)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/client.py:612: in execute_command
+    return await conn.retry.call_with_retry(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/retry.py:59: in call_with_retry
+    return await do()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/client.py:586: in _send_command_parse_response
+    return await self.parse_response(conn, command_name, **options)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/client.py:633: in parse_response
+    response = await connection.read_response()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:533: in read_response
+    response = await self._parser.read_response(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/_parsers/resp2.py:82: in read_response
+    response = await self._read_response(disable_decoding=disable_decoding)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/_parsers/resp2.py:90: in _read_response
+    raw = await self._readline()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/_parsers/base.py:219: in _readline
+    data = await self._stream.readline()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:566: in readline
+    line = await self.readuntil(sep)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:658: in readuntil
+    await self._wait_for_data('readuntil')
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:543: in _wait_for_data
+    await self._waiter
+E   RuntimeError: Task <Task pending name='anyio.from_thread.BlockingPortal._call_func' coro=<BlockingPortal._call_func() running at /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/anyio/from_thread.py:259> cb=[TaskGroup._spawn.<locals>.task_done() at /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/anyio/_backends/_asyncio.py:821]> got Future <Future pending> attached to a different loop
+____________________________ test_spy_scraper_live _____________________________
+apps/api/tests/integration/test_scrapers_live.py:19: in test_spy_scraper_live
+    assert len(result.quotes) > 0
+E   AssertionError: assert 0 > 0
+E    +  where 0 = len([])
+E    +    where [] = ScraperResult(quotes=[], execution_seconds=60.77363771, market='spy', status='success', error=None).quotes
+----------------------------- Captured stdout call -----------------------------
+2026-05-09 18:32:57 [info     ] fetching_spy_options           url=https://finance.yahoo.com/quote/SPY/options
+2026-05-09 18:33:57 [error    ] spy_scrape_failed              error=Page.goto: Timeout 60000ms exceeded.
+Call log:
+navigating to "https://finance.yahoo.com/quote/SPY/options", waiting until "load"
+
+___________________________ test_websocket_broadcast ___________________________
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:533: in read_response
+    response = await self._parser.read_response(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/_parsers/resp2.py:82: in read_response
+    response = await self._read_response(disable_decoding=disable_decoding)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/_parsers/resp2.py:90: in _read_response
+    raw = await self._readline()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/_parsers/base.py:219: in _readline
+    data = await self._stream.readline()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:566: in readline
+    line = await self.readuntil(sep)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:658: in readuntil
+    await self._wait_for_data('readuntil')
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:543: in _wait_for_data
+    await self._waiter
+E   RuntimeError: Task <Task pending name='Task-58' coro=<test_websocket_broadcast() running at /home/kamau/black-scholes-comparison/apps/api/tests/integration/test_websocket.py:57> cb=[_run_until_complete_cb() at /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/base_events.py:181]> got Future <Future pending> attached to a different loop
+
+During handling of the above exception, another exception occurred:
+apps/api/tests/integration/test_websocket.py:57: in test_websocket_broadcast
+    await redis.publish(f"ws:{channel}", json.dumps(test_msg))
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/client.py:612: in execute_command
+    return await conn.retry.call_with_retry(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/retry.py:59: in call_with_retry
+    return await do()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/client.py:585: in _send_command_parse_response
+    await conn.send_command(*args)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:497: in send_command
+    await self.send_packed_command(
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:460: in send_packed_command
+    await self.check_health()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:448: in check_health
+    await self.retry.call_with_retry(self._send_ping, self._ping_failed)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/retry.py:59: in call_with_retry
+    return await do()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:435: in _send_ping
+    if str_if_bytes(await self.read_response()) != "PONG":
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:561: in read_response
+    await self.disconnect(nowait=True)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/redis/asyncio/connection.py:417: in disconnect
+    self._writer.close()  # type: ignore[union-attr]
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/streams.py:358: in close
+    return self._transport.close()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/selector_events.py:864: in close
+    self._loop.call_soon(self._call_connection_lost, None)
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/base_events.py:762: in call_soon
+    self._check_closed()
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/base_events.py:520: in _check_closed
+    raise RuntimeError('Event loop is closed')
+E   RuntimeError: Event loop is closed
+----------------------------- Captured stdout call -----------------------------
+2026-05-09 18:34:51 [info     ] ws_client_connected            channel=experiments step=websocket total=1
+=============================== warnings summary ===============================
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+tests/integration/test_infra_integration.py::test_redis_reachability
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pytest_asyncio/plugin.py:759: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /home/kamau/black-scholes-comparison/apps/api/tests/conftest.py:14
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+tests/unit/test_websocket.py::test_listener
+  /home/kamau/black-scholes-comparison/apps/api/src/websocket/manager.py:88: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    async for message in pubsub.listen():
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.9-final-0 -----------
+Name                                                       Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------------
+apps/api/src/analysis/convergence.py                           8      0      0      0   100%
+apps/api/src/analysis/statistics.py                           16      0      2      0   100%
+apps/api/src/auth/dependencies.py                             34      0      6      0   100%
+apps/api/src/auth/oauth.py                                     3      0      0      0   100%
+apps/api/src/cache/decorators.py                              26      0      2      0   100%
+apps/api/src/cache/redis_client.py                            12      0      0      0   100%
+apps/api/src/config.py                                        29      0      0      0   100%
+apps/api/src/data/pipeline.py                                 56      0      6      0   100%
+apps/api/src/data/transformers.py                             16      0      2      0   100%
+apps/api/src/data/validators.py                               36      0     10      0   100%
+apps/api/src/database/repository.py                           98      0      8      0   100%
+apps/api/src/database/supabase_client.py                      12      0      0      0   100%
+apps/api/src/exceptions.py                                    20      0      0      0   100%
+apps/api/src/logging_config.py                                 6      0      0      0   100%
+apps/api/src/main.py                                          35      0      0      0   100%
+apps/api/src/methods/analytical.py                            49      0      4      0   100%
+apps/api/src/methods/base.py                                  52      0      2      0   100%
+apps/api/src/methods/finite_difference/crank_nicolson.py      67      0     16      0   100%
+apps/api/src/methods/monte_carlo/quasi_mc.py                  27      0      2      0   100%
+apps/api/src/methods/tree_methods/binomial_crr.py             30      0      8      0   100%
+apps/api/src/methods/tree_methods/richardson.py               23      0      0      0   100%
+apps/api/src/metrics.py                                       21      0      0      0   100%
+apps/api/src/notifications/email.py                           21      0      2      0   100%
+apps/api/src/notifications/hierarchy.py                       11      0      0      0   100%
+apps/api/src/notifications/push.py                             5      0      0      0   100%
+apps/api/src/queue/consumer.py                                48      0      0      0   100%
+apps/api/src/queue/publisher.py                               28      0      0      0   100%
+apps/api/src/queue/rabbitmq_client.py                         10      0      0      0   100%
+apps/api/src/routers/downloads.py                             47      0     12      0   100%
+apps/api/src/routers/experiments.py                           14      0      0      0   100%
+apps/api/src/routers/health.py                                15      0      0      0   100%
+apps/api/src/routers/market_data.py                           13      0      0      0   100%
+apps/api/src/routers/notifications.py                         18      0      2      0   100%
+apps/api/src/routers/pricing.py                               32      0      8      0   100%
+apps/api/src/routers/scrapers.py                              15      0      0      0   100%
+apps/api/src/routers/websocket.py                             26      0      2      0   100%
+apps/api/src/scrapers/base_scraper.py                         39      0      0      0   100%
+apps/api/src/scrapers/nse_next_scraper.py                     71      0     12      0   100%
+apps/api/src/scrapers/scraper_factory.py                      10      0      4      0   100%
+apps/api/src/scrapers/spy_scraper.py                          56      0      6      0   100%
+apps/api/src/scripts/run_experiments.py                       65      0     14      0   100%
+apps/api/src/storage/minio_client.py                          19      0      4      0   100%
+apps/api/src/storage/storage_service.py                       30      0      2      0   100%
+apps/api/src/websocket/channels.py                             2      0      0      0   100%
+apps/api/src/websocket/manager.py                             56      0     14      0   100%
+------------------------------------------------------------------------------------------------------
+TOTAL                                                       1327      0    150      0   100%
+
+Required test coverage of 100.0% reached. Total coverage: 100.00%
+=========================== short test summary info ============================
+FAILED apps/api/tests/integration/test_infra_integration.py::test_rabbitmq_reachability
+FAILED apps/api/tests/integration/test_pricing_integration.py::test_compute_price_endpoint
+FAILED apps/api/tests/integration/test_scrapers_live.py::test_spy_scraper_live
+FAILED apps/api/tests/integration/test_websocket.py::test_websocket_broadcast
+===== 4 failed, 143 passed, 10 deselected, 3 warnings in 150.18s (0:02:30) =====

@@ -12,17 +12,9 @@ import { PriceBarChart } from "@/components/charts/PriceBarChart";
 
 const ALL_METHODS = [
   "analytical",
-  "explicit_fdm",
-  "implicit_fdm",
   "crank_nicolson",
-  "standard_mc",
-  "antithetic_mc",
-  "control_variate_mc",
   "quasi_mc",
-  "binomial_crr",
-  "trinomial",
   "binomial_crr_richardson",
-  "trinomial_richardson",
 ];
 
 export default function PricerPage() {

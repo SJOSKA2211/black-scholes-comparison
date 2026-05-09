@@ -42,6 +42,16 @@ async def test_execute_query_error_with_args() -> None:
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_execute_query_error_generic() -> None:
+    """Verify error handling when Exception has no message or args."""
+    def fail():
+        raise Exception()
+        
+    with pytest.raises(SupabaseError, match="Database error"):
+        await _execute_query("table", "op", fail)
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_get_method_results() -> None:
     """Verify get_method_results coverage."""
     mock_client = MagicMock()

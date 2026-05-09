@@ -52,12 +52,12 @@ async def test_option_parameters_lifecycle(shared_option_id):
     
     # Create
     resp = await upsert_option_parameters(test_params)
-    assert resp.data[0]["id"] == shared_option_id
+    assert resp[0]["id"] == shared_option_id
     
     # Retrieve
     get_resp = await get_option_parameters(shared_option_id)
-    assert get_resp.data["underlying_price"] == 150.0
-    assert get_resp.data["option_type"] == "put"
+    assert get_resp["underlying_price"] == 150.0
+    assert get_resp["option_type"] == "put"
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -74,11 +74,11 @@ async def test_method_results_lifecycle(shared_option_id):
     }
     
     resp = await upsert_method_result(result_data)
-    assert resp.data[0]["option_id"] == shared_option_id
+    assert resp[0]["option_id"] == shared_option_id
     
     results = await get_method_results(shared_option_id)
-    assert len(results.data) >= 1
-    assert results.data[0]["computed_price"] == 10.5
+    assert len(results) >= 1
+    assert results[0]["computed_price"] == 10.5
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -95,8 +95,8 @@ async def test_market_data_lifecycle(shared_option_id):
     }]
     
     resp = await upsert_market_data(market_data)
-    assert resp.data[0]["option_id"] == shared_option_id
-    assert resp.data[0]["bid_price"] == 10.0
+    assert resp[0]["option_id"] == shared_option_id
+    assert resp[0]["bid_price"] == 10.0
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -104,7 +104,7 @@ async def test_validation_metrics_lifecycle(shared_option_id):
     """Test upsert for validation_metrics."""
     # First get a method result ID
     results = await get_method_results(shared_option_id)
-    method_result_id = results.data[0]["id"]
+    method_result_id = results[0]["id"]
     
     metrics = {
         "option_id": shared_option_id,
@@ -115,8 +115,8 @@ async def test_validation_metrics_lifecycle(shared_option_id):
     }
     
     resp = await upsert_validation_metrics(metrics)
-    assert resp.data[0]["option_id"] == shared_option_id
-    assert resp.data[0]["absolute_error"] == 0.01
+    assert resp[0]["option_id"] == shared_option_id
+    assert resp[0]["absolute_error"] == 0.01
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -131,7 +131,7 @@ async def test_scrape_run_lifecycle(shared_run_id):
     }
     
     resp = await create_scrape_run(run_data)
-    assert resp.data[0]["id"] == shared_run_id
+    assert resp[0]["id"] == shared_run_id
     
     update_data = {
         "status": "success",
@@ -141,8 +141,8 @@ async def test_scrape_run_lifecycle(shared_run_id):
         "rows_inserted": 90
     }
     update_resp = await update_scrape_run(shared_run_id, update_data)
-    assert update_resp.data[0]["status"] == "success"
-    assert update_resp.data[0]["rows_scraped"] == 100
+    assert update_resp[0]["status"] == "success"
+    assert update_resp[0]["rows_scraped"] == 100
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -155,7 +155,7 @@ async def test_audit_and_errors(shared_run_id):
         "rows_affected": 50
     }
     audit_resp = await create_audit_log(audit_data)
-    assert audit_resp.data[0]["message"] == "test audit"
+    assert audit_resp[0]["message"] == "test audit"
     
     error_data = {
         "pipeline_run_id": shared_run_id,
@@ -163,7 +163,7 @@ async def test_audit_and_errors(shared_run_id):
         "source": "test_source" # Discovered mandatory column
     }
     error_resp = await create_scrape_error(error_data)
-    assert error_resp.data[0]["error_message"] == "test error"
+    assert error_resp[0]["error_message"] == "test error"
 
 @pytest.mark.integration
 @pytest.mark.asyncio
@@ -180,26 +180,26 @@ async def test_notifications_lifecycle():
     client.table("notifications").insert(notif_data).execute()
 
     resp = await get_notifications(TEST_USER_ID)
-    assert isinstance(resp.data, list)
+    assert isinstance(resp, list)
     
-    unread = [n for n in resp.data if not n["read"]]
+    unread = [n for n in resp if not n["read"]]
     if unread:
         notif_id = unread[0]["id"]
         mark_resp = await mark_notification_read(notif_id)
-        assert mark_resp.data[0]["read"] is True
+        assert mark_resp[0]["read"] is True
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_user_profile_lifecycle():
     """Test user profile retrieval and update."""
     profile = await get_user_profile(TEST_USER_ID)
-    assert profile.data["id"] == TEST_USER_ID
+    assert profile["id"] == TEST_USER_ID
     
-    original_name = profile.data["display_name"]
+    original_name = profile["display_name"]
     new_name = f"Test_{uuid.uuid4().hex[:8]}"
     
     update_resp = await update_user_profile(TEST_USER_ID, {"display_name": new_name})
-    assert update_resp.data[0]["display_name"] == new_name
+    assert update_resp[0]["display_name"] == new_name
     
     await update_user_profile(TEST_USER_ID, {"display_name": original_name})
 

@@ -1,0 +1,214 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.9, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/.local/share/mise/installs/python/3.11.9/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: timeout-2.3.1, mock-3.14.0, asyncio-0.23.6, anyio-4.13.0, cov-5.0.0, base-url-2.1.0, playwright-0.5.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 126 items
+
+apps/api/tests/unit/test_analysis.py::test_calculate_mape PASSED         [  0%]
+apps/api/tests/unit/test_analysis.py::test_calculate_mape_zero_mask PASSED [  1%]
+apps/api/tests/unit/test_analysis.py::test_calculate_errors PASSED       [  2%]
+apps/api/tests/unit/test_analysis.py::test_summarize_convergence PASSED  [  3%]
+apps/api/tests/unit/test_analysis.py::test_analyze_convergence_order PASSED [  3%]
+apps/api/tests/unit/test_analysis.py::test_oauth_coverage PASSED         [  4%]
+apps/api/tests/unit/test_auth.py::test_get_current_user_success PASSED   [  5%]
+apps/api/tests/unit/test_auth.py::test_get_current_user_invalid PASSED   [  6%]
+apps/api/tests/unit/test_auth.py::test_get_current_user_exception PASSED [  7%]
+apps/api/tests/unit/test_auth.py::test_verify_ws_token_success PASSED    [  7%]
+apps/api/tests/unit/test_auth.py::test_verify_ws_token_missing PASSED    [  8%]
+apps/api/tests/unit/test_auth.py::test_verify_ws_token_invalid PASSED    [  9%]
+apps/api/tests/unit/test_cache.py::test_cache_decorator_hit PASSED       [ 10%]
+apps/api/tests/unit/test_cache.py::test_cache_decorator_miss PASSED      [ 11%]
+apps/api/tests/unit/test_consumer.py::test_handle_scrape_task_success PASSED [ 11%]
+apps/api/tests/unit/test_consumer.py::test_handle_scrape_task_failure PASSED [ 12%]
+apps/api/tests/unit/test_consumer.py::test_handle_experiment_task_success PASSED [ 13%]
+apps/api/tests/unit/test_consumer.py::test_handle_experiment_task_failure PASSED [ 14%]
+apps/api/tests/unit/test_consumer.py::test_start_consumers PASSED        [ 15%]
+apps/api/tests/unit/test_coverage_gap.py::test_analyze_convergence_order PASSED [ 15%]
+apps/api/tests/unit/test_coverage_gap.py::test_lifespan_startup_failure PASSED [ 16%]
+apps/api/tests/unit/test_coverage_gap.py::test_pipeline_persistence_failure PASSED [ 17%]
+apps/api/tests/unit/test_coverage_gap.py::test_pipeline_run_failure PASSED [ 18%]
+apps/api/tests/unit/test_coverage_gap.py::test_oauth_placeholder PASSED  [ 19%]
+apps/api/tests/unit/test_coverage_gap.py::test_base_scraper_timing PASSED [ 19%]
+apps/api/tests/unit/test_coverage_gap.py::test_repository_list_market_data_filtering PASSED [ 20%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_error_branches PASSED [ 21%]
+apps/api/tests/unit/test_coverage_gap.py::test_spy_scraper_error_branches PASSED [ 22%]
+apps/api/tests/unit/test_coverage_gap.py::test_spy_scraper_low_prices PASSED [ 23%]
+apps/api/tests/unit/test_coverage_gap.py::test_spy_scraper_price_exception PASSED [ 23%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_fallback_loop PASSED [ 24%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_date_parse_error PASSED [ 25%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_tab_click_fail PASSED [ 26%]
+apps/api/tests/unit/test_coverage_gap.py::test_nse_scraper_parse_errors PASSED [ 26%]
+apps/api/tests/unit/test_downloads_router.py::test_download_resource_csv PASSED [ 27%]
+apps/api/tests/unit/test_downloads_router.py::test_download_resource_json PASSED [ 28%]
+apps/api/tests/unit/test_downloads_router.py::test_download_resource_xlsx PASSED [ 29%]
+apps/api/tests/unit/test_downloads_router.py::test_download_unknown_resource PASSED [ 30%]
+apps/api/tests/unit/test_downloads_router.py::test_download_empty_data PASSED [ 30%]
+apps/api/tests/unit/test_downloads_router.py::test_download_exception_handling PASSED [ 31%]
+apps/api/tests/unit/test_main.py::test_root_endpoint PASSED              [ 32%]
+apps/api/tests/unit/test_main.py::test_health_check PASSED               [ 33%]
+apps/api/tests/unit/test_methods.py::test_analytical_price PASSED        [ 34%]
+apps/api/tests/unit/test_methods.py::test_crank_nicolson_agreement PASSED [ 34%]
+apps/api/tests/unit/test_methods.py::test_quasi_mc_agreement PASSED      [ 35%]
+apps/api/tests/unit/test_methods.py::test_crr_richardson_agreement PASSED [ 36%]
+apps/api/tests/unit/test_methods.py::test_option_params_validation PASSED [ 37%]
+apps/api/tests/unit/test_methods.py::test_base_pricing_method_exception PASSED [ 38%]
+apps/api/tests/unit/test_minio_client.py::test_get_minio PASSED          [ 38%]
+apps/api/tests/unit/test_minio_client.py::test_get_minio_bucket_exists PASSED [ 39%]
+apps/api/tests/unit/test_minio_client.py::test_get_minio_exception PASSED [ 40%]
+apps/api/tests/unit/test_notifications.py::test_notification_enums PASSED [ 41%]
+apps/api/tests/unit/test_notifications.py::test_send_email_mock PASSED   [ 42%]
+apps/api/tests/unit/test_notifications.py::test_send_push_mock PASSED    [ 42%]
+apps/api/tests/unit/test_notifications_extended.py::test_send_email_success PASSED [ 43%]
+apps/api/tests/unit/test_notifications_extended.py::test_send_email_no_key PASSED [ 44%]
+apps/api/tests/unit/test_notifications_extended.py::test_send_email_fail PASSED [ 45%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_run PASSED           [ 46%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_run_nse PASSED       [ 46%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_failed_scraper PASSED [ 47%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_failed_persistence PASSED [ 48%]
+apps/api/tests/unit/test_pipeline.py::test_pipeline_invalid_market PASSED [ 49%]
+apps/api/tests/unit/test_pricing_router.py::test_compute_price_analytical PASSED [ 50%]
+apps/api/tests/unit/test_pricing_router.py::test_compute_price_unsupported_method PASSED [ 50%]
+apps/api/tests/unit/test_pricing_router.py::test_compute_price_all_methods PASSED [ 51%]
+apps/api/tests/unit/test_queue.py::test_publish_scrape_task PASSED       [ 52%]
+apps/api/tests/unit/test_queue.py::test_publish_experiment_task PASSED   [ 53%]
+apps/api/tests/unit/test_rabbitmq_client.py::test_get_rabbitmq_connection PASSED [ 53%]
+apps/api/tests/unit/test_redis_client.py::test_get_redis PASSED          [ 54%]
+apps/api/tests/unit/test_repository.py::test_upsert_option_parameters_unit PASSED [ 55%]
+apps/api/tests/unit/test_repository.py::test_get_option_parameters_unit PASSED [ 56%]
+apps/api/tests/unit/test_repository.py::test_upsert_method_result PASSED [ 57%]
+apps/api/tests/unit/test_repository.py::test_upsert_market_data PASSED   [ 57%]
+apps/api/tests/unit/test_repository.py::test_list_functions PASSED       [ 58%]
+apps/api/tests/unit/test_repository.py::test_operational_tables PASSED   [ 59%]
+apps/api/tests/unit/test_repository.py::test_user_and_notifications PASSED [ 60%]
+apps/api/tests/unit/test_repository_extended.py::test_execute_query_error_with_message PASSED [ 61%]
+apps/api/tests/unit/test_repository_extended.py::test_execute_query_error_with_args PASSED [ 61%]
+apps/api/tests/unit/test_repository_extended.py::test_execute_query_error_generic PASSED [ 62%]
+apps/api/tests/unit/test_repository_extended.py::test_get_method_results PASSED [ 63%]
+apps/api/tests/unit/test_repository_extended.py::test_upsert_validation_metrics PASSED [ 64%]
+apps/api/tests/unit/test_repository_extended.py::test_update_scrape_run PASSED [ 65%]
+apps/api/tests/unit/test_repository_extended.py::test_get_user_profile PASSED [ 65%]
+apps/api/tests/unit/test_repository_extended.py::test_list_option_parameters_with_market PASSED [ 66%]
+apps/api/tests/unit/test_repository_extended.py::test_list_market_data_with_market PASSED [ 67%]
+apps/api/tests/unit/test_repository_extended.py::test_notifications_and_profile PASSED [ 68%]
+apps/api/tests/unit/test_routers_extended.py::test_health PASSED         [ 69%]
+apps/api/tests/unit/test_routers_extended.py::test_experiments PASSED    [ 69%]
+apps/api/tests/unit/test_routers_extended.py::test_market_data PASSED    [ 70%]
+apps/api/tests/unit/test_routers_extended.py::test_notifications PASSED  [ 71%]
+apps/api/tests/unit/test_routers_extended.py::test_notifications_no_user_id PASSED [ 72%]
+apps/api/tests/unit/test_routers_extended.py::test_scrapers PASSED       [ 73%]
+apps/api/tests/unit/test_routers_extended.py::test_methods_list PASSED   [ 73%]
+apps/api/tests/unit/test_scraper_factory.py::test_get_scraper_spy PASSED [ 74%]
+apps/api/tests/unit/test_scraper_factory.py::test_get_scraper_nse PASSED [ 75%]
+apps/api/tests/unit/test_scraper_factory.py::test_get_scraper_invalid PASSED [ 76%]
+apps/api/tests/unit/test_scrapers.py::test_spy_scraper_coverage PASSED   [ 76%]
+apps/api/tests/unit/test_scrapers.py::test_nse_scraper_coverage PASSED   [ 77%]
+apps/api/tests/unit/test_scrapers.py::test_scrapers_fail_coverage PASSED [ 78%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_success PASSED [ 79%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_no_params PASSED [ 80%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_invalid_row PASSED [ 80%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_step_fail PASSED [ 81%]
+apps/api/tests/unit/test_scripts.py::test_run_experiments_metrics_fail PASSED [ 82%]
+apps/api/tests/unit/test_scripts.py::test_main PASSED                    [ 83%]
+apps/api/tests/unit/test_statistics.py::test_calculate_mape PASSED       [ 84%]
+apps/api/tests/unit/test_statistics.py::test_summarize_convergence PASSED [ 84%]
+apps/api/tests/unit/test_storage.py::test_upload_export PASSED           [ 85%]
+apps/api/tests/unit/test_storage.py::test_upload_export_with_compression PASSED [ 86%]
+apps/api/tests/unit/test_storage.py::test_upload_export_exception PASSED [ 87%]
+apps/api/tests/unit/test_storage.py::test_upload_scraper_artifact PASSED [ 88%]
+apps/api/tests/unit/test_transformers.py::test_calculate_mid_price PASSED [ 88%]
+apps/api/tests/unit/test_transformers.py::test_transform_to_db_params PASSED [ 89%]
+apps/api/tests/unit/test_transformers.py::test_calculate_maturity_years_none_trade_date PASSED [ 90%]
+apps/api/tests/unit/test_validators.py::test_validate_positive_prices PASSED [ 91%]
+apps/api/tests/unit/test_validators.py::test_validate_bid_ask_spread PASSED [ 92%]
+apps/api/tests/unit/test_validators.py::test_validate_strike_price PASSED [ 92%]
+apps/api/tests/unit/test_validators.py::test_validate_maturity_date PASSED [ 93%]
+apps/api/tests/unit/test_validators.py::test_validate_symbol PASSED      [ 94%]
+apps/api/tests/unit/test_validators.py::test_validate_quote_composite PASSED [ 95%]
+apps/api/tests/unit/test_websocket.py::test_lifecycle PASSED             [ 96%]
+apps/api/tests/unit/test_websocket.py::test_broadcast PASSED             [ 96%]
+apps/api/tests/unit/test_websocket.py::test_listener PASSED              [ 97%]
+apps/api/tests/unit/test_websocket.py::test_auth PASSED                  [ 98%]
+apps/api/tests/unit/test_websocket.py::test_ws_token PASSED              [ 99%]
+apps/api/tests/unit/test_websocket.py::test_ws_router PASSED             [100%]
+
+=============================== warnings summary ===============================
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+tests/unit/test_auth.py::test_get_current_user_success
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pytest_asyncio/plugin.py:759: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /home/kamau/black-scholes-comparison/apps/api/tests/conftest.py:14
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+tests/unit/test_websocket.py::test_listener
+  /home/kamau/black-scholes-comparison/apps/api/src/websocket/manager.py:88: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    async for message in pubsub.listen():
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.9-final-0 -----------
+Name                                                       Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------------
+apps/api/src/analysis/convergence.py                           8      0      0      0   100%
+apps/api/src/analysis/statistics.py                           16      0      2      0   100%
+apps/api/src/auth/dependencies.py                             34      0      6      0   100%
+apps/api/src/auth/oauth.py                                     3      0      0      0   100%
+apps/api/src/cache/decorators.py                              26      0      2      0   100%
+apps/api/src/cache/redis_client.py                            12      0      0      0   100%
+apps/api/src/config.py                                        29      0      0      0   100%
+apps/api/src/data/pipeline.py                                 56      0      6      0   100%
+apps/api/src/data/transformers.py                             16      0      2      0   100%
+apps/api/src/data/validators.py                               36      0     10      0   100%
+apps/api/src/database/repository.py                           98      0      8      0   100%
+apps/api/src/database/supabase_client.py                      12      0      0      0   100%
+apps/api/src/exceptions.py                                    20      0      0      0   100%
+apps/api/src/logging_config.py                                 6      0      0      0   100%
+apps/api/src/main.py                                          35      0      0      0   100%
+apps/api/src/methods/analytical.py                            49      0      4      0   100%
+apps/api/src/methods/base.py                                  52      0      2      0   100%
+apps/api/src/methods/finite_difference/crank_nicolson.py      67      0     16      0   100%
+apps/api/src/methods/monte_carlo/quasi_mc.py                  27      0      2      0   100%
+apps/api/src/methods/tree_methods/binomial_crr.py             30      0      8      0   100%
+apps/api/src/methods/tree_methods/richardson.py               23      0      0      0   100%
+apps/api/src/metrics.py                                       21      0      0      0   100%
+apps/api/src/notifications/email.py                           21      0      2      0   100%
+apps/api/src/notifications/hierarchy.py                       11      0      0      0   100%
+apps/api/src/notifications/push.py                             5      0      0      0   100%
+apps/api/src/queue/consumer.py                                48      0      0      0   100%
+apps/api/src/queue/publisher.py                               28      0      0      0   100%
+apps/api/src/queue/rabbitmq_client.py                         10      0      0      0   100%
+apps/api/src/routers/downloads.py                             47      0     12      0   100%
+apps/api/src/routers/experiments.py                           14      0      0      0   100%
+apps/api/src/routers/health.py                                15      0      0      0   100%
+apps/api/src/routers/market_data.py                           13      0      0      0   100%
+apps/api/src/routers/notifications.py                         18      0      2      0   100%
+apps/api/src/routers/pricing.py                               32      0      8      0   100%
+apps/api/src/routers/scrapers.py                              15      0      0      0   100%
+apps/api/src/routers/websocket.py                             26      0      2      0   100%
+apps/api/src/scrapers/base_scraper.py                         39      0      0      0   100%
+apps/api/src/scrapers/nse_next_scraper.py                     71      0     12      0   100%
+apps/api/src/scrapers/scraper_factory.py                      10      0      4      0   100%
+apps/api/src/scrapers/spy_scraper.py                          56      0      6      0   100%
+apps/api/src/scripts/run_experiments.py                       65      0     14      0   100%
+apps/api/src/storage/minio_client.py                          19      0      4      0   100%
+apps/api/src/storage/storage_service.py                       30      0      2      0   100%
+apps/api/src/websocket/channels.py                             2      0      0      0   100%
+apps/api/src/websocket/manager.py                             56      0     14      0   100%
+------------------------------------------------------------------------------------------------------
+TOTAL                                                       1327      0    150      0   100%
+
+Required test coverage of 100.0% reached. Total coverage: 100.00%
+======================= 126 passed, 3 warnings in 9.05s ========================

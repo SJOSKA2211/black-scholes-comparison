@@ -39,26 +39,25 @@ class SpyScraper(BaseScraper):
                 await page.goto(url, timeout=60000)
 
                 # Wait for the price to load
-                price_selector = "[data-test='qsp-price'], .livePrice"
+                price_selector = 'fin-streamer[data-field="regularMarketPrice"][data-symbol="SPY"]'
                 try:
-                    await page.wait_for_selector(price_selector, timeout=10000)
+                    await page.wait_for_selector(price_selector, timeout=20000)
                     price_text = await page.locator(price_selector).first.inner_text()
                     underlying_price = float(price_text.replace(",", ""))
-                except Exception:
-                    # Fallback or log
-                    logger.warning("spy_price_not_found_using_default")
+                except Exception as e:
+                    logger.warning("spy_price_not_found_using_default", error=str(e))
                     underlying_price = 0.0
 
-                # Wait for the table
-                table_selector = "table"
+                # Wait for the table - Yahoo Finance often has multiple tables
+                table_selector = "div.tableContainer table"
                 await page.wait_for_selector(table_selector, timeout=30000)
 
-                rows = await page.locator("table tbody tr").all()
+                rows = await page.locator("div.tableContainer table tbody tr").all()
                 logger.info("spy_rows_found", count=len(rows))
 
                 for row in rows:
                     cells = await row.locator("td").all()
-                    if len(cells) < 6:
+                    if len(cells) < 10:  # Yahoo usually has more columns
                         continue
 
                     # Contract Name (contains expiry info), Strike, Last, Bid, Ask

@@ -41,23 +41,33 @@ class NseScraper(BaseScraper):
             try:
                 await page.goto(url, timeout=60000)
 
-                # Use the exact CSS selector for the Derivatives Statistics tab
-                tab_selector = "a[href='#tab-1639079360113-10']"
-                # Find all tables and look for the one with 'Contract Name'
-                tables = await page.locator("table.nsetable").all()
-                target_table = None
-                for table in tables:
-                    header_text = await table.inner_text()
-                    if "Contract Name" in header_text:
-                        target_table = table
-                        break
+                # Click the Derivatives Statistics tab
+                tab_selector = "#tab-title-1639079360113-10 a, a[href='#tab-1639079360113-10']"
+                try:
+                    await page.click(tab_selector, timeout=10000)
+                    logger.info("nse_tab_clicked")
+                except Exception:
+                    logger.warning("nse_tab_click_failed_trying_direct_access")
 
-                if not target_table:
-                    logger.error("nse_table_not_found")
-                    await browser.close()
-                    return []
+                # The table is inside a specific div ID
+                target_table_selector = "#tab-1639079360113-10 table"
+                try:
+                    await page.wait_for_selector(target_table_selector, timeout=20000)
+                    target_table = page.locator(target_table_selector).first
+                except Exception:
+                    logger.error("nse_table_not_found_with_id")
+                    # Fallback to searching all tables
+                    tables = await page.locator("table.nsetable").all()
+                    for table in tables:
+                        header_text = await table.inner_text()
+                        if "Contract Name" in header_text:
+                            target_table = table
+                            break
+                    else:
+                        await browser.close()
+                        return []
 
-                rows = await target_table.locator("tr").all()
+                rows = await target_table.locator("tbody tr").all()
                 logger.info("nse_rows_found", count=len(rows))
 
                 for i, row in enumerate(rows):

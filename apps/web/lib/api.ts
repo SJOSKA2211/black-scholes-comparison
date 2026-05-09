@@ -3,6 +3,8 @@
  * Used for server-side fetching and reusable API logic.
  */
 
+import { createBrowserClient } from "./supabase/client";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
 
 export interface ApiError {
@@ -17,9 +19,18 @@ export async function apiFetch<T>(
   init?: RequestInit,
 ): Promise<T> {
   const url = `${API_BASE}${path.startsWith("/") ? path : "/" + path}`;
-
+  
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");
+
+  // On client side, try to add Supabase JWT
+  if (typeof window !== "undefined") {
+    const supabase = createBrowserClient();
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers.set("Authorization", `Bearer ${data.session.access_token}`);
+    }
+  }
 
   const response = await fetch(url, {
     ...init,

@@ -1,17 +1,39 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createBrowserClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
+/**
+ * Real authentication hook using Supabase.
+ */
 export function useAuth() {
-  const [user] = useState<any>({
-    id: "a24fb1a2-700a-4590-8d43-2930596a14f2",
-    email: "researcher@example.com",
-    user_metadata: { role: "researcher", full_name: "Researcher" },
-  });
-  const [loading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createBrowserClient();
 
-  const signOut = () => {
-    // No-op in stripped auth mode
-    console.log("Sign out requested, but auth is stripped.");
+  useEffect(() => {
+    // Initial session fetch
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      setLoading(false);
+    };
+
+    void getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
   };
 
   return { user, loading, signOut };

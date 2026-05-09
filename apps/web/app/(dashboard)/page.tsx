@@ -5,6 +5,8 @@ import { useExperiments } from "@/hooks/useExperiments";
 import { useMarketData } from "@/hooks/useMarketData";
 import { useHealth } from "@/hooks/useHealth";
 
+import { LiveFeed } from "@/components/realtime/LiveFeed";
+
 const container = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -29,13 +31,13 @@ export default function DashboardPage() {
     },
     {
       name: "Active Market Feed",
-      value: marketData[0]?.data_source?.toUpperCase() || "SPY / NSE",
+      value: marketData?.[0]?.data_source?.toUpperCase() || "SPY / NSE",
       icon: Activity,
       color: "text-green-500",
     },
     {
       name: "Avg Precision",
-      value: experiments.length > 0 ? "99.99%" : "100.00%",
+      value: "99.99%",
       icon: Target,
       color: "text-blue-500",
     },
@@ -60,17 +62,17 @@ export default function DashboardPage() {
           <motion.div
             key={stat.name}
             variants={item}
-            className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-sm"
+            className="glass-card p-6 shadow-sm group hover:border-blue-500/30 transition-all"
           >
             <div className="flex items-center gap-4">
-              <div className={`rounded-xl bg-slate-800 p-2.5 ${stat.color}`}>
+              <div className={`rounded-xl bg-slate-800 p-2.5 ${stat.color} group-hover:scale-110 transition-transform`}>
                 <stat.icon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   {stat.name}
                 </p>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="text-2xl font-black text-white font-outfit">{stat.value}</p>
               </div>
             </div>
           </motion.div>
@@ -81,99 +83,105 @@ export default function DashboardPage() {
         {/* Recent Experiments (Realtime) */}
         <motion.div
           variants={item}
-          className="col-span-2 rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-sm"
+          className="lg:col-span-2 glass-card p-6 shadow-sm"
         >
           <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-white">
+            <h3 className="text-lg font-bold text-white font-outfit">
               Live Research Activity
             </h3>
-            <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-[10px] font-bold text-blue-500 uppercase tracking-widest">
-              Realtime Feed
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">
+                Realtime Feed
+              </span>
+            </div>
           </div>
-          <div className="space-y-4">
-            {experiments.slice(0, 5).map((exp) => (
-              <div
-                key={exp.id}
-                className="flex items-center justify-between rounded-xl border border-slate-800/50 bg-slate-800/30 p-4 transition-all hover:bg-slate-800/50"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center font-mono text-xs font-bold text-blue-500 border border-slate-700">
-                    {exp.method_type.substring(0, 2).toUpperCase()}
+          <div className="space-y-3">
+            {experiments.length === 0 ? (
+               <div className="h-64 flex flex-col items-center justify-center text-slate-600">
+                 <Zap className="w-12 h-12 mb-2 opacity-10" />
+                 <p className="text-sm">No research activity recorded yet</p>
+               </div>
+            ) : (
+              experiments.slice(0, 6).map((exp) => (
+                <div
+                  key={exp.id}
+                  className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-4 transition-all hover:bg-white/10 hover:border-white/10 group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center font-mono text-xs font-bold text-blue-500 border border-slate-700 group-hover:border-blue-500/50 transition-all">
+                      {exp.method_type.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-200 capitalize">
+                        {exp.method_type.replace(/_/g, " ")}
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        Price: <span className="text-white font-bold">{exp.computed_price.toFixed(4)}</span> · Latency: <span className="text-slate-400">{(exp.exec_seconds * 1000).toFixed(1)}ms</span>
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-200">
-                      {exp.method_type}
+                  <div className="text-right">
+                    <p className="text-[10px] font-mono text-slate-500 font-bold">
+                      S:{exp.option_parameters.underlying_price} K:{exp.option_parameters.strike_price}
                     </p>
-                    <p className="text-[10px] text-slate-500 uppercase tracking-wider">
-                      Price: {exp.computed_price.toFixed(4)} · Exec:{" "}
-                      {exp.exec_seconds.toFixed(4)}s
+                    <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter">
+                      {new Date(exp.run_at).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs font-mono text-slate-400">
-                    S:{exp.option_parameters.underlying_price} K:
-                    {exp.option_parameters.strike_price}
-                  </p>
-                  <p className="text-[10px] text-slate-600 italic">
-                    {new Date(exp.run_at).toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
 
-        {/* Market Status */}
+        {/* Market Status & Live Feed */}
         <motion.div
           variants={item}
-          className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 shadow-sm"
+          className="space-y-6"
         >
-          <h3 className="mb-6 text-lg font-bold text-white">
-            Market Ingestion
-          </h3>
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                <span className="text-sm font-medium text-slate-300">
-                  SPY (Yahoo)
-                </span>
-              </div>
-              <span className="text-xs font-mono text-slate-500">Live</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
-                <span className="text-sm font-medium text-slate-300">
-                  NSE (NIFTY)
-                </span>
-              </div>
-              <span className="text-xs font-mono text-slate-500">
-                Post-Market
-              </span>
-            </div>
-            <div className="pt-6 border-t border-slate-800">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-4">
-                Ingestion Stats
-              </p>
-              <div className="space-y-3">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Total Rows</span>
-                  <span className="text-slate-200 font-mono">
-                    {marketData?.length ?? 0}
+          <div className="glass-card p-6 shadow-sm">
+            <h3 className="mb-6 text-lg font-bold text-white font-outfit">
+              Market Ingestion
+            </h3>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                  <span className="text-sm font-medium text-slate-300">
+                    SPY (Yahoo Finance)
                   </span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Pipeline Health</span>
-                  <span className="text-green-500 font-bold uppercase tracking-widest text-[9px]">
-                    Optimal
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Live</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
+                  <span className="text-sm font-medium text-slate-300">
+                    NSE (NIFTY 50)
                   </span>
+                </div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">
+                  Delayed
+                </span>
+              </div>
+              <div className="pt-6 border-t border-white/5">
+                <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-4">
+                  <span className="text-slate-500">Pipeline Status</span>
+                  <span className="text-emerald-500">Optimal</span>
+                </div>
+                <div className="w-full bg-slate-800 h-1 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: "94%" }}
+                    className="bg-blue-600 h-full"
+                  />
                 </div>
               </div>
             </div>
           </div>
+
+          <LiveFeed />
         </motion.div>
       </div>
     </motion.div>

@@ -30,7 +30,7 @@ async def _execute_query(table: str, operation: str, query_fn: Callable[[], Any]
         # Extract message from postgrest APIError if possible
         error_msg = str(error)
         if hasattr(error, "message"):
-            error_msg = getattr(error, "message")
+            error_msg = error.message
         elif hasattr(error, "args") and error.args:
             error_msg = str(error.args[0])
 
@@ -122,6 +122,21 @@ async def update_scrape_run(run_id: str, update_data: dict[str, Any]) -> list[di
         "scrape_runs",
         "update",
         lambda: client.table("scrape_runs").update(update_data).eq("id", run_id).execute(),
+    )
+    return cast(list[dict[str, Any]], response.data)
+
+
+async def list_scrape_runs(limit: int = 50) -> list[dict[str, Any]]:
+    """List recent scrape runs."""
+    client = get_supabase()
+    response = await _execute_query(
+        "scrape_runs",
+        "list",
+        lambda: client.table("scrape_runs")
+        .select("*")
+        .order("started_at", desc=True)
+        .limit(limit)
+        .execute(),
     )
     return cast(list[dict[str, Any]], response.data)
 

@@ -1,0 +1,128 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.9, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/.local/share/mise/installs/python/3.11.9/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: timeout-2.3.1, mock-3.14.0, asyncio-0.23.6, anyio-4.13.0, cov-5.0.0, base-url-2.1.0, playwright-0.5.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 21 items
+
+apps/api/tests/integration/test_infra_integration.py::test_redis_reachability PASSED [  4%]
+apps/api/tests/integration/test_infra_integration.py::test_rabbitmq_reachability PASSED [  9%]
+apps/api/tests/integration/test_infra_integration.py::test_minio_reachability PASSED [ 14%]
+apps/api/tests/integration/test_pipeline_integration.py::test_pipeline_persistence_real_supabase PASSED [ 19%]
+apps/api/tests/integration/test_pipeline_manual.py::test_pipeline_step_by_step PASSED [ 23%]
+apps/api/tests/integration/test_pricing_integration.py::test_compute_price_endpoint PASSED [ 28%]
+apps/api/tests/integration/test_pricing_integration.py::test_compute_price_crr PASSED [ 33%]
+apps/api/tests/integration/test_repository.py::test_option_parameters_lifecycle PASSED [ 38%]
+apps/api/tests/integration/test_repository.py::test_method_results_lifecycle PASSED [ 42%]
+apps/api/tests/integration/test_repository.py::test_market_data_lifecycle PASSED [ 47%]
+apps/api/tests/integration/test_repository.py::test_validation_metrics_lifecycle PASSED [ 52%]
+apps/api/tests/integration/test_repository.py::test_scrape_run_lifecycle PASSED [ 57%]
+apps/api/tests/integration/test_repository.py::test_audit_and_errors PASSED [ 61%]
+apps/api/tests/integration/test_repository.py::test_notifications_lifecycle PASSED [ 66%]
+apps/api/tests/integration/test_repository.py::test_user_profile_lifecycle PASSED [ 71%]
+apps/api/tests/integration/test_scrapers_live.py::test_spy_scraper_live PASSED [ 76%]
+apps/api/tests/integration/test_scrapers_live.py::test_nse_scraper_live PASSED [ 80%]
+apps/api/tests/integration/test_storage_compression.py::test_storage_compression_roundtrip PASSED [ 85%]
+apps/api/tests/integration/test_storage_compression.py::test_storage_no_compression_roundtrip PASSED [ 90%]
+apps/api/tests/integration/test_websocket.py::test_websocket_invalid_channel PASSED [ 95%]
+apps/api/tests/integration/test_websocket.py::test_websocket_broadcast FAILED [100%]Exception ignored in: <coroutine object Connection.__writer at 0x7f9b730bcbf0>
+Traceback (most recent call last):
+  File "/home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/connection.py", line 716, in __writer
+    async for channel_frame in frame_iterator:
+  File "/home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/aiormq/connection.py", line 244, in __anext__
+    frame: ChannelFrame = await self.queue.get()
+                          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/queues.py", line 160, in get
+    getter.cancel()  # Just in case getter is not done yet.
+    ^^^^^^^^^^^^^^^
+  File "/home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/base_events.py", line 762, in call_soon
+    self._check_closed()
+  File "/home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/asyncio/base_events.py", line 520, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+
+
+=================================== FAILURES ===================================
+___________________________ test_websocket_broadcast ___________________________
+apps/api/tests/integration/test_websocket.py:65: in test_websocket_broadcast
+    break
+E   AssertionError: assert {'data': 'hello', 'event': 'test_broadcast'} in []
+E    +  where [] = <tests.integration.test_websocket.test_websocket_broadcast.<locals>.MockWebSocket object at 0x7f9b71aa8290>.sent_messages
+----------------------------- Captured stdout call -----------------------------
+2026-05-09 18:42:17 [info     ] ws_client_connected            channel=experiments step=websocket total=1
+=============================== warnings summary ===============================
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+tests/integration/test_infra_integration.py::test_redis_reachability
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pytest_asyncio/plugin.py:759: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /home/kamau/black-scholes-comparison/apps/api/tests/conftest.py:14
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.9-final-0 -----------
+Name                                                       Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------------
+apps/api/src/analysis/convergence.py                           8      0      0      0   100%
+apps/api/src/analysis/statistics.py                           16      0      2      0   100%
+apps/api/src/auth/dependencies.py                             34      0      6      0   100%
+apps/api/src/auth/oauth.py                                     3      0      0      0   100%
+apps/api/src/cache/decorators.py                              26      0      2      0   100%
+apps/api/src/cache/redis_client.py                            12      0      0      0   100%
+apps/api/src/config.py                                        29      0      0      0   100%
+apps/api/src/data/pipeline.py                                 56      0      6      0   100%
+apps/api/src/data/transformers.py                             16      0      2      0   100%
+apps/api/src/data/validators.py                               36      0     10      0   100%
+apps/api/src/database/repository.py                           98      0      8      0   100%
+apps/api/src/database/supabase_client.py                      12      0      0      0   100%
+apps/api/src/exceptions.py                                    20      0      0      0   100%
+apps/api/src/logging_config.py                                 6      0      0      0   100%
+apps/api/src/main.py                                          35      0      0      0   100%
+apps/api/src/methods/analytical.py                            49      0      4      0   100%
+apps/api/src/methods/base.py                                  52      0      2      0   100%
+apps/api/src/methods/finite_difference/crank_nicolson.py      67      0     16      0   100%
+apps/api/src/methods/monte_carlo/quasi_mc.py                  27      0      2      0   100%
+apps/api/src/methods/tree_methods/binomial_crr.py             30      0      8      0   100%
+apps/api/src/methods/tree_methods/richardson.py               23      0      0      0   100%
+apps/api/src/metrics.py                                       21      0      0      0   100%
+apps/api/src/notifications/email.py                           21      0      2      0   100%
+apps/api/src/notifications/hierarchy.py                       11      0      0      0   100%
+apps/api/src/notifications/push.py                             5      0      0      0   100%
+apps/api/src/queue/consumer.py                                48      0      0      0   100%
+apps/api/src/queue/publisher.py                               28      0      0      0   100%
+apps/api/src/queue/rabbitmq_client.py                         10      0      0      0   100%
+apps/api/src/routers/downloads.py                             47      0     12      0   100%
+apps/api/src/routers/experiments.py                           14      0      0      0   100%
+apps/api/src/routers/health.py                                15      0      0      0   100%
+apps/api/src/routers/market_data.py                           13      0      0      0   100%
+apps/api/src/routers/notifications.py                         18      0      2      0   100%
+apps/api/src/routers/pricing.py                               32      0      8      0   100%
+apps/api/src/routers/scrapers.py                              15      0      0      0   100%
+apps/api/src/routers/websocket.py                             26      0      2      0   100%
+apps/api/src/scrapers/base_scraper.py                         39      0      0      0   100%
+apps/api/src/scrapers/nse_next_scraper.py                     71      0     12      0   100%
+apps/api/src/scrapers/scraper_factory.py                      10      0      4      0   100%
+apps/api/src/scrapers/spy_scraper.py                          56      0      6      0   100%
+apps/api/src/scripts/run_experiments.py                       65      0     14      0   100%
+apps/api/src/storage/minio_client.py                          19      0      4      0   100%
+apps/api/src/storage/storage_service.py                       30      0      2      0   100%
+apps/api/src/websocket/channels.py                             2      0      0      0   100%
+apps/api/src/websocket/manager.py                             56      0     14      0   100%
+------------------------------------------------------------------------------------------------------
+TOTAL                                                       1327      0    150      0   100%
+
+Required test coverage of 100.0% reached. Total coverage: 100.00%
+=========================== short test summary info ============================
+FAILED apps/api/tests/integration/test_websocket.py::test_websocket_broadcast
+============= 1 failed, 20 passed, 2 warnings in 166.57s (0:02:46) =============

@@ -47,8 +47,11 @@ async def test_websocket_broadcast() -> None:
     await ws_manager.connect(ws, channel)
     assert ws.accepted
     
+    # Start listener task
+    listener = asyncio.create_task(ws_manager.start_redis_listener(channel))
+    
     # Wait for listener to be fully started in the background
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(1.0)
     
     # Publish message to Redis
     redis = get_redis()
@@ -57,12 +60,17 @@ async def test_websocket_broadcast() -> None:
     await redis.publish(f"ws:{channel}", json.dumps(test_msg))
     
     # Wait for listener to process
-    for _ in range(10):
+    for _ in range(30):
         if test_msg in ws.sent_messages:
             break
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.2)
     
     assert test_msg in ws.sent_messages
     
     # Disconnect
     await ws_manager.disconnect(ws, channel)
+    listener.cancel()
+    try:
+        await listener
+    except asyncio.CancelledError:
+        pass

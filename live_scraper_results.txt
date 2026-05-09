@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.9, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/.local/share/mise/installs/python/3.11.9/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: timeout-2.3.1, mock-3.14.0, asyncio-0.23.6, anyio-4.13.0, cov-5.0.0, base-url-2.1.0, playwright-0.5.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 2 items
+
+apps/api/tests/integration/test_scrapers_live.py::test_spy_scraper_live PASSED [ 50%]
+apps/api/tests/integration/test_scrapers_live.py::test_nse_scraper_live PASSED [100%]
+
+=============================== warnings summary ===============================
+../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+tests/integration/test_scrapers_live.py::test_spy_scraper_live
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pytest_asyncio/plugin.py:759: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /home/kamau/black-scholes-comparison/apps/api/tests/conftest.py:14
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================== 2 passed, 2 warnings in 154.03s (0:02:34) ===================

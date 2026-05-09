@@ -1,89 +1,79 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRealtime } from "@/hooks/useRealtime";
 import { motion, AnimatePresence } from "framer-motion";
-import { useWebSocket } from "@/hooks/useWebSocket";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Terminal, Activity, Zap } from "lucide-react";
+import { Database, Clock, ArrowRight, CheckCircle2 } from "lucide-react";
 
-interface FeedItem {
+interface ScrapeRun {
   id: string;
-  type: "scrape" | "experiment" | "notification";
-  message: string;
-  timestamp: string;
+  market: string;
+  scraper_class: string;
+  status: string;
+  rows_scraped: number;
+  finished_at: string;
 }
 
-/**
- * Scrolling real-time platform activity feed.
- * Connects to 'metrics' or 'notifications' WS channels.
- */
 export function LiveFeed() {
-  const [items, setItems] = useState<FeedItem[]>([]);
+  const [runs, setRuns] = useState<ScrapeRun[]>([]);
 
-  // Listen to 'notifications' for feed updates
-  useWebSocket<any>({
-    channel: "notifications",
-    onMessage: (data) => {
-      const newItem: FeedItem = {
-        id: Math.random().toString(36).substr(2, 9),
-        type: data.type || "notification",
-        message: data.body || data.message || "Platform update",
-        timestamp: new Date().toLocaleTimeString(),
-      };
-      setItems((prev) => [newItem, ...prev].slice(0, 50));
+  useRealtime<ScrapeRun>({
+    table: "scrape_runs",
+    onData: (newRun) => {
+      setRuns((prev) => [newRun, ...prev].slice(0, 10));
     },
   });
 
   return (
-    <div className="bg-card border rounded-lg overflow-hidden flex flex-col h-[400px]">
-      <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
-        <h3 className="text-sm font-bold flex items-center gap-2">
-          <Terminal className="h-4 w-4 text-primary" />
-          Real-time Event Stream
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <Database className="w-4 h-4 text-blue-500" />
+          Ingestion Feed
         </h3>
-        <Badge
-          variant="outline"
-          className="text-[10px] uppercase animate-pulse border-emerald-500/50 text-emerald-500"
-        >
-          Live
-        </Badge>
+        <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
       </div>
 
-      <ScrollArea className="flex-1 p-4 font-mono text-[12px]">
+      <div className="space-y-3">
         <AnimatePresence initial={false}>
-          {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 space-y-2">
-              <Activity className="h-8 w-8 animate-pulse" />
-              <p>Waiting for events...</p>
+          {runs.length === 0 ? (
+            <div className="text-center py-8 text-slate-600 text-xs italic">
+              Waiting for ingestion events...
             </div>
           ) : (
-            <div className="space-y-3">
-              {items.map((item) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex gap-3 border-b border-muted pb-2 last:border-0"
-                >
-                  <span className="text-muted-foreground shrink-0">
-                    [{item.timestamp}]
-                  </span>
-                  <div className="flex flex-col gap-1">
-                    <span className="font-bold flex items-center gap-1">
-                      <Zap className="h-3 w-3 text-yellow-500" />
-                      {item.type.toUpperCase()}
-                    </span>
-                    <span className="text-foreground/80 leading-relaxed">
-                      {item.message}
-                    </span>
+            runs.map((run) => (
+              <motion.div
+                key={run.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="glass-card p-3 flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    run.status === "success" ? "bg-emerald-500/10 text-emerald-500" : "bg-blue-500/10 text-blue-500"
+                  }`}>
+                    <CheckCircle2 className="w-4 h-4" />
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                  <div>
+                    <p className="text-xs font-bold text-white uppercase tracking-tighter">
+                      {run.market} · {run.scraper_class.replace("Scraper", "")}
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                      <Clock className="w-3 h-3" />
+                      {new Date(run.finished_at || Date.now()).toLocaleTimeString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-black text-white">+{run.rows_scraped}</p>
+                  <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Rows</p>
+                </div>
+              </motion.div>
+            ))
           )}
         </AnimatePresence>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

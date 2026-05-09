@@ -37,10 +37,10 @@ async def test_pipeline_step_by_step() -> None:
     
     # 2. Upsert Option
     try:
-        opt_resp = await upsert_option_parameters(param_dict)
-        print(f"DEBUG: Opt Resp Data: {opt_resp.data}")
-        assert len(opt_resp.data) > 0, "Upsert returned no data"
-        option_id = opt_resp.data[0]["id"]
+        opt_resp_data = await upsert_option_parameters(param_dict)
+        print(f"DEBUG: Opt Resp Data: {opt_resp_data}")
+        assert len(opt_resp_data) > 0, "Upsert returned no data"
+        option_id = opt_resp_data[0]["id"]
     except Exception as e:
         pytest.fail(f"Upsert option failed: {e}")
         
@@ -48,9 +48,9 @@ async def test_pipeline_step_by_step() -> None:
     try:
         market_dict = transform_to_db_market_data(quote, option_id, trade_date)
         print(f"DEBUG: Market Dict: {market_dict}")
-        market_resp = await upsert_market_data([market_dict])
-        print(f"DEBUG: Market Resp Data: {market_resp.data}")
-        assert len(market_resp.data) > 0, "Market data upsert returned no data"
+        market_resp_data = await upsert_market_data([market_dict])
+        print(f"DEBUG: Market Resp Data: {market_resp_data}")
+        assert len(market_resp_data) > 0, "Market data upsert returned no data"
     except Exception as e:
         pytest.fail(f"Upsert market data failed: {e}")
         
