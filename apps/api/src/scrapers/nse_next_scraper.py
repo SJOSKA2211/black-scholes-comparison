@@ -51,7 +51,7 @@ class NseScraper(BaseScraper):
                     if "Contract Name" in header_text:
                         target_table = table
                         break
-                
+
                 if not target_table:
                     logger.error("nse_table_not_found")
                     await browser.close()
@@ -64,7 +64,7 @@ class NseScraper(BaseScraper):
                     cells = await row.locator("td").all()
                     if len(cells) < 6:
                         continue
-                    
+
                     texts = [await c.inner_text() for c in cells]
                     contract_name = texts[0].strip()
                     if not contract_name or contract_name == "Contract Name":
@@ -75,12 +75,13 @@ class NseScraper(BaseScraper):
                         symbol = contract_name
                         if "(" in contract_name:
                             symbol = contract_name.split("(")[1].split(")")[0]
-                        
+
                         mtm_price = float(texts[3].strip().replace(",", ""))
                         prev_price = float(texts[5].strip().replace(",", ""))
-                        
+
                         # Expiry Date: "18-Jun-2026"
                         from datetime import datetime
+
                         try:
                             expiry_date = datetime.strptime(texts[2].strip(), "%d-%b-%Y").date()
                         except ValueError:
@@ -91,7 +92,7 @@ class NseScraper(BaseScraper):
                                 underlying_symbol=symbol,
                                 strike_price=mtm_price,
                                 maturity_date=expiry_date,
-                                option_type="call", 
+                                option_type="call",
                                 bid_price=mtm_price,
                                 ask_price=mtm_price,
                                 underlying_price=prev_price,

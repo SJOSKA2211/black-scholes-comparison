@@ -1,7 +1,7 @@
 """Unit tests for market data transformers."""
 from datetime import date
 import pytest
-from src.data.transformers import calculate_mid_price, transform_to_db_params
+from src.data.transformers import calculate_mid_price, transform_to_db_params, calculate_maturity_years
 from src.scrapers.base_scraper import RawQuote
 
 @pytest.fixture
@@ -28,3 +28,10 @@ def test_transform_to_db_params(raw_quote):
     assert params["strike_price"] == 100.0
     assert params["risk_free_rate"] == 0.05
     assert params["option_type"] == "call"
+
+@pytest.mark.unit
+def test_calculate_maturity_years_none_trade_date():
+    # Maturity in the future should be > 0
+    maturity = date(2099, 12, 31)
+    years = calculate_maturity_years(maturity, None)
+    assert years > 0

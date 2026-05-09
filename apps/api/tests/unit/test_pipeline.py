@@ -59,6 +59,46 @@ async def test_pipeline_run_nse():
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_pipeline_failed_scraper():
+    """Test pipeline execution when scraper fails."""
+    mock_scraper = AsyncMock()
+    mock_scraper.run.side_effect = Exception("Scraper crash")
+    
+    pipeline = DataPipeline("spy", mock_scraper)
+    result = await pipeline.run(date(2025, 1, 1))
+    
+    assert result.status == "failed"
+    assert result.rows_scraped == 0
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_pipeline_failed_persistence():
+    """Test pipeline execution when persistence fails for some rows."""
+    mock_scraper = AsyncMock()
+    mock_quote = RawQuote(
+        underlying_symbol="SPY",
+        strike_price=100.0,
+        maturity_date=date(2025, 12, 31),
+        option_type="call",
+        bid_price=5.0,
+        ask_price=5.5,
+        underlying_price=100.0,
+        data_source="spy",
+    )
+    mock_scraper.run.return_value = ScraperResult(
+        market="spy", execution_seconds=0.1, status="success", quotes=[mock_quote]
+    )
+    
+    pipeline = DataPipeline("spy", mock_scraper)
+    
+    # Mock upsert_option_parameters to fail
+    with patch("src.data.pipeline.upsert_option_parameters", side_effect=Exception("DB error")):
+        result = await pipeline.run(date(2025, 1, 1))
+        assert result.status == "success" # Pipeline continues for other rows
+        assert result.rows_inserted == 0
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_pipeline_invalid_market():
     """Test pipeline with invalid market."""
     with pytest.raises(ValueError, match="Unsupported market"):

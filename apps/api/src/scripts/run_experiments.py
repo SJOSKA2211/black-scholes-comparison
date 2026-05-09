@@ -20,7 +20,6 @@ from src.methods.finite_difference.crank_nicolson import CrankNicolson
 from src.methods.monte_carlo.quasi_mc import QuasiMC
 from src.methods.tree_methods.richardson import BinomialCRRRichardson
 from src.metrics import EXPERIMENT_PROGRESS, EXPERIMENTS_TOTAL, PRICE_MAPE_GAUGE
-from src.queue.publisher import publish_experiment_task
 
 logger = structlog.get_logger(__name__)
 

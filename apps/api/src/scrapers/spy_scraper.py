@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import date, datetime
 
 import structlog
@@ -38,7 +37,7 @@ class SpyScraper(BaseScraper):
 
             try:
                 await page.goto(url, timeout=60000)
-                
+
                 # Wait for the price to load
                 price_selector = "[data-test='qsp-price'], .livePrice"
                 try:
@@ -74,7 +73,7 @@ class SpyScraper(BaseScraper):
                         expiry_str = contract[3:9]
                         expiry_date = datetime.strptime(expiry_str, "%y%m%d").date()
                         opt_type = "call" if "C" in contract[9:11] else "put"
-                        
+
                         bid = float(bid_text.replace(",", ""))
                         ask = float(ask_text.replace(",", ""))
                         strike = float(strike_text.replace(",", ""))

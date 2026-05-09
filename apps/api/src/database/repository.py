@@ -30,7 +30,9 @@ async def _execute_query(table: str, operation: str, query_fn: Callable[[], Any]
         # Extract message from postgrest APIError if possible
         error_msg = str(error)
         if hasattr(error, "message"):
-            error_msg = error.message
+            error_msg = getattr(error, "message")
+        elif hasattr(error, "args") and error.args:
+            error_msg = str(error.args[0])
 
         logger.error("supabase_operation_failed", table=table, operation=operation, error=error_msg)
         raise SupabaseError(f"Database error in {table}.{operation}: {error_msg}") from error
@@ -152,7 +154,7 @@ async def get_notifications(user_id: str) -> list[dict[str, Any]]:
         "select",
         lambda: client.table("notifications").select("*").eq("user_id", user_id).execute(),
     )
-    return cast(list[dict[str, Any]], response)
+    return cast(list[dict[str, Any]], response.data)
 
 
 async def mark_notification_read(notification_id: str) -> dict[str, Any]:
@@ -166,7 +168,7 @@ async def mark_notification_read(notification_id: str) -> dict[str, Any]:
         .eq("id", notification_id)
         .execute(),
     )
-    return cast(dict[str, Any], response)
+    return cast(dict[str, Any], response.data)
 
 
 async def get_user_profile(user_id: str) -> dict[str, Any]:
@@ -177,7 +179,7 @@ async def get_user_profile(user_id: str) -> dict[str, Any]:
         "select",
         lambda: client.table("user_profiles").select("*").eq("id", user_id).single().execute(),
     )
-    return cast(dict[str, Any], response)
+    return cast(dict[str, Any], response.data)
 
 
 async def list_option_parameters(
@@ -233,4 +235,4 @@ async def update_user_profile(user_id: str, profile_data: dict[str, Any]) -> dic
         "update",
         lambda: client.table("user_profiles").update(profile_data).eq("id", user_id).execute(),
     )
-    return cast(dict[str, Any], response)
+    return cast(dict[str, Any], response.data)
