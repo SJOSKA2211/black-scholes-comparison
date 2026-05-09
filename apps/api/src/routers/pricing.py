@@ -42,6 +42,18 @@ async def compute_price(
     return solver.price(params)
 
 
+@router.get("/methods")
+@cache_response("methods", ttl_seconds=3600)
+async def list_pricing_methods() -> list[dict[str, str]]:
+    """Return a list of supported pricing methods."""
+    return [
+        {"id": "analytical", "name": "Analytical (Black-Scholes)"},
+        {"id": "crank_nicolson", "name": "Crank-Nicolson (FDM)"},
+        {"id": "quasi_mc", "name": "Quasi-Monte Carlo (Sobol)"},
+        {"id": "binomial_crr_richardson", "name": "CRR + Richardson Extrapolation"},
+    ]
+
+
 # Force rebuild to resolve forward refs during collection
 OptionParameters.model_rebuild()
 PricingResult.model_rebuild()

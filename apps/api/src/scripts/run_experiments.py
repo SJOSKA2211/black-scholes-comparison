@@ -147,7 +147,7 @@ async def main() -> None:
     await run_experiments(default_payload)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import asyncio
 
     asyncio.run(main())

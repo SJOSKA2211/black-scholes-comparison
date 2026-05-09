@@ -34,16 +34,36 @@ async def test_broadcast():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_listener():
-    m = WebSocketManager(); r = MagicMock(); ps = AsyncMock(); r.pubsub.return_value = ps
-    async def L():
-        yield {"type": "message", "data": json.dumps({"a": 1})}
-        yield {"type": "other"}
-        raise asyncio.CancelledError()
-    ps.listen.return_value = L()
+    class MockPubSub:
+        def __init__(self, mode="normal"): self.mode = mode
+        async def subscribe(self, *args, **kwargs): pass
+        async def unsubscribe(self, *args, **kwargs): pass
+        async def close(self, *args, **kwargs): pass
+        async def listen(self):
+            yield {"type": "message", "data": json.dumps({"a": 1})}
+            yield {"type": "other"}
+            if self.mode == "cancel":
+                raise asyncio.CancelledError()
+            # Normal exit hits 88->97
+            
+    m = WebSocketManager(); r = MagicMock()
+    
     with patch("src.websocket.manager.get_redis", return_value=r):
+        # Normal exit
+        r.pubsub.return_value = MockPubSub(mode="normal")
         await m.start_redis_listener("c1")
-        # Test general exception
-        ps.listen.side_effect = Exception("err")
+        
+        # CancelledError
+        r.pubsub.return_value = MockPubSub(mode="cancel")
+        await m.start_redis_listener("c1")
+        
+        # General exception
+        ps_err = MagicMock()
+        ps_err.subscribe = AsyncMock()
+        ps_err.unsubscribe = AsyncMock()
+        ps_err.close = AsyncMock()
+        ps_err.listen = AsyncMock(side_effect=Exception("err"))
+        r.pubsub.return_value = ps_err
         await m.start_redis_listener("c1")
 
 @pytest.mark.unit
@@ -88,6 +108,8 @@ async def test_ws_router():
     ws.receive_text.side_effect = WebSocketDisconnect()
     with patch("src.routers.websocket.verify_ws_token", AsyncMock()), \
          patch("src.routers.websocket.ws_manager") as wm:
+        wm.connect = AsyncMock()
+        wm.disconnect = AsyncMock()
         await websocket_endpoint(ws, "experiments")
         assert wm.connect.called
         assert wm.disconnect.called
@@ -96,5 +118,6 @@ async def test_ws_router():
     ws.receive_text.side_effect = Exception("err")
     with patch("src.routers.websocket.verify_ws_token", AsyncMock()), \
          patch("src.routers.websocket.ws_manager") as wm:
+        wm.connect = AsyncMock()
         await websocket_endpoint(ws, "experiments")
         ws.close.assert_called_with(code=1011, reason="Internal error")
