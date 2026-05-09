@@ -77,19 +77,24 @@ async def test_ws_token():
 @pytest.mark.unit
 @pytest.mark.asyncio
 async def test_ws_router():
-    from src.main import app
-    from fastapi.testclient import TestClient
-    with TestClient(app).websocket_connect("/ws/invalid") as ws:
-        # FastAPI might close it immediately if it's not a valid channel
-        pass
+    from src.routers.websocket import websocket_endpoint
+    from fastapi import WebSocketDisconnect
+    ws = AsyncMock(spec=WebSocket)
+    # Test unknown channel
+    await websocket_endpoint(ws, "invalid")
+    ws.close.assert_called_with(code=4004, reason="Unknown channel")
+    
+    # Test valid channel and disconnect
+    ws.receive_text.side_effect = WebSocketDisconnect()
     with patch("src.routers.websocket.verify_ws_token", AsyncMock()), \
          patch("src.routers.websocket.ws_manager") as wm:
-        wm.connect = AsyncMock()
-        wm.disconnect = AsyncMock()
-        # Mocking the infinite loop by making receive_text raise
-        ws_mock = MagicMock(spec=WebSocket)
-        ws_mock.receive_text = AsyncMock(side_effect=Exception("loop_break"))
-        from src.routers.websocket import websocket_endpoint
-        await websocket_endpoint(ws_mock, "experiments")
+        await websocket_endpoint(ws, "experiments")
         assert wm.connect.called
         assert wm.disconnect.called
+
+    # Test internal error
+    ws.receive_text.side_effect = Exception("err")
+    with patch("src.routers.websocket.verify_ws_token", AsyncMock()), \
+         patch("src.routers.websocket.ws_manager") as wm:
+        await websocket_endpoint(ws, "experiments")
+        ws.close.assert_called_with(code=1011, reason="Internal error")

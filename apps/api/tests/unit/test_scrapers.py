@@ -45,7 +45,7 @@ async def test_spy_scraper_price_not_found(p):
 async def test_spy_scraper_row_fail(p):
     m, pg = p; s = SpyScraper()
     pr = MagicMock(); pr.inner_text = AsyncMock(return_value="500"); pr.first = pr
-    r = MagicMock(); r.locator.side_effect = Exception("err")
+    r = MagicMock(); r.locator.return_value.all = AsyncMock(return_value=[mk("S1"), mk("bad")]) # cells < 6
     rows = MagicMock(); rows.all = AsyncMock(return_value=[r])
     pg.locator.side_effect = lambda sel: pr if "price" in sel or "livePrice" in sel else rows
     with patch("src.scrapers.spy_scraper.async_playwright", return_value=CM(m)):
@@ -57,10 +57,9 @@ async def test_nse_scraper_run_success(p):
     m, pg = p; s = NseScraper()
     h = MagicMock(inner_text=AsyncMock(return_value="Contract Name"))
     d = MagicMock(inner_text=AsyncMock(return_value="KCB (KCB)"))
-    # Mock cells for the row
     d.locator.return_value.all = AsyncMock(return_value=[mk("KCB (KCB)"), mk("0"), mk("18-Jun-2026"), mk(4500), mk(0), mk(4400)])
-    h.locator.return_value.all = AsyncMock(return_value=[]) # header row cells
-    pg.locator.return_value.all = AsyncMock(side_effect=[[h], [h, d]]) # tables then rows
+    h.locator.return_value.all = AsyncMock(return_value=[])
+    pg.locator.return_value.all = AsyncMock(side_effect=[[h], [h, d]])
     with patch("src.scrapers.nse_next_scraper.async_playwright", return_value=CM(m)):
         res = await s.run(date.today()); assert res.status == "success"
 
@@ -78,7 +77,8 @@ async def test_nse_scraper_row_fail(p):
     m, pg = p; s = NseScraper()
     h = MagicMock(inner_text=AsyncMock(return_value="Contract Name"))
     d = MagicMock(inner_text=AsyncMock(return_value="KCB"))
-    d.locator.side_effect = Exception("err")
+    # Make parsing fail (IndexError)
+    d.locator.return_value.all = AsyncMock(return_value=[mk("KCB")]) # Less than 6 cells
     pg.locator.return_value.all = AsyncMock(side_effect=[[h], [h, d]])
     with patch("src.scrapers.nse_next_scraper.async_playwright", return_value=CM(m)):
         res = await s.run(date.today()); assert res.status == "success"
