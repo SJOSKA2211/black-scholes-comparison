@@ -42,6 +42,7 @@ async def test_listener():
     ps.listen.return_value = L()
     with patch("src.websocket.manager.get_redis", return_value=r):
         await m.start_redis_listener("c1")
+        # Test general exception
         ps.listen.side_effect = Exception("err")
         await m.start_redis_listener("c1")
 
@@ -72,3 +73,23 @@ async def test_ws_token():
         with pytest.raises(HTTPException): await verify_ws_token(ws)
         c.auth.get_user.side_effect = Exception("err")
         with pytest.raises(HTTPException): await verify_ws_token(ws)
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_ws_router():
+    from src.main import app
+    from fastapi.testclient import TestClient
+    with TestClient(app).websocket_connect("/ws/invalid") as ws:
+        # FastAPI might close it immediately if it's not a valid channel
+        pass
+    with patch("src.routers.websocket.verify_ws_token", AsyncMock()), \
+         patch("src.routers.websocket.ws_manager") as wm:
+        wm.connect = AsyncMock()
+        wm.disconnect = AsyncMock()
+        # Mocking the infinite loop by making receive_text raise
+        ws_mock = MagicMock(spec=WebSocket)
+        ws_mock.receive_text = AsyncMock(side_effect=Exception("loop_break"))
+        from src.routers.websocket import websocket_endpoint
+        await websocket_endpoint(ws_mock, "experiments")
+        assert wm.connect.called
+        assert wm.disconnect.called
