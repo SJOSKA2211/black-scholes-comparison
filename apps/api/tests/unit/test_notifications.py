@@ -2,9 +2,9 @@
 from __future__ import annotations
 import pytest
 from src.notifications.hierarchy import NotificationSeverity, NotificationChannel
-from src.notifications.email import send_email
+from src.notifications.email import send_email_notification
 from src.notifications.push import send_push_notification
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 @pytest.mark.unit
 def test_notification_enums() -> None:
@@ -18,9 +18,10 @@ async def test_send_email_mock() -> None:
     """Verify email sending logic with mocks."""
     with patch("src.notifications.email.get_settings") as mock_settings:
         mock_settings.return_value.resend_api_key = "test_key"
-        with patch("requests.post") as mock_post:
-            mock_post.return_value.status_code = 200
-            await send_email("test@example.com", "Subject", "Body")
+        with patch("httpx.AsyncClient.post") as mock_post:
+            mock_post.return_value = MagicMock(status_code=200)
+            mock_post.return_value.raise_for_status = MagicMock()
+            await send_email_notification("test@example.com", "Subject", "Body")
             assert mock_post.called
 
 @pytest.mark.unit
