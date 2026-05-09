@@ -33,6 +33,7 @@ async def test_websocket_manager_listener_loop() -> None:
     # pubsub.subscribe and unsubscribe are async in redis-py async
     mock_pubsub.subscribe = AsyncMock()
     mock_pubsub.unsubscribe = AsyncMock()
+    mock_pubsub.close = AsyncMock()
     
     message = {"type": "message", "channel": b"ws:experiments", "data": json.dumps({"status": "completed"})}
     # listen() is a sync call that returns an async iterator

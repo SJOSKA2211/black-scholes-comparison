@@ -25,12 +25,7 @@ async def test_upsert_option_parameters_unit() -> None:
             "risk_free_rate": 0.05,
             "option_type": "call"
         })
-        # Note: repository.py returns response.data usually, or the whole response.
-        # In repository.py: return cast(dict[str, Any], response)
-        # and response = query_fn() which is .execute()
-        # .execute() returns a SyncResponse object with .data attribute
-        # So result will be the SyncResponse object if I mock it that way.
-        assert result.data == [{"id": "test-uuid"}]
+        assert result == [{"id": "test-uuid"}]
 
 @pytest.mark.unit
 @pytest.mark.asyncio
@@ -45,4 +40,4 @@ async def test_get_option_parameters_unit() -> None:
     
     with patch("src.database.repository.get_supabase", return_value=mock_client):
         result = await get_option_parameters("test-uuid")
-        assert result.data == {"id": "test-uuid"}
+        assert result == {"id": "test-uuid"}

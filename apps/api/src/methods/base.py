@@ -1,20 +1,26 @@
 """Base class for all Black-Scholes numerical methods."""
-from abc import ABC, abstractmethod
-from typing import Any
-from pydantic import BaseModel, Field, field_validator
-from enum import Enum
+
 import time
-from src.metrics import PRICE_COMPUTATIONS_TOTAL, PRICE_DURATION_SECONDS
+from abc import ABC, abstractmethod
+from enum import Enum
+from typing import Any
+
 import structlog
+from pydantic import BaseModel, Field, field_validator
+
+from src.metrics import PRICE_COMPUTATIONS_TOTAL, PRICE_DURATION_SECONDS
 
 logger = structlog.get_logger(__name__)
+
 
 class OptionType(str, Enum):
     CALL = "call"
     PUT = "put"
 
+
 class OptionParameters(BaseModel):
     """Input parameters for option pricing."""
+
     underlying_price: float = Field(..., gt=0)
     strike_price: float = Field(..., gt=0)
     maturity_years: float = Field(..., gt=0)
@@ -31,8 +37,10 @@ class OptionParameters(BaseModel):
             raise ValueError("Volatility too high")
         return value
 
+
 class PricingResult(BaseModel):
     """Output result from a pricing method."""
+
     computed_price: float = Field(..., serialization_alias="price")
     exec_seconds: float
     converged: bool = True
@@ -43,9 +51,10 @@ class PricingResult(BaseModel):
     class Config:
         populate_by_name = True
 
+
 class BasePricingMethod(ABC):
     """Abstract base class for pricing methods."""
-    
+
     def __init__(self, method_name: str) -> None:
         self.method_name = method_name
 
@@ -57,36 +66,33 @@ class BasePricingMethod(ABC):
     def price(self, params: OptionParameters) -> PricingResult:
         """Execute pricing and record metrics."""
         start_time = time.perf_counter()
-        
+
         try:
             computed_value = self._compute(params)
             duration = time.perf_counter() - start_time
-            
+
             PRICE_COMPUTATIONS_TOTAL.labels(
-                method_type=self.method_name,
-                option_type=params.option_type.value,
-                converged="true"
+                method_type=self.method_name, option_type=params.option_type.value, converged="true"
             ).inc()
-            
-            PRICE_DURATION_SECONDS.labels(
-                method_type=self.method_name
-            ).observe(duration)
-            
+
+            PRICE_DURATION_SECONDS.labels(method_type=self.method_name).observe(duration)
+
             return PricingResult(
                 computed_price=computed_value,
                 exec_seconds=duration,
                 method_type=self.method_name,
-                parameter_set=params.model_dump()
+                parameter_set=params.model_dump(),
             )
         except Exception as error:
             duration = time.perf_counter() - start_time
             PRICE_COMPUTATIONS_TOTAL.labels(
                 method_type=self.method_name,
                 option_type=params.option_type.value,
-                converged="false"
+                converged="false",
             ).inc()
             logger.error("pricing_failed", method=self.method_name, error=str(error))
             raise
+
 
 OptionParameters.model_rebuild()
 PricingResult.model_rebuild()

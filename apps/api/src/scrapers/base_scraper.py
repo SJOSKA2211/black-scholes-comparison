@@ -1,16 +1,25 @@
 """Base class for market data scrapers."""
+
 from __future__ import annotations
+
 import time
 from abc import ABC, abstractmethod
-from datetime import date
+from typing import TYPE_CHECKING
+
 import structlog
 from pydantic import BaseModel
+
 from src.metrics import SCRAPE_DURATION, SCRAPE_RUNS_TOTAL
+
+from datetime import date
+from typing import TYPE_CHECKING
 
 logger = structlog.get_logger(__name__)
 
+
 class RawQuote(BaseModel):
     """Raw market data quote from a scraper."""
+
     underlying_symbol: str
     strike_price: float
     maturity_date: date
@@ -20,16 +29,19 @@ class RawQuote(BaseModel):
     underlying_price: float
     data_source: str
 
+
 class ScraperResult(BaseModel):
     """Result of a scraper run."""
+
     quotes: list[RawQuote]
     execution_seconds: float
     market: str
     status: str
 
+
 class BaseScraper(ABC):
     """Abstract base class for scrapers."""
-    
+
     def __init__(self, market_name: str) -> None:
         self.market_name = market_name
 
@@ -44,15 +56,12 @@ class BaseScraper(ABC):
         try:
             quotes = await self._scrape(trade_date)
             duration = time.perf_counter() - start_time
-            
+
             SCRAPE_RUNS_TOTAL.labels(market=self.market_name, status="success").inc()
             SCRAPE_DURATION.labels(market=self.market_name).observe(duration)
-            
+
             return ScraperResult(
-                quotes=quotes,
-                execution_seconds=duration,
-                market=self.market_name,
-                status="success"
+                quotes=quotes, execution_seconds=duration, market=self.market_name, status="success"
             )
         except Exception as error:
             duration = time.perf_counter() - start_time

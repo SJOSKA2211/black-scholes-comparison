@@ -1,15 +1,16 @@
 """Configuration management using Pydantic Settings."""
+
 from __future__ import annotations
+
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     """Platform configuration settings."""
-    model_config = SettingsConfigDict(
-        env_file=".env", 
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # App
     app_env: str = "development"
@@ -48,8 +49,9 @@ class Settings(BaseSettings):
     # Email (Resend)
     resend_api_key: str | None = None
 
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return a cached Settings object."""
     # Note: pydantic-settings automatically loads from environment or .env
-    return Settings() # type: ignore[call-arg]
+    return Settings()  # type: ignore[call-arg]

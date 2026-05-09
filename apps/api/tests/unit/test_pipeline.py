@@ -49,7 +49,7 @@ async def test_pipeline_run_nse():
         quotes=[]
     )
     
-    with patch("src.scrapers.nse_scraper.NseScraper", return_value=mock_scraper_inst):
+    with patch("src.scrapers.nse_next_scraper.NseScraper", return_value=mock_scraper_inst):
         pipeline = get_pipeline("nse")
         result = await pipeline.run(date(2025, 1, 1))
         

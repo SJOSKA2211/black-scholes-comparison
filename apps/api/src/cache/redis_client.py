@@ -1,14 +1,21 @@
 """Redis client singleton using async redis."""
+
 from __future__ import annotations
+
+from collections.abc import AsyncGenerator, Callable
 from functools import lru_cache
+from typing import Any
+
 import redis.asyncio as aioredis
-from src.config import get_settings
 import structlog
+
+from src.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
+
 @lru_cache(maxsize=1)
-def get_redis() -> aioredis.Redis:
+def get_redis() -> aioredis.Redis[str]:
     """Return a cached async Redis client."""
     settings = get_settings()
     client = aioredis.from_url(

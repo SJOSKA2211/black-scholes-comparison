@@ -1,0 +1,175 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.9, pytest-8.2.0, pluggy-1.6.0 -- /home/kamau/.local/share/mise/installs/python/3.11.9/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/kamau/black-scholes-comparison/apps/api
+configfile: pyproject.toml
+plugins: timeout-2.3.1, mock-3.14.0, asyncio-0.23.6, anyio-4.13.0, cov-5.0.0, base-url-2.1.0, playwright-0.5.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 59 items
+
+tests/unit/test_cache.py::test_cache_decorator_hit PASSED                [  1%]
+tests/unit/test_cache.py::test_cache_decorator_miss PASSED               [  3%]
+tests/unit/test_consumer.py::test_handle_scrape_task_success PASSED      [  5%]
+tests/unit/test_consumer.py::test_handle_scrape_task_failure PASSED      [  6%]
+tests/unit/test_consumer.py::test_handle_experiment_task_success PASSED  [  8%]
+tests/unit/test_consumer.py::test_handle_experiment_task_failure PASSED  [ 10%]
+tests/unit/test_consumer.py::test_start_consumers PASSED                 [ 11%]
+tests/unit/test_coverage_final.py::test_base_scraper_metrics PASSED      [ 13%]
+tests/unit/test_coverage_final.py::test_upload_export_error_handling PASSED [ 15%]
+tests/unit/test_coverage_gap.py::test_scraper_exception_handling PASSED  [ 16%]
+tests/unit/test_coverage_gap.py::test_websocket_manager_full PASSED      [ 18%]
+tests/unit/test_coverage_gap.py::test_scraper_result_model PASSED        [ 20%]
+tests/unit/test_infra_unit.py::test_minio_client_init PASSED             [ 22%]
+tests/unit/test_infra_unit.py::test_websocket_channels PASSED            [ 23%]
+tests/unit/test_main.py::test_root_endpoint PASSED                       [ 25%]
+tests/unit/test_main.py::test_health_check PASSED                        [ 27%]
+tests/unit/test_methods.py::test_analytical_price PASSED                 [ 28%]
+tests/unit/test_methods.py::test_crank_nicolson_agreement PASSED         [ 30%]
+tests/unit/test_methods.py::test_quasi_mc_agreement PASSED               [ 32%]
+tests/unit/test_methods.py::test_crr_richardson_agreement PASSED         [ 33%]
+tests/unit/test_methods.py::test_option_params_validation PASSED         [ 35%]
+tests/unit/test_methods.py::test_base_pricing_method_exception PASSED    [ 37%]
+tests/unit/test_minio_client.py::test_get_minio PASSED                   [ 38%]
+tests/unit/test_minio_client.py::test_get_minio_bucket_exists PASSED     [ 40%]
+tests/unit/test_minio_client.py::test_get_minio_exception PASSED         [ 42%]
+tests/unit/test_pipeline.py::test_pipeline_run PASSED                    [ 44%]
+tests/unit/test_pipeline.py::test_pipeline_run_nse PASSED                [ 45%]
+tests/unit/test_pipeline.py::test_pipeline_invalid_market PASSED         [ 47%]
+tests/unit/test_queue.py::test_publish_scrape_task PASSED                [ 49%]
+tests/unit/test_queue.py::test_publish_experiment_task PASSED            [ 50%]
+tests/unit/test_rabbitmq_client.py::test_get_rabbitmq_connection PASSED  [ 52%]
+tests/unit/test_redis_client.py::test_get_redis PASSED                   [ 54%]
+tests/unit/test_repository.py::test_upsert_option_parameters_unit PASSED [ 55%]
+tests/unit/test_repository.py::test_get_option_parameters_unit PASSED    [ 57%]
+tests/unit/test_scrapers.py::test_spy_scraper_run_success PASSED         [ 59%]
+tests/unit/test_scrapers.py::test_nse_scraper_run_success PASSED         [ 61%]
+tests/unit/test_scrapers.py::test_spy_scraper_exception_handling PASSED  [ 62%]
+tests/unit/test_scripts.py::test_run_experiments_main PASSED             [ 64%]
+tests/unit/test_storage.py::test_upload_export PASSED                    [ 66%]
+tests/unit/test_storage.py::test_upload_export_with_compression PASSED   [ 67%]
+tests/unit/test_storage.py::test_upload_export_exception PASSED          [ 69%]
+tests/unit/test_storage.py::test_upload_scraper_artifact PASSED          [ 71%]
+tests/unit/test_storage_expanded.py::test_upload_export_logic PASSED     [ 72%]
+tests/unit/test_storage_expanded.py::test_upload_export_with_compression_logic PASSED [ 74%]
+tests/unit/test_transformers.py::test_calculate_mid_price PASSED         [ 76%]
+tests/unit/test_transformers.py::test_transform_to_db_params PASSED      [ 77%]
+tests/unit/test_validators.py::test_validate_positive_prices PASSED      [ 79%]
+tests/unit/test_validators.py::test_validate_bid_ask_spread PASSED       [ 81%]
+tests/unit/test_validators.py::test_validate_strike_price PASSED         [ 83%]
+tests/unit/test_validators.py::test_validate_maturity_date PASSED        [ 84%]
+tests/unit/test_validators.py::test_validate_symbol PASSED               [ 86%]
+tests/unit/test_validators.py::test_validate_quote_composite PASSED      [ 88%]
+tests/unit/test_websocket.py::test_websocket_manager_connect_disconnect PASSED [ 89%]
+tests/unit/test_websocket.py::test_websocket_manager_broadcast PASSED    [ 91%]
+tests/unit/test_websocket.py::test_get_current_user_valid PASSED         [ 93%]
+tests/unit/test_websocket_expanded.py::test_websocket_broadcast_to_multiple PASSED [ 94%]
+tests/unit/test_websocket_expanded.py::test_websocket_broadcast_wrong_channel PASSED [ 96%]
+tests/unit/test_websocket_expanded.py::test_redis_listener_logic PASSED  [ 98%]
+tests/unit/test_websocket_listener.py::test_websocket_manager_listener_loop PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pydantic/_internal/_config.py:284: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.7/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+tests/unit/test_cache.py::test_cache_decorator_hit
+  /home/kamau/.local/share/mise/installs/python/3.11.9/lib/python3.11/site-packages/pytest_asyncio/plugin.py:759: DeprecationWarning: The event_loop fixture provided by pytest-asyncio has been redefined in
+  /home/kamau/black-scholes-comparison/apps/api/tests/conftest.py:14
+  Replacing the event_loop fixture with a custom implementation is deprecated
+  and will lead to errors in the future.
+  If you want to request an asyncio event loop with a scope other than function
+  scope, use the "scope" argument to the asyncio mark when marking the tests.
+  If you want to return different types of event loops, use the event_loop_policy
+  fixture.
+  
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.9-final-0 -----------
+Name                                                    Stmts   Miss Branch BrPart  Cover   Missing
+---------------------------------------------------------------------------------------------------
+src/__init__.py                                             0      0      0      0   100%
+src/__pycache__/__init__.py                                 0      0      0      0   100%
+src/analysis/__init__.py                                    0      0      0      0   100%
+src/analysis/__pycache__/__init__.py                        0      0      0      0   100%
+src/analysis/convergence.py                                 8      8      0      0     0%   3-19
+src/analysis/statistics.py                                  9      9      0      0     0%   3-25
+src/auth/__init__.py                                        0      0      0      0   100%
+src/auth/__pycache__/__init__.py                            0      0      0      0   100%
+src/auth/dependencies.py                                   34     19      6      1    40%   26, 32-34, 42-57
+src/auth/oauth.py                                           3      3      0      0     0%   3-7
+src/cache/__init__.py                                       0      0      0      0   100%
+src/cache/__pycache__/__init__.py                           0      0      0      0   100%
+src/cache/decorators.py                                    26      0      2      0   100%
+src/cache/redis_client.py                                  14      0      0      0   100%
+src/config.py                                              29      0      0      0   100%
+src/data/__init__.py                                        0      0      0      0   100%
+src/data/__pycache__/__init__.py                            0      0      0      0   100%
+src/data/pipeline.py                                       56      6      6      0    90%   60-62, 84-86
+src/data/transformers.py                                   16      1      2      1    89%   24
+src/data/validators.py                                     36      0     10      0   100%
+src/database/__init__.py                                    0      0      0      0   100%
+src/database/__pycache__/__init__.py                        0      0      0      0   100%
+src/database/repository.py                                 96     55      6      0    40%   28-36, 63-69, 74-80, 94-100, 105-109, 114-120, 125-129, 134-140, 145-151, 156-165, 170-176, 183-190, 195-205, 210-221, 226-232
+src/database/supabase_client.py                            12      0      0      0   100%
+src/exceptions.py                                          20      0      0      0   100%
+src/logging_config.py                                       6      2      0      0    67%   11-24
+src/main.py                                                33      8      0      0    76%   34-45
+src/methods/__init__.py                                     8      0      0      0   100%
+src/methods/__pycache__/__init__.py                         0      0      0      0   100%
+src/methods/analytical.py                                  49      0      4      0   100%
+src/methods/base.py                                        52      0      2      0   100%
+src/methods/finite_difference/__init__.py                   3      0      0      0   100%
+src/methods/finite_difference/__pycache__/__init__.py       0      0      0      0   100%
+src/methods/finite_difference/crank_nicolson.py            67      0     16      0   100%
+src/methods/monte_carlo/__init__.py                         3      0      0      0   100%
+src/methods/monte_carlo/__pycache__/__init__.py             0      0      0      0   100%
+src/methods/monte_carlo/quasi_mc.py                        27      0      2      0   100%
+src/methods/tree_methods/__init__.py                        4      0      0      0   100%
+src/methods/tree_methods/__pycache__/__init__.py            0      0      0      0   100%
+src/methods/tree_methods/binomial_crr.py                   30      0      8      0   100%
+src/methods/tree_methods/richardson.py                     23      0      0      0   100%
+src/metrics.py                                             21      0      0      0   100%
+src/notifications/__init__.py                               0      0      0      0   100%
+src/notifications/__pycache__/__init__.py                   0      0      0      0   100%
+src/notifications/email.py                                 21     21      2      0     0%   3-39
+src/notifications/hierarchy.py                             11     11      0      0     0%   3-18
+src/notifications/push.py                                   5      5      0      0     0%   3-13
+src/queue/__init__.py                                       0      0      0      0   100%
+src/queue/__pycache__/__init__.py                           0      0      0      0   100%
+src/queue/consumer.py                                      48      0      0      0   100%
+src/queue/publisher.py                                     28      0      0      0   100%
+src/queue/rabbitmq_client.py                               10      0      0      0   100%
+src/routers/__init__.py                                     0      0      0      0   100%
+src/routers/__pycache__/__init__.py                         0      0      0      0   100%
+src/routers/downloads.py                                   47     32     12      0    25%   23-30, 42-77
+src/routers/experiments.py                                 14      4      0      0    71%   22-28
+src/routers/health.py                                      15      2      0      0    87%   23-24
+src/routers/market_data.py                                 11      2      0      0    82%   21-23
+src/routers/notifications.py                               18      6      2      0    60%   22-25, 33-34
+src/routers/pricing.py                                     28     11      8      0    47%   28-42
+src/routers/scrapers.py                                    15      4      0      0    73%   25-35
+src/routers/websocket.py                                   26     15      2      0    39%   24-41
+src/scrapers/__init__.py                                    0      0      0      0   100%
+src/scrapers/__pycache__/__init__.py                        0      0      0      0   100%
+src/scrapers/base_scraper.py                               40      0      0      0   100%
+src/scrapers/nse_next_scraper.py                           45      6      4      1    86%   58->56, 81-82, 85-88
+src/scrapers/scraper_factory.py                            10     10      4      0     0%   3-21
+src/scrapers/spy_scraper.py                                34      2      8      2    90%   40, 69
+src/scripts/__init__.py                                     0      0      0      0   100%
+src/scripts/__pycache__/__init__.py                         0      0      0      0   100%
+src/scripts/run_experiments.py                             22      2      4      1    88%   45-47
+src/storage/__init__.py                                     0      0      0      0   100%
+src/storage/__pycache__/__init__.py                         0      0      0      0   100%
+src/storage/minio_client.py                                19      0      4      0   100%
+src/storage/storage_service.py                             30      0      2      0   100%
+src/websocket/__init__.py                                   0      0      0      0   100%
+src/websocket/__pycache__/__init__.py                       0      0      0      0   100%
+src/websocket/channels.py                                   2      0      0      0   100%
+src/websocket/manager.py                                   56     11     14      4    76%   47-48, 52->63, 60-61, 72-73, 76, 89->88, 92-95
+---------------------------------------------------------------------------------------------------
+TOTAL                                                    1240    255    130     10    78%
+
+FAIL Required test coverage of 100.0% not reached. Total coverage: 77.59%
+======================== 59 passed, 2 warnings in 5.10s ========================

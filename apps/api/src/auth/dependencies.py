@@ -1,15 +1,22 @@
 """Authentication dependencies for FastAPI."""
+
 from __future__ import annotations
+
 from typing import Any, cast
-from fastapi import Depends, HTTPException, status, WebSocket
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from src.database.supabase_client import get_supabase
+
 import structlog
+from fastapi import Depends, HTTPException, WebSocket, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
+from src.database.supabase_client import get_supabase
 
 logger = structlog.get_logger(__name__)
 security = HTTPBearer()
 
-async def get_current_user(auth: HTTPAuthorizationCredentials = Depends(security)) -> dict[str, Any]:
+
+async def get_current_user(
+    auth: HTTPAuthorizationCredentials = Depends(security),
+) -> dict[str, Any]:
     """Verify JWT from Authorization header and return user data."""
     client = get_supabase()
     try:
@@ -29,13 +36,14 @@ async def get_current_user(auth: HTTPAuthorizationCredentials = Depends(security
             detail="Authentication failed",
         ) from error
 
+
 async def verify_ws_token(websocket: WebSocket) -> str:
     """Verify JWT from WebSocket query parameter."""
     token = websocket.query_params.get("token")
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Missing token")
         raise HTTPException(status_code=403, detail="Missing WebSocket token")
-    
+
     client = get_supabase()
     try:
         user_response = client.auth.get_user(token)
