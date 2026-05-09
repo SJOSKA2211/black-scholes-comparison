@@ -1,4 +1,4 @@
-"""New scraper tests."""
+"""Unit tests for scrapers."""
 from __future__ import annotations
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -23,18 +23,18 @@ def p():
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_spy_new(p):
+async def test_spy_scraper_run_success(p):
     m, pg = p; s = SpyScraper()
-    pg.locator.return_value.first.inner_text = AsyncMock(return_value="500")
+    pr = MagicMock(); pr.inner_text = AsyncMock(return_value="500"); pr.first = pr
     r = MagicMock(); r.locator.return_value.all = AsyncMock(return_value=[mk("S1"), mk(0), mk(700), mk(0), mk(10), mk(11)])
     rows = MagicMock(); rows.all = AsyncMock(return_value=[r])
-    pg.locator.side_effect = lambda sel: MagicMock(all=AsyncMock(return_value=[r])) if "quote" in sel else MagicMock(first=MagicMock(inner_text=AsyncMock(return_value="500")))
+    pg.locator.side_effect = lambda sel: pr if "price" in sel or "livePrice" in sel else rows
     with patch("src.scrapers.spy_scraper.async_playwright", return_value=CM(m)):
         res = await s.run(date.today()); assert res.status == "success"
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_nse_new(p):
+async def test_nse_scraper_run_success(p):
     m, pg = p; s = NseScraper()
     h = MagicMock(inner_text=AsyncMock(return_value="Contract Name"))
     d = MagicMock(inner_text=AsyncMock(return_value="KCB"))
@@ -46,7 +46,7 @@ async def test_nse_new(p):
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_err_new():
+async def test_spy_scraper_exception_handling():
     s = SpyScraper()
     with patch("src.scrapers.spy_scraper.async_playwright", side_effect=Exception("err")):
         res = await s.run(date.today()); assert res.status == "failed"
